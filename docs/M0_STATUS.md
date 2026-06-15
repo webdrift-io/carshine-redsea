@@ -1,6 +1,6 @@
 # M0 Status
 
-Status: M0-000 safe baseline complete; M0-001 schema foundation implemented; M0-002b config/audit gate complete; M0-003 public booking API v2 implemented.
+Status: M0-000 safe baseline complete; M0-001 schema foundation implemented; M0-002b config/audit gate complete; M0-003 public booking API v2 implemented; M0-003b payment/slot preconditions implemented.
 
 M0 target: customer creates booking, booking appears in dashboard calendar,
 owner assigns cleaner, payment is tracked and verified, and customer receives
@@ -51,6 +51,17 @@ confirmation.
 
 - Legacy local DB row counts changed during test/import activity, but no destructive migration was performed. The pre-M0 DB copy is preserved in ignored backups.
 - M0 tables are now used by `/api/public/bookings`. Landing-page wiring is still M0-004.
+
+## M0-003b Results
+
+- `COLLECTING_INFO` and `NEEDS_HUMAN` bookings no longer create `payments` or `payment_events` rows.
+- `bookings_v2.payment_status` is set to `'UNPAID'` as a schema-required placeholder (column is NOT NULL); no payment object exists.
+- API response returns `paymentStatus: null` and `paymentId: undefined` for non-QUOTED bookings to clearly communicate no payment was set up.
+- Slot/past-time precondition added: before creating a `QUOTED` booking, `checkSlotConflict()` validates `scheduledStart` is in the future and checks for conflicting `QUOTED`/`CONFIRMED`/`IN_PROGRESS` bookings at the same time.
+- Past-time returns `{ success: false, status: 'COLLECTING_INFO', missingFields: ['scheduledStart'] }` without creating any rows.
+- Slot conflict returns `{ success: false, status: 'NEEDS_HUMAN' }` without creating any rows.
+- 3 new tests; total 140 passing (from 137).
+- All existing M0-003 tests continue to pass with no behavior regression for QUOTED bookings.
 
 ## Next Recommended PR
 
@@ -119,3 +130,32 @@ M0-004: wire the landing booking form to `/api/public/bookings` and remove fake 
 - Idempotency on `(customer_id, scheduled_start, service_package_id, source='WEB_FORM')` within 5 minutes.
 - 6 new integration tests; total `service-agent` test count goes from 131 to 137.
 - Does not touch the migration runner, the M0 schema, the seed, or the payment-safety triggers.
+
+---
+
+## Hermes Review of M0-003 (2026-06-15)
+
+### Verdict
+**PASS** — start M0-004 (landing form real wiring). M0-003b is a small follow-up that can ship in parallel with M0-004.
+
+### What M0-003 delivered
+- New service `service-agent/services/public-bookings.js` (646 lines). All M0 writes in one transaction.
+- `POST /api/public/bookings` is now thin: 14 lines that delegate to the service. Legacy `db.createBooking` is gone from this route.
+- Idempotency: explicit key (stored in `bookings_v2.notes`) + implicit `(phone, time, package, source='WEB_FORM')` within 5 min.
+- Status machine: `COLLECTING_INFO` for missing fields, `NEEDS_HUMAN` for email/intent, `QUOTED` when complete. Never `BOOKED`.
+- Payment safety: initial state is `PAYMENT_INSTRUCTIONS_SENT` or `UNPAID`. Never `VERIFIED`. Verified by a poison test.
+- Channel memory: `conversations_v2` + `messages_v2` for CHATBOT, WHATSAPP, EMAIL sources; `agent_actions` for CHATBOT.
+- 6 new tests, all real. Total 137 passing. Live DB row counts: 0 in M0 tables, 27 in legacy `bookings` (preserved).
+
+### Open items for the next PRs
+1. **M0-003b (Codex, parallel with M0-004):** skip `payments` row when `status === 'COLLECTING_INFO'`; add a `slot_check` precondition before `QUOTED`. 3 new tests, total → 140.
+2. **M0-004 (MiniMax, frontend):** wire the landing form to the new payload. No fake success. 201-with-COLLECTING_INFO UI.
+3. **M0-005 (MiniMax + Codex):** dashboard reads from `bookings_v2` instead of `bookings`. Calendar uses real booking data.
+4. **M0-006 (Codex):** payment review queue; render payment instructions from env; verify/reject buttons.
+5. **M0-007 (Codex + MiniMax):** cleaner assignment + status transitions.
+6. **M0-008 (QA + MiniMax):** Playwright E2E in EN/AR/DE; full M0 scenario.
+
+### Owner / next action
+- **MiniMax/frontend:** M0-004 PR (landing form). The exact prompt is being drafted in `docs/M0_REVIEW_000_003.md` §13.
+- **Codex:** M0-003b PR. The exact prompt is in `docs/M0_REVIEW_000_003.md` §13.
+- **Hermes:** review M0-003b and M0-004 when they land. Do not expand scope.

@@ -104,13 +104,72 @@ describe('M0 public booking API service', () => {
     });
 
     const booking = database.db.prepare('SELECT * FROM bookings_v2 WHERE id = ?').get(result.bookingV2Id);
-    const payment = database.db.prepare('SELECT * FROM payments WHERE id = ?').get(result.paymentId);
 
     expect(result.status).toBe('COLLECTING_INFO');
     expect(result.missingFields).toEqual(expect.arrayContaining(['servicePackage', 'address', 'scheduledStart']));
+    expect(result.paymentId).toBeUndefined();
+    expect(result.paymentStatus).toBeNull();
     expect(booking.status).toBe('COLLECTING_INFO');
     expect(booking.status).not.toBe('BOOKED');
-    expect(payment.status).toBe('PAYMENT_INSTRUCTIONS_SENT');
+    expect(booking.payment_status).toBe('UNPAID');
+  });
+
+  it('does not create payment or payment_event rows for COLLECTING_INFO bookings', () => {
+    const result = createPublicBooking({
+      customerName: 'Hana',
+      phone: '01022222222',
+      source: 'web_form'
+    });
+
+    const paymentCount = database.db
+      .prepare('SELECT COUNT(*) AS count FROM payments WHERE booking_id = ?')
+      .get(result.bookingV2Id).count;
+    const eventCount = database.db
+      .prepare(`SELECT COUNT(*) AS count FROM payment_events pe
+                JOIN payments p ON pe.payment_id = p.id
+                WHERE p.booking_id = ?`)
+      .get(result.bookingV2Id).count;
+
+    expect(result.status).toBe('COLLECTING_INFO');
+    expect(result.paymentId).toBeUndefined();
+    expect(paymentCount).toBe(0);
+    expect(eventCount).toBe(0);
+  });
+
+  it('rejects past scheduledStart and does not create a booking', () => {
+    const result = createPublicBooking(validBookingPayload({
+      scheduledStart: '2020-01-01T10:00:00+02:00',
+      preferredDate: undefined,
+      preferredTime: undefined,
+      idempotencyKey: 'past-time-test-1'
+    }));
+
+    const bookingCount = database.db.prepare('SELECT COUNT(*) AS count FROM bookings_v2').get().count;
+
+    expect(result.success).toBe(false);
+    expect(result.status).toBe('COLLECTING_INFO');
+    expect(result.missingFields).toContain('scheduledStart');
+    expect(bookingCount).toBe(0);
+  });
+
+  it('rejects conflicting slot and does not create a second QUOTED booking', () => {
+    const first = createPublicBooking(validBookingPayload({ idempotencyKey: 'slot-first-1' }));
+    expect(first.status).toBe('QUOTED');
+
+    const second = createPublicBooking(validBookingPayload({
+      customerName: 'Ahmed Ali',
+      phone: '01033333333',
+      email: 'ahmed@example.com',
+      idempotencyKey: 'slot-second-1'
+    }));
+
+    const quotedCount = database.db
+      .prepare("SELECT COUNT(*) AS count FROM bookings_v2 WHERE status = 'QUOTED'")
+      .get().count;
+
+    expect(second.success).toBe(false);
+    expect(second.status).toBe('NEEDS_HUMAN');
+    expect(quotedCount).toBe(1);
   });
 
   it('returns the same booking for duplicate idempotency keys', () => {

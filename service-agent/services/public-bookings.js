@@ -14,16 +14,32 @@ function createPublicBooking(input = {}) {
 
   return db.transaction(() => {
     const now = new Date().toISOString();
-    const customer = upsertCustomer(normalized, now);
     const servicePackage = resolveServicePackage(normalized, now);
     const missingFields = getMissingFields(normalized, servicePackage);
-    const status = normalized.needsHuman ? 'NEEDS_HUMAN' : missingFields.length > 0 ? 'COLLECTING_INFO' : 'QUOTED';
+    const draftStatus = normalized.needsHuman ? 'NEEDS_HUMAN' : missingFields.length > 0 ? 'COLLECTING_INFO' : 'QUOTED';
+
+    // Slot/past-time precondition — runs before any customer/booking writes
+    if (draftStatus === 'QUOTED') {
+      const slotError = checkSlotConflict(normalized);
+      if (slotError) return slotError;
+    }
+
+    const customer = upsertCustomer(normalized, now);
     const vehicle = createVehicleIfPresent(customer.id, normalized, now);
     const schedule = buildSchedule(normalized.scheduledStart, servicePackage);
     const publicRef = generatePublicRef(now);
     const bookingId = createId('book');
-    const paymentInstructions = getPaymentInstructions(publicRef, servicePackage, normalized.language);
-    const paymentStatus = paymentInstructions ? 'PAYMENT_INSTRUCTIONS_SENT' : 'UNPAID';
+
+    // Payment setup only for QUOTED bookings
+    // bookings_v2.payment_status is NOT NULL, so use UNPAID as a placeholder for non-QUOTED rows
+    // where no payments row is created. API response returns null for those cases.
+    let paymentInstructions = null;
+    let paymentStatus = 'UNPAID';
+    if (draftStatus === 'QUOTED') {
+      paymentInstructions = getPaymentInstructions(publicRef, servicePackage, normalized.language);
+      paymentStatus = paymentInstructions ? 'PAYMENT_INSTRUCTIONS_SENT' : 'UNPAID';
+    }
+
     const notes = buildBookingNotes(normalized, missingFields, servicePackage.fallback);
 
     insertBooking({
@@ -34,7 +50,7 @@ function createPublicBooking(input = {}) {
       servicePackageId: servicePackage.id,
       scheduledStart: schedule.start,
       scheduledEnd: schedule.end,
-      status,
+      status: draftStatus,
       paymentStatus,
       source: normalized.source,
       language: normalized.language,
@@ -44,7 +60,7 @@ function createPublicBooking(input = {}) {
 
     insertStatusHistory({
       bookingId,
-      toStatus: status,
+      toStatus: draftStatus,
       actorType: normalized.source === 'CHATBOT' ? 'AI' : 'CUSTOMER',
       reason: 'public_booking_created',
       metadata: {
@@ -56,26 +72,30 @@ function createPublicBooking(input = {}) {
       now
     });
 
-    const payment = insertPayment({
-      bookingId,
-      amount: servicePackage.priceAmount,
-      currency: servicePackage.priceCurrency,
-      status: paymentStatus,
-      method: paymentInstructions ? 'INSTAPAY' : normalizePaymentMethod(normalized.paymentMethod),
-      now
-    });
-
-    insertPaymentEvent({
-      paymentId: payment.id,
-      eventType: paymentInstructions ? 'INSTRUCTIONS_SENT' : 'CREATED',
-      actorType: 'SYSTEM',
-      metadata: {
+    // Only create payment rows for QUOTED bookings
+    let payment = null;
+    if (draftStatus === 'QUOTED') {
+      payment = insertPayment({
         bookingId,
-        publicRef,
-        instructionsSent: Boolean(paymentInstructions)
-      },
-      now
-    });
+        amount: servicePackage.priceAmount,
+        currency: servicePackage.priceCurrency,
+        status: paymentStatus,
+        method: paymentInstructions ? 'INSTAPAY' : normalizePaymentMethod(normalized.paymentMethod),
+        now
+      });
+
+      insertPaymentEvent({
+        paymentId: payment.id,
+        eventType: paymentInstructions ? 'INSTRUCTIONS_SENT' : 'CREATED',
+        actorType: 'SYSTEM',
+        metadata: {
+          bookingId,
+          publicRef,
+          instructionsSent: Boolean(paymentInstructions)
+        },
+        now
+      });
+    }
 
     const conversation = createConversationAndMessageIfNeeded({
       normalized,
@@ -93,7 +113,7 @@ function createPublicBooking(input = {}) {
           source: normalized.source
         },
         output: {
-          status,
+          status: draftStatus,
           paymentStatus,
           missingFields
         },
@@ -107,7 +127,7 @@ function createPublicBooking(input = {}) {
       customer,
       vehicle,
       payment,
-      status,
+      status: draftStatus,
       paymentStatus,
       missingFields,
       paymentInstructions,
@@ -115,6 +135,37 @@ function createPublicBooking(input = {}) {
       servicePackage
     });
   })();
+}
+
+function checkSlotConflict(normalized) {
+  const scheduledDate = new Date(normalized.scheduledStart);
+  if (Number.isNaN(scheduledDate.getTime())) return null;
+
+  if (scheduledDate.getTime() < Date.now()) {
+    return {
+      success: false,
+      status: 'COLLECTING_INFO',
+      missingFields: ['scheduledStart'],
+      message: 'The requested time slot is in the past. Please provide a future date and time.'
+    };
+  }
+
+  const conflict = db.prepare(`
+    SELECT public_ref FROM bookings_v2
+    WHERE scheduled_start = ?
+      AND status IN ('QUOTED', 'CONFIRMED', 'IN_PROGRESS')
+    LIMIT 1
+  `).get(normalized.scheduledStart);
+
+  if (conflict) {
+    return {
+      success: false,
+      status: 'NEEDS_HUMAN',
+      message: 'The requested time slot is unavailable. Please choose a different time or contact us for assistance.'
+    };
+  }
+
+  return null;
 }
 
 function normalizeInput(input) {
@@ -597,9 +648,9 @@ function buildCreatedResponse(data) {
     bookingV2Id: data.bookingId,
     customerId: data.customer.id,
     vehicleId: data.vehicle ? data.vehicle.id : undefined,
-    paymentId: data.payment.id,
+    paymentId: data.payment ? data.payment.id : undefined,
     status: data.status,
-    paymentStatus: data.paymentStatus,
+    paymentStatus: data.payment ? data.paymentStatus : null,
     message,
     paymentInstructions: data.paymentInstructions || undefined,
     missingFields: data.missingFields.length ? data.missingFields : undefined,
