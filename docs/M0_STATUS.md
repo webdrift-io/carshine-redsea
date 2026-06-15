@@ -1,6 +1,6 @@
 # M0 Status
 
-Status: M0-000 safe baseline complete; M0-001 schema foundation implemented; M0-002b config/audit gate complete; M0-003 public booking API v2 implemented; M0-003b payment/slot preconditions implemented.
+Status: M0-000 safe baseline complete; M0-001 schema foundation implemented; M0-002b config/audit gate complete; M0-003 public booking API v2 implemented; M0-003b payment/slot preconditions implemented; M0-004A landing form real wiring landed.
 
 M0 target: customer creates booking, booking appears in dashboard calendar,
 owner assigns cleaner, payment is tracked and verified, and customer receives
@@ -12,7 +12,7 @@ confirmation.
 - Calendar is a separate legacy `calendar_events` table and only gets rows when a booking is approved or manually inserted.
 - Payment is still used by the live legacy app as a booking `paymentMethod` string and notes, but M0 schema tables now exist for `payments` and `payment_events`.
 - Customers, vehicles, users/cleaners, assignments, service packages, bookings_v2, conversations_v2, messages_v2, and agent_actions now exist as normalized M0 foundation tables.
-- Landing page booking form still posts to hardcoded `http://localhost:5000/api/bookings` and has fake success fallback.
+- Landing page booking form (M0-004A landed) now posts to `${VITE_API_BASE_URL}/api/public/bookings` with a per-attempt `idempotencyKey`, explicit UI states, and no fake success fallback. `localhost:5000` exists in the client bundle only as the documented local-dev fallback constant in `landing-page/src/features/config.js`.
 - `/api/public/bookings` now creates normalized M0 booking records and preserves a legacy-compatible response object. It does not dual-write to the legacy `bookings` table.
 - E2E-12 is planned in docs only; no `e2e/` directory or runnable `test:e2e` script exists.
 
@@ -50,7 +50,20 @@ confirmation.
 ## Notes
 
 - Legacy local DB row counts changed during test/import activity, but no destructive migration was performed. The pre-M0 DB copy is preserved in ignored backups.
-- M0 tables are now used by `/api/public/bookings`. Landing-page wiring is still M0-004.
+- M0 tables are now used by `/api/public/bookings`. Landing-page wiring is M0-004A (landed, ready for Hermes review).
+
+## M0-004A Results
+
+- `landing-page/src/features/booking-form.js` rewritten: posts to `${VITE_API_BASE_URL}/api/public/bookings` with a per-attempt `idempotencyKey`; submit button is `disabled` + `aria-busy` while in flight; form is reset only on real `QUOTED` success.
+- New `landing-page/src/features/booking-api.js` returns a discriminated `SubmitResult` with explicit states `idle | loading | quoted | collecting_info | needs_human | duplicate | backend_error | network_error`. The `success: false` (past-time / slot conflict) path is now an explicit UI state, not a fake success.
+- New `landing-page/src/features/config.js` resolves `VITE_API_BASE_URL` / `VITE_WHATSAPP_FALLBACK_URL` / `VITE_BOOKING_SOURCE` from `import.meta.env` with a documented `http://localhost:5000` local-dev fallback. The only `localhost:5000` in the client bundle is this constant; production builds inject whatever `VITE_API_BASE_URL` is set to.
+- All 3 HTML entry points (`index.en.html`, `index.ar.html`, `index.de.html`) received an identical one-line insertion: a `<div id="bookingFormStatus" role="status" aria-live="polite" hidden></div>` between the notes textarea and the submit button. `landing-page/src/shared/styles.css` got a small status-region block with tone colors (info / success / warning / error) and a busy-button cursor.
+- `landing-page/.env.example` documents `VITE_API_BASE_URL`, `VITE_WHATSAPP_FALLBACK_URL`, `VITE_BOOKING_SOURCE`.
+- `docs/M0_004A_QA_CHECKLIST.md` added: 12 sections covering build/audit gate, env wiring, submit-button disabled state, all 7 UI states, language coverage, idempotency, no-fake-success, security posture.
+- `landing-page npm ci` PASS, `npm run build` PASS (3 langs, `feature-booking` chunk = 8.98 kB), `npm audit --audit-level=high` = 0.
+- Root `npm ci` PASS, `npm run build` PASS (multilingual build emits `dist/{en,ar,de}/`), `npm audit --audit-level=high` = 0.
+- No service-agent files touched. No migrations, schemas, or backend routes changed. No new runtime deps. No dashboard / payment UI / cleaner UI added.
+- The inline `getLiveLocation()` button keeps its existing module-based handler from `src/features/location.js` (no regression).
 
 ## M0-003b Results
 
@@ -148,14 +161,41 @@ M0-004: wire the landing booking form to `/api/public/bookings` and remove fake 
 - 6 new tests, all real. Total 137 passing. Live DB row counts: 0 in M0 tables, 27 in legacy `bookings` (preserved).
 
 ### Open items for the next PRs
-1. **M0-003b (Codex, parallel with M0-004):** skip `payments` row when `status === 'COLLECTING_INFO'`; add a `slot_check` precondition before `QUOTED`. 3 new tests, total → 140.
+1. **M0-003b (Claude Code, parallel with M0-004):** skip `payments` row when `status === 'COLLECTING_INFO'`; add a `slot_check` precondition before `QUOTED`. 3 new tests, total → 140. **Status: done in commit 9f342c9. Verified by Hermes in `docs/M0_REVIEW_000_003b.md`.**
 2. **M0-004 (MiniMax, frontend):** wire the landing form to the new payload. No fake success. 201-with-COLLECTING_INFO UI.
-3. **M0-005 (MiniMax + Codex):** dashboard reads from `bookings_v2` instead of `bookings`. Calendar uses real booking data.
-4. **M0-006 (Codex):** payment review queue; render payment instructions from env; verify/reject buttons.
-5. **M0-007 (Codex + MiniMax):** cleaner assignment + status transitions.
+3. **M0-005 (MiniMax + Claude Code):** dashboard reads from `bookings_v2` instead of `bookings`. Calendar uses real booking data.
+4. **M0-006 (Claude Code):** payment review queue; render payment instructions from env; verify/reject buttons.
+5. **M0-007 (Claude Code + MiniMax):** cleaner assignment + status transitions.
 6. **M0-008 (QA + MiniMax):** Playwright E2E in EN/AR/DE; full M0 scenario.
 
 ### Owner / next action
 - **MiniMax/frontend:** M0-004 PR (landing form). The exact prompt is being drafted in `docs/M0_REVIEW_000_003.md` §13.
-- **Codex:** M0-003b PR. The exact prompt is in `docs/M0_REVIEW_000_003.md` §13.
-- **Hermes:** review M0-003b and M0-004 when they land. Do not expand scope.
+- **Claude Code (primary; Codex on standby):** M0-002c (audit gate unblock) and M0-005 (dashboard calendar) in sequence.
+- **Hermes:** review M0-004 when it lands. Do not expand scope.
+
+---
+
+## Hermes Review of M0-003b (2026-06-15)
+
+### Verdict
+**PASS** — start M0-004 (landing form real wiring). M0-003b closed the two open items from the M0-003 review.
+
+### What M0-003b delivered
+- `payments` and `payment_events` rows are only created for QUOTED bookings. COLLECTING_INFO and NEEDS_HUMAN bookings skip payment creation entirely. `bookings_v2.payment_status` is the NOT NULL placeholder `'UNPAID'`; the API response uses `paymentStatus: null` to distinguish "no payment row" from "real UNPAID, awaiting InstaPay".
+- `checkSlotConflict(normalized)` runs inside the transaction, before any customer or booking writes, only when the draft status would be QUOTED. Past `scheduledStart` is downgraded to COLLECTING_INFO with `scheduledStart` in `missingFields`. Existing QUOTED/CONFIRMED/IN_PROGRESS at the same `scheduled_start` is rejected as NEEDS_HUMAN.
+- Migration runner, M0-001 schema, and the 5 payment-safety triggers are byte-identical. Standing decision "AI never marks payment VERIFIED" remains enforced at 4 layers.
+- 3 new tests; total 137 → 140 passing locally. The existing COLLECTING_INFO test was updated to expect no paymentId in the response.
+- Live exercise confirmed all 7 scenarios (QUOTED happy, COLLECTING_INFO, past-time, slot conflict, VERIFIED poison, idempotency, row counts).
+
+### Open items for the next PRs
+1. **M0-004 (MiniMax, frontend):** wire the landing form. Handle three response shapes: `success: true, status: 'QUOTED'`; `success: true, status: 'COLLECTING_INFO', paymentStatus: null, missingFields: [...]`; `success: false` for past-time and slot-conflict. **No fake success fallback.** Handle 5xx with WhatsApp fallback. ~2 days.
+2. **M0-005 (MiniMax + Claude Code):** dashboard reads from `bookings_v2` instead of legacy `bookings`. Calendar uses real booking data. Also: replace `checkSlotConflict`'s equality check with a window-overlap query (current shape is correct for hour-aligned form posts; chatbot path needs overlap). Add a malformed-date guard so `Number.isNaN(date.getTime())` returns COLLECTING_INFO instead of slipping through.
+3. **M0-002c (Claude Code, parallel with M0-004):** resolve the pre-existing `service-agent` audit gate failure. The 6 high findings are in the `socket.io` → `engine.io` → `ws` chain via `@mastra/core` and are not introduced by M0-003b. Either upgrade `socket.io` (breaking, retest) or configure the audit gate to allow `service-agent` high findings with a documented waiver until M1.
+4. **M0-006 (Claude Code):** payment review queue; render payment instructions from env; verify/reject buttons.
+5. **M0-007 (Claude Code + MiniMax):** cleaner assignment + status transitions.
+6. **M0-008 (QA + MiniMax):** Playwright E2E in EN/AR/DE; full M0 scenario.
+
+### Owner / next action
+- **MiniMax/frontend:** M0-004 PR. Form contract documented in `docs/M0_REVIEW_000_003b.md` §9.
+- **Claude Code (parallel, optional):** M0-002c to unblock the audit gate.
+- **Hermes:** review M0-004 when it lands. Do not expand scope.

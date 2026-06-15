@@ -1,6 +1,6 @@
 # Agent Handoff
 
-Status: M0-000 complete; M0-001 implemented and verified; M0-002b complete; M0-003 implemented and verified by Hermes; M0-003b implemented.
+Status: M0-000 complete; M0-001 implemented and verified; M0-002b complete; M0-003 implemented and verified by Hermes; M0-003b implemented; M0-004A landed.
 
 ## Current Controller Notes
 
@@ -31,6 +31,7 @@ Status: M0-000 complete; M0-001 implemented and verified; M0-002b complete; M0-0
 - Incomplete public intake creates `COLLECTING_INFO` rows with explicit `missingFields`. Schema-required missing service/time values use documented intake placeholders.
 - M0-003b: `payments` and `payment_events` rows are only created for `QUOTED` bookings. `COLLECTING_INFO` and `NEEDS_HUMAN` bookings store no payment rows; API returns `paymentStatus: null`.
 - M0-003b: slot/past-time precondition: past `scheduledStart` or conflicting active slot blocks `QUOTED` creation and returns a non-success response without writing any booking rows.
+- M0-004A: landing form real wiring. `landing-page/src/features/booking-form.js` now posts to `${VITE_API_BASE_URL}/api/public/bookings` with a per-attempt `idempotencyKey`. `landing-page/src/features/config.js` resolves `VITE_API_BASE_URL` / `VITE_WHATSAPP_FALLBACK_URL` / `VITE_BOOKING_SOURCE`; the only `localhost:5000` in the client bundle is the documented local-dev fallback constant. `landing-page/src/features/booking-api.js` returns a discriminated `SubmitResult` with explicit states `idle | loading | quoted | collecting_info | needs_human | duplicate | backend_error | network_error`. Fake success path removed. Submit button is `disabled` + `aria-busy` during the request. Form is reset only on real `QUOTED` success. `landing-page/.env.example` documents the new env vars. Manual QA checklist added at `docs/M0_004A_QA_CHECKLIST.md` (12 sections). EN/AR/DE HTML status region is identical across builds. No service-agent files touched. No new dev-deps. Root + landing `npm audit --audit-level=high` = 0.
 
 ## Verification Snapshot
 
@@ -57,3 +58,14 @@ Status: M0-000 complete; M0-001 implemented and verified; M0-002b complete; M0-0
 - The audit's standing decision "AI must never mark payment VERIFIED" remains enforced at the DB layer and is now also enforced at the API layer.
 - Codex M0-003 prompt accepted as-is with four small follow-ups (§11 of the review) that do not block M0-004.
 - Full review: `docs/M0_REVIEW_000_003.md`.
+
+## M0-003b Verified by Hermes (2026-06-15)
+
+- **Pass.** 140 tests green. COLLECTING_INFO no longer creates payment rows. Past-time and slot conflicts are rejected without writing booking rows.
+- All 5 M0-001 payment-safety triggers are byte-identical and still enforce the standing decision.
+- Live exercise confirmed: QUOTED happy, COLLECTING_INFO, past-time, slot conflict, VERIFIED poison, idempotency, row counts. 4 payments for 3 QUOTED bookings (one is the idempotent reuse of the first). Legacy `bookings` table untouched.
+- The 6 high-severity `service-agent` audit findings are pre-existing (Mastra → socket.io → engine.io → ws chain) and not introduced by M0-003b. The M0-002b audit gate is currently red for `service-agent`; this is a pre-existing failure tracked under M0-002c.
+- Three small next-PR notes (form contract for `success: false`, window-overlap slot check, malformed-date guard) are documented in `docs/M0_REVIEW_000_003b.md` §3.
+- Next backend task: M0-005 (dashboard calendar + slot-check refinement). M0-004 (landing form) is owned by MiniMax/frontend.
+- **Implementation agent: Claude Code** (Co-Authored-By: Claude Sonnet 4.6 in commit 9f342c9). Codex is on standby.
+- Full review: `docs/M0_REVIEW_000_003b.md`.

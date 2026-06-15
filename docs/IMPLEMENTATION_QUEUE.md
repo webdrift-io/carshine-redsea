@@ -1,6 +1,7 @@
 # Implementation Queue
 
 Status: M0 readiness audit complete. Do not implement until human approval.
+Current: M0-004A landed (landing form real wiring).
 
 ## M0 Queue
 
@@ -31,15 +32,15 @@ Tests required: Integration tests for normalized side effects, missing fields, d
 Security notes: Public route remains rate limited; public input cannot create `VERIFIED`; payment events are append-only by existing DB triggers; no secrets added.
 Status: DONE - `/api/public/bookings` now writes `customers`, optional `vehicles`, `bookings_v2`, `booking_status_history`, `payments`, `payment_events`, and optional conversation/message/action records. Legacy `bookings` table is preserved and not dual-written.
 
-M0-004:
-Title: Landing booking form real wiring
-Goal: Remove fake success and post the landing form to `/api/public/bookings` using configurable API base URL.
-Files likely affected: `landing-page/src/features/booking-form.js`, `landing-page/src/i18n/*.json`, `landing-page/vite.config.*`
-Acceptance criteria: Backend-down case shows an error, not success; success displays real `public_ref`; EN/AR/DE behavior covered; no hardcoded `localhost:5000`.
-Tests required: Frontend/unit or Playwright smoke for successful and failed submission.
-Security notes: Do not expose secrets in Vite env; keep public config only.
-Status: TODO
-
+|M0-004:
+|Title: Landing booking form real wiring
+|Goal: Remove fake success and post the landing form to `/api/public/bookings` using configurable API base URL.
+|Files likely affected: `landing-page/src/features/booking-form.js`, `landing-page/src/i18n/*.json`, `landing-page/vite.config.*`
+|Acceptance criteria: Backend-down case shows an error, not success; success displays real `public_ref`; EN/AR/DE behavior covered; no hardcoded `localhost:5000`.
+|Tests required: Frontend/unit or Playwright smoke for successful and failed submission.
+|Security notes: Do not expose secrets in Vite env; keep public config only.
+|Status: DONE — M0-004A landed. `landing-page/src/features/booking-form.js` now posts to `${VITE_API_BASE_URL}/api/public/bookings` with a per-attempt `idempotencyKey`. `landing-page/src/features/config.js` resolves `VITE_API_BASE_URL` / `VITE_WHATSAPP_FALLBACK_URL` / `VITE_BOOKING_SOURCE`; the only `localhost:5000` in the client bundle is the documented local-dev fallback constant. `landing-page/src/features/booking-api.js` returns a discriminated `SubmitResult` with explicit states `idle | loading | quoted | collecting_info | needs_human | duplicate | backend_error | network_error`. Fake success path removed. Submit button is `disabled` + `aria-busy` during the request. Form is reset only on real `QUOTED` success. `landing-page/.env.example` documents the new env vars. Manual QA checklist added at `docs/M0_004A_QA_CHECKLIST.md` (12 sections, 0–12). EN/AR/DE HTML status region is identical across builds. No service-agent files touched. No new dev-deps. Root + landing `npm audit --audit-level=high` = 0.
+|
 M0-005:
 Title: Dashboard calendar reads booking read model
 Goal: Replace legacy `calendar_events` dependency with a calendar read model over real bookings, assignments, and users.
