@@ -34,6 +34,13 @@ service-agent/
 │   └── 090_seed_dev_data.js
 ```
 
+**Implemented M0 naming note:** the non-destructive M0 foundation keeps the
+legacy `bookings`, `chat_sessions`, and `chat_messages` tables unchanged for
+one release. Normalized replacements therefore use v2 suffixes where needed:
+`bookings_v2`, `conversations_v2`, and `messages_v2`. This preserves legacy data
+and lets routes migrate gradually. Legacy tables remain preserved until the app
+fully moves to the normalized model.
+
 Each migration exports:
 ```js
 module.exports = {
@@ -193,8 +200,8 @@ The product catalog. **Replaces "payment" being a free string.**
 
 Seed: at least 4 services (exterior sedan, exterior SUV, interior add-on, full detail).
 
-### 4.5 `bookings`
-The core operational record. **Existing `bookings` table is migrated into this shape, not replaced.**
+### 4.5 `bookings_v2`
+The core operational record. **Existing `bookings` is preserved; normalized M0 rows live in `bookings_v2` for one-release compatibility.**
 
 | Column | Type | Notes |
 |---|---|---|
@@ -309,7 +316,7 @@ Empty in M0, populated in M1. SlotValidator already references it.
 | `name` | TEXT | |
 | `closed` | INTEGER NOT NULL DEFAULT 1 | |
 
-### 4.12 `messages` + `message_events`
+### 4.12 `messages_v2` + future `message_events`
 The "we sent a WhatsApp" record, so the dashboard can show real delivery state.
 
 | Column | Type | Notes |
@@ -330,17 +337,17 @@ The "we sent a WhatsApp" record, so the dashboard can show real delivery state.
 
 `message_events` mirrors `payment_events`: append-only, trigger-enforced, stores status transitions as they come back from the provider.
 
-### 4.13 `chat_sessions` + `chat_messages`
-**Keep the existing tables. Add columns, don't replace.**
+### 4.13 `conversations_v2` + legacy `chat_sessions` / `chat_messages`
+**Keep the existing tables. Add normalized v2 tables; don't replace legacy chat storage yet.**
 
-Add to `chat_sessions`:
+Normalized `conversations_v2` includes:
 - `customer_id` TEXT FK (nullable, set when matched)
 - `handoff_active` INTEGER DEFAULT 0
 - `handoff_owner_id` TEXT FK
 - `channel` TEXT — `WEB_CHAT` | `WHATSAPP` | `EMAIL`
 - `language` TEXT
 
-Add to `chat_messages`:
+Normalized `messages_v2` includes:
 - `customer_id` TEXT FK (denormalized for analytics)
 - `tool_calls` TEXT (JSON)
 - `tokens_in` INTEGER, `tokens_out` INTEGER
@@ -438,7 +445,7 @@ For each row in the existing `bookings` table:
 1. If `customer_name` and `phone` are present, create or match a `customers` row.
 2. Map `service` (current free string) to a `services` row by `code` (best-effort; if no match, create a `MISC` service).
 3. Create a `vehicles` row only if `car_type` is set.
-4. Insert into the new `bookings` with `public_ref` = `LEGACY-<old_id>`.
+4. Insert into the new `bookings_v2` with `public_ref` = `LEGACY-<old_id>`.
 5. Insert a `booking_status_history` row with `from_status = null`, `to_status = old.status`, `actor_type = 'SYSTEM'`, `reason = 'pre-rebuild migration'`.
 
 This is wrapped in `migrations/030_bookings_v2.js` `up()`. Old table is left intact for one release.

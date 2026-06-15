@@ -7,7 +7,7 @@ on:
     branches: [main, develop]
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '20.19.0'
 
 jobs:
   test:
@@ -130,15 +130,27 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
       
+      - name: Install dependencies (root)
+        run: npm ci
+      
+      - name: Audit dependencies (root)
+        run: npm audit --audit-level=high
+      
+      - name: Install dependencies (service-agent)
+        working-directory: service-agent
+        run: npm ci
+      
       - name: Audit dependencies (service-agent)
         working-directory: service-agent
         run: npm audit --audit-level=high
-        continue-on-error: true
+      
+      - name: Install dependencies (landing-page)
+        working-directory: landing-page
+        run: npm ci
       
       - name: Audit dependencies (landing-page)
         working-directory: landing-page
         run: npm audit --audit-level=high
-        continue-on-error: true
       
       - name: Check for hardcoded secrets
         run: |

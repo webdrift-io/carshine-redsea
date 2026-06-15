@@ -14,13 +14,13 @@ Security notes: No secrets in migrations or seed; dev seed gated from production
 Status: DONE
 
 M0-002:
-Title: Fix service dependency baseline and test runner scope
+Title: Fix service dependency baseline, env canonicalization, and audit gate
 Goal: Make `service-agent` install and checks reproducible so later PRs have a trustworthy gate.
 Files likely affected: `service-agent/package-lock.json`, `service-agent/package.json`, `service-agent/vitest.config.*`, `tsconfig.json` or `service-agent/tsconfig.json`
 Acceptance criteria: `npm ci`, `npm run lint`, `npm run typecheck`, and `npm run test` run from `service-agent`; Vitest does not collect tests from `node_modules`; Node version is documented.
 Tests required: Baseline command rerun evidence.
 Security notes: Do not run `npm audit fix --force` blindly; review dependency changes.
-Status: PARTIAL - `npm ci`, lint, typecheck, tests, and builds now run; dependency vulnerabilities remain to triage.
+Status: DONE - `npm ci`, lint, typecheck, tests, builds, and high-severity audit gates now run. Root/landing high findings cleared; service has low-only audit findings remaining.
 
 M0-003:
 Title: Public booking API v2

@@ -101,6 +101,45 @@ const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(64).toString('he
 const JWT_EXPIRES_IN = '8h';
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@carshineredsea.com';
 
+const warnedDeprecatedEnvAliases = new Set();
+const WHATSAPP_ENV_ALIASES = {
+  WHATSAPP_ACCESS_TOKEN: ['WHATSAPP_TOKEN', 'META_ACCESS_TOKEN'],
+  WHATSAPP_PHONE_NUMBER_ID: ['META_PHONE_NUMBER_ID'],
+  WHATSAPP_VERIFY_TOKEN: ['META_VERIFY_TOKEN', 'META_WEBHOOK_VERIFY_TOKEN'],
+  WHATSAPP_BUSINESS_ACCOUNT_ID: ['META_WABA_ID'],
+  WHATSAPP_APP_SECRET: ['META_APP_SECRET']
+};
+
+function warnDeprecatedEnvAlias(alias, canonical) {
+  const key = `${alias}->${canonical}`;
+  if (warnedDeprecatedEnvAliases.has(key)) return;
+  warnedDeprecatedEnvAliases.add(key);
+  console.warn(`[Config] ${alias} is deprecated. Do not use it for new setup. Use ${canonical}.`);
+}
+
+function getEnvValue(name, aliases = []) {
+  const canonical = process.env[name];
+  if (canonical && String(canonical).trim()) return canonical;
+
+  for (const alias of aliases) {
+    const value = process.env[alias];
+    if (value && String(value).trim()) {
+      warnDeprecatedEnvAlias(alias, name);
+      return value;
+    }
+  }
+
+  return '';
+}
+
+function warnDeprecatedWhatsappEnvAliases() {
+  for (const [canonical, aliases] of Object.entries(WHATSAPP_ENV_ALIASES)) {
+    getEnvValue(canonical, aliases);
+  }
+}
+
+warnDeprecatedWhatsappEnvAliases();
+
 // ============================================================================
 // JWT & AUTH HELPERS
 // ============================================================================
@@ -178,14 +217,14 @@ function requireAdmin(req, res, next) {
 
 function verifyMetaSignature(req, res, next) {
   const signature = req.headers['x-hub-signature-256'];
-  const appSecret = process.env.META_APP_SECRET;
+  const appSecret = getEnvValue('WHATSAPP_APP_SECRET', WHATSAPP_ENV_ALIASES.WHATSAPP_APP_SECRET);
   
   if (!appSecret) {
     if (isProduction) {
-      console.error('[Webhook] META_APP_SECRET missing in production; rejecting webhook');
+      console.error('[Webhook] WHATSAPP_APP_SECRET missing in production; rejecting webhook');
       return res.status(503).json({ error: 'Webhook signature verification is not configured' });
     }
-    console.warn('[Webhook] META_APP_SECRET not configured, skipping signature verification');
+    console.warn('[Webhook] WHATSAPP_APP_SECRET not configured, skipping signature verification');
     return next();
   }
   
@@ -393,8 +432,8 @@ let agents = [
   { id: "fares", name: "Fares", role: "Scale & Franchise Planner", status: "active", task: "Analyzing expansion metrics", logs: ["Cairo market research draft compiled."] }
 ];
 
-function hasUsableEnv(name, placeholders = []) {
-  const value = process.env[name];
+function hasUsableEnv(name, placeholders = [], aliases = []) {
+  const value = getEnvValue(name, aliases);
   if (!value || !String(value).trim()) return false;
   const lower = String(value).toLowerCase();
   return ![
@@ -429,23 +468,25 @@ function integrationStatus() {
       inboundWebhook: `${webhookBase}/api/webhook/whatsapp`,
       connected: (process.env.WHATSAPP_PROVIDER || 'meta') === 'twilio'
         ? hasUsableEnv('TWILIO_ACCOUNT_SID') && hasUsableEnv('TWILIO_AUTH_TOKEN') && hasUsableEnv('TWILIO_WHATSAPP_FROM')
-        : hasUsableEnv('WHATSAPP_TOKEN') && hasUsableEnv('WHATSAPP_PHONE_NUMBER_ID') && hasUsableEnv('WHATSAPP_VERIFY_TOKEN'),
-      signatureVerification: hasUsableEnv('META_APP_SECRET'),
+        : hasUsableEnv('WHATSAPP_ACCESS_TOKEN', [], WHATSAPP_ENV_ALIASES.WHATSAPP_ACCESS_TOKEN) &&
+          hasUsableEnv('WHATSAPP_PHONE_NUMBER_ID', [], WHATSAPP_ENV_ALIASES.WHATSAPP_PHONE_NUMBER_ID) &&
+          hasUsableEnv('WHATSAPP_VERIFY_TOKEN', [], WHATSAPP_ENV_ALIASES.WHATSAPP_VERIFY_TOKEN),
+      signatureVerification: hasUsableEnv('WHATSAPP_APP_SECRET', [], WHATSAPP_ENV_ALIASES.WHATSAPP_APP_SECRET),
       ownerNotifications: hasUsableEnv('ADMIN_WHATSAPP_PHONE'),
       adminPhone: process.env.ADMIN_WHATSAPP_PHONE || null,
       missing: [
         ...((process.env.WHATSAPP_PROVIDER || 'meta') === 'twilio'
           ? ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_WHATSAPP_FROM']
-          : ['WHATSAPP_TOKEN', 'WHATSAPP_PHONE_NUMBER_ID', 'WHATSAPP_VERIFY_TOKEN', 'META_APP_SECRET']),
+          : ['WHATSAPP_ACCESS_TOKEN', 'WHATSAPP_PHONE_NUMBER_ID', 'WHATSAPP_VERIFY_TOKEN', 'WHATSAPP_APP_SECRET']),
         'ADMIN_WHATSAPP_PHONE'
       ]
-        .filter(name => !hasUsableEnv(name))
+        .filter(name => !hasUsableEnv(name, [], WHATSAPP_ENV_ALIASES[name] || []))
     },
     social: {
       webhook: `${webhookBase}/api/webhook/meta`,
       instagramConnected: hasUsableEnv('META_PAGE_ACCESS_TOKEN') && hasUsableEnv('INSTAGRAM_BUSINESS_ACCOUNT_ID'),
       facebookConnected: hasUsableEnv('META_PAGE_ACCESS_TOKEN') && hasUsableEnv('FACEBOOK_PAGE_ID'),
-      missing: ['META_APP_ID', 'META_APP_SECRET', 'META_WEBHOOK_VERIFY_TOKEN', 'META_PAGE_ACCESS_TOKEN', 'FACEBOOK_PAGE_ID', 'INSTAGRAM_BUSINESS_ACCOUNT_ID']
+      missing: ['META_APP_ID', 'WHATSAPP_APP_SECRET', 'META_WEBHOOK_VERIFY_TOKEN', 'META_PAGE_ACCESS_TOKEN', 'FACEBOOK_PAGE_ID', 'INSTAGRAM_BUSINESS_ACCOUNT_ID']
         .filter(name => !hasUsableEnv(name))
     },
     payments: {
@@ -531,14 +572,16 @@ async function sendWhatsAppText(to, text) {
     return { sent: res.ok, provider, status: res.status, response: data };
   }
 
-  if (!hasUsableEnv('WHATSAPP_TOKEN') || !hasUsableEnv('WHATSAPP_PHONE_NUMBER_ID')) {
+  const whatsappAccessToken = getEnvValue('WHATSAPP_ACCESS_TOKEN', WHATSAPP_ENV_ALIASES.WHATSAPP_ACCESS_TOKEN);
+  const whatsappPhoneNumberId = getEnvValue('WHATSAPP_PHONE_NUMBER_ID', WHATSAPP_ENV_ALIASES.WHATSAPP_PHONE_NUMBER_ID);
+  if (!whatsappAccessToken || !whatsappPhoneNumberId) {
     return { sent: false, provider: 'meta', error: 'missing_meta_whatsapp_config' };
   }
   const toPhone = normalizePhoneForMeta(to);
-  const res = await fetch(`https://graph.facebook.com/v20.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`, {
+  const res = await fetch(`https://graph.facebook.com/v20.0/${whatsappPhoneNumberId}/messages`, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`,
+      Authorization: `Bearer ${whatsappAccessToken}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
@@ -1251,7 +1294,7 @@ app.get('/api/webhook/meta', (req, res) => {
   const mode = req.query['hub.mode'];
   const token = req.query['hub.verify_token'];
   const challenge = req.query['hub.challenge'];
-  const expected = process.env.META_WEBHOOK_VERIFY_TOKEN || process.env.WHATSAPP_VERIFY_TOKEN;
+  const expected = getEnvValue('WHATSAPP_VERIFY_TOKEN', WHATSAPP_ENV_ALIASES.WHATSAPP_VERIFY_TOKEN);
   if (mode === 'subscribe' && expected && token === expected) {
     return res.status(200).send(challenge);
   }
@@ -1350,7 +1393,7 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`Allowed origins: ${allowedOrigins.join(', ')}`);
   console.log(`Health check: http://localhost:${PORT}/health`);
   console.log(`Auth: JWT enabled (HS256, ${JWT_EXPIRES_IN} expiry)`);
-  console.log(`Webhook: ${process.env.WHATSAPP_PROVIDER || 'meta'} signature verification ${process.env.META_APP_SECRET || process.env.TWILIO_AUTH_TOKEN ? 'ENABLED' : 'DISABLED (no secret)'}`);
+  console.log(`Webhook: ${process.env.WHATSAPP_PROVIDER || 'meta'} signature verification ${getEnvValue('WHATSAPP_APP_SECRET', WHATSAPP_ENV_ALIASES.WHATSAPP_APP_SECRET) || process.env.TWILIO_AUTH_TOKEN ? 'ENABLED' : 'DISABLED (no secret)'}`);
   console.log(`Gemini: ${process.env.GEMINI_API_KEY ? 'ENABLED' : 'DISABLED (no API key - using fallback)'}`);
   console.log(`Database: SQLite at ${path.join(__dirname, 'database.sqlite')}`);
 });

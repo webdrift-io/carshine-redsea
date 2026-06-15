@@ -82,7 +82,7 @@ MiniMax_API_KEY=your_key_here
 JWT_SECRET=$(node -e "console.log(require('crypto').randomBytes(64).toString('hex'))")
 
 # Optional but recommended:
-META_APP_SECRET=...  # for WhatsApp webhook verification
+WHATSAPP_APP_SECRET=...  # for WhatsApp webhook verification
 POSTIZ_API_KEY=...    # for TikTok/IG/FB posting
 ```
 

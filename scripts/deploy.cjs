@@ -92,7 +92,7 @@ function package_() {
 3. Copy .env.example to .env and fill in production values:
    - JWT_SECRET (generate new: \`node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"\`)
    - MiniMax_API_KEY or GEMINI_API_KEY
-   - META_APP_SECRET, META_ACCESS_TOKEN (for WhatsApp)
+   - WHATSAPP_APP_SECRET, WHATSAPP_ACCESS_TOKEN (for WhatsApp)
    - POSTIZ_API_KEY and integration IDs (for TikTok/IG/FB)
 4. Start: \`cd service-agent && node server.js\`
 5. For production: use pm2 or systemd:
