@@ -11,7 +11,7 @@ Files likely affected: `service-agent/database.js`, `service-agent/migrations/*.
 Acceptance criteria: Fresh SQLite DB applies migrations idempotently; FK enforcement is on; old bookings are preserved or migrated; `payments`, `payment_events`, `customers`, `vehicles`, `users`, and `assignments` exist; append-only triggers reject update/delete on event tables; no destructive deletion.
 Tests required: Migration test, FK orphan rejection test, append-only trigger test, legacy booking migration test.
 Security notes: No secrets in migrations or seed; dev seed gated from production; payment events and booking status history are append-only audit records.
-Status: TODO
+Status: DONE
 
 M0-002:
 Title: Fix service dependency baseline and test runner scope
@@ -20,7 +20,7 @@ Files likely affected: `service-agent/package-lock.json`, `service-agent/package
 Acceptance criteria: `npm ci`, `npm run lint`, `npm run typecheck`, and `npm run test` run from `service-agent`; Vitest does not collect tests from `node_modules`; Node version is documented.
 Tests required: Baseline command rerun evidence.
 Security notes: Do not run `npm audit fix --force` blindly; review dependency changes.
-Status: TODO
+Status: PARTIAL - `npm ci`, lint, typecheck, tests, and builds now run; dependency vulnerabilities remain to triage.
 
 M0-003:
 Title: Public booking API v2

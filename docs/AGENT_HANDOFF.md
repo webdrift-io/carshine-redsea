@@ -1,6 +1,6 @@
 # Agent Handoff
 
-Status: M0 readiness audit complete. Awaiting human approval before coding.
+Status: M0-000 complete; M0-001 implemented and verified.
 
 ## Current Controller Notes
 
@@ -8,12 +8,29 @@ Status: M0 readiness audit complete. Awaiting human approval before coding.
 - Control docs were created during this audit: `docs/IMPLEMENTATION_QUEUE.md`, `docs/AGENT_HANDOFF.md`, `docs/M0_STATUS.md`.
 - Current repo has legacy real SQLite persistence, not the planned normalized M0 schema.
 - Service baseline is blocked by a locked/missing `better-sqlite3` install after `npm ci` failed with EPERM on the native module.
-- There are many running Node processes; do not kill them without owner approval.
-- Recommended first PR is M0-001 only after the baseline lock/install blocker is accepted or cleared.
+- The lock was resolved by stopping the project-like `node server.js` process. MCP/Open Design/Xcode Node processes were left alone.
+- Recommended next PR is M0-003 unless the owner wants M0-002 dependency hygiene first.
+
+## Completed Work
+
+- Phase A commit: `89ae633 chore: establish m0 safe baseline`.
+- Root build script fixed.
+- Backup created in ignored `backups/`.
+- `service-agent/start-server.bat` no longer hardcodes a webhook secret-like value.
+- M0 migration runner and schema foundation added.
+- Migration tests prove empty DB, rerun idempotency, legacy preservation, dev seed, and payment safety triggers.
+
+## Verification Snapshot
+
+- `service-agent npm run test:migrations`: 5 passed.
+- `service-agent npm run test`: 131 passed.
+- `service-agent npm run lint`: 0 errors, warnings remain pre-existing/style-level.
+- `service-agent npm run typecheck`: passed.
+- Root and landing builds passed.
 
 ## Claimed Specialist Ownership
 
-- Codex: M0-001, M0-002, M0-003, M0-006, M0-007 backend/API/database.
+- Codex: M0-002, M0-003, M0-006, M0-007 backend/API/database.
 - MiniMax/UI agent: M0-004, dashboard UI portions of M0-005/M0-006/M0-007.
 - QA agent: M0-002 test baseline and M0-008.
 - Security agent: review M0-001 append-only audit, M0-006 payment verify authorization, and M0-007 RBAC.

@@ -6,6 +6,7 @@
 const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
+const { runMigrations } = require('./migrations/000_migration_runner');
 
 // Allow override via env var (for tests)
 const DB_PATH = process.env.DATABASE_PATH || path.join(__dirname, 'database.sqlite');
@@ -266,6 +267,7 @@ function initSchema() {
   `);
 
   console.log('[DB] Schema initialized');
+  runMigrations(db, { log: true });
   
   // Initialize prepared statements after schema
   initPreparedStatements();
@@ -583,6 +585,7 @@ module.exports = {
   getAnalytics: (postId) => stmtGetAnalytics.all(postId),
   
   // Migration helper
+  migrate: () => runMigrations(db, { log: true }),
   migrateFromJSON: (bookingsFile, calendarFile) => {
     console.log('[DB] Migrating from JSON files...');
     let migrated = { bookings: 0, calendar: 0 };
