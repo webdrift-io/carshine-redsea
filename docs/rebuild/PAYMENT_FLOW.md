@@ -54,11 +54,20 @@ In `service-agent/integrations/instapay.js`, a single `getInstructions({ booking
               │                             │ customer re-submits
               │                             ▼
               │                       (back to PENDING_REVIEW)
-              │
-              ▼
+                 │
+                 ▼
         (booking.payment_status = PAID,
          booking.status can move to ASSIGNED)
 ```
+
+### 3.1 M0-003 public booking initial payment behavior
+
+`POST /api/public/bookings` always creates one `payments` row for the new normalized booking.
+
+- If `INSTAPAY_RECEIVING_NUMBER` is configured, the initial payment status is `PAYMENT_INSTRUCTIONS_SENT` and a `payment_events` row with `event_type = 'INSTRUCTIONS_SENT'` is appended.
+- If InstaPay instructions are not configured, the initial payment status is `UNPAID` and a `payment_events` row with `event_type = 'CREATED'` is appended.
+- Public booking input is ignored for verification purposes. It cannot create `payments.status = VERIFIED` or a `payment_events` `VERIFIED` row.
+- Manual owner review remains M0-006. M0-003 only creates the honest initial payment record.
 
 Special: `CASH_ON_COMPLETION` (M0 placeholder; M1 full) is set when a cleaner marks a job `COMPLETED` with `payment_method = CASH` and no prior submission. Cleaner is prompted to confirm cash was collected; on confirm, `payments.status` skips to `VERIFIED` with a `payment_events` row marked `actor_type = 'CLEANER'`. The owner can override later.
 

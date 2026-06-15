@@ -16,6 +16,7 @@ const http = require('http');
 
 // Import modules
 const db = require('./database');
+const { createPublicBooking } = require('./services/public-bookings');
 
 // Feature flag: USE_MASTRA_AGENT (default: true). When false, the legacy
 // monolith in ./minimax-agent.js is used. The legacy file is kept around as a
@@ -927,47 +928,25 @@ app.get('/api/public/chat/:sessionId', publicChatLimiter, (req, res) => {
 });
 
 app.post('/api/public/bookings', publicChatLimiter, (req, res) => {
-  const source = req.body || {};
-  const booking = {
-    customerName: source.customerName || source.name,
-    phone: source.phone,
-    area: source.area,
-    carType: source.carType || source.car,
-    package: source.package,
-    preferredDate: source.preferredDate || source.date,
-    preferredTime: source.preferredTime || source.time,
-    location: source.location || source.address,
-    paymentMethod: source.paymentMethod || source.payment,
-    notes: [
-      source.locationType ? `Location type: ${source.locationType}` : '',
-      source.condition ? `Car condition: ${source.condition}` : '',
-      source.notes ? `Notes: ${source.notes}` : ''
-    ].filter(Boolean).join('\n')
-  };
-  const required = ['customerName', 'phone', 'area', 'carType', 'package', 'preferredDate', 'preferredTime', 'location', 'paymentMethod'];
-  const missing = required.filter((field) => !booking[field] || String(booking[field]).trim() === '');
-  if (missing.length > 0) {
-    return res.status(400).json({ success: false, error: 'Missing required fields', missing });
+  try {
+    const result = createPublicBooking(req.body || {});
+    broadcast('booking:created', {
+      booking: result.booking,
+      bookingV2Id: result.bookingV2Id,
+      publicRef: result.bookingId,
+      status: result.status,
+      paymentStatus: result.paymentStatus,
+      source: 'public-booking-api-v2'
+    });
+    res.status(result.duplicate ? 200 : 201).json(result);
+  } catch (error) {
+    console.error('[Public Booking] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'BOOKING_CREATE_FAILED',
+      message: 'Sorry, we could not save this booking request. Please try again or contact us on WhatsApp.'
+    });
   }
-  if (!db.isSlotAvailable(booking.preferredDate, booking.preferredTime)) {
-    return res.status(409).json({ success: false, error: 'Time slot not available', code: 'SLOT_UNAVAILABLE' });
-  }
-
-  const now = new Date().toISOString();
-  const newBooking = {
-    id: `b_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-    ...booking,
-    status: 'pending',
-    notes: booking.notes || 'Created from public website form.',
-    createdAt: now,
-    updatedAt: now
-  };
-
-  db.createBooking(newBooking, null);
-  broadcast('booking:created', { booking: newBooking, source: 'website-form' });
-  broadcast('bookings', db.getAllBookings());
-
-  res.status(201).json({ success: true, booking: newBooking });
 });
 
 // Settings

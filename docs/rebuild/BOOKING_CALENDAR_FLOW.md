@@ -225,6 +225,17 @@ Every inbound channel can produce duplicates (WhatsApp retries, email IMAP polli
 - `chat_messages` has `UNIQUE(provider, provider_message_id)`. Duplicates are silently dropped.
 - `booking_create` is idempotent on `(customer_id, scheduled_start, service_id, source='WEB_FORM')` within a 5-minute window — if a duplicate POST lands, it returns the existing booking's `public_ref`.
 
+### 8.1 M0-003 public booking API behavior
+
+`POST /api/public/bookings` is the first normalized write path. It now writes `customers`, optional `vehicles`, `bookings_v2`, `booking_status_history`, `payments`, `payment_events`, and optional channel records in one transaction.
+
+- Complete public intake starts at `QUOTED`, not `BOOKED`.
+- Missing intake data starts at `COLLECTING_INFO` and returns `missingFields`.
+- Human-help intake starts at `NEEDS_HUMAN`.
+- The legacy `bookings` table is preserved but not dual-written by M0-003.
+- Supplied `idempotencyKey` returns the original booking. Without a key, duplicate web-form posts for the same customer, service, scheduled start, and source within five minutes return the existing booking.
+- Because the locked M0 schema requires `service_package_id` and `scheduled_start`, incomplete intake can use a zero-price `M0_INTAKE_PLACEHOLDER` service and a placeholder timestamp while still exposing the missing field list.
+
 ## 9. Acceptance criteria for the booking + calendar flow
 
 - A simulated customer creates a booking via the web form. The booking appears in the dashboard Today view and the Calendar day view in < 2 seconds. ✅

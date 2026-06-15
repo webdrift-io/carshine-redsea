@@ -1,6 +1,6 @@
 # M0 Status
 
-Status: M0-000 safe baseline complete; M0-001 schema foundation implemented; M0-002b config/audit gate complete.
+Status: M0-000 safe baseline complete; M0-001 schema foundation implemented; M0-002b config/audit gate complete; M0-003 public booking API v2 implemented.
 
 M0 target: customer creates booking, booking appears in dashboard calendar,
 owner assigns cleaner, payment is tracked and verified, and customer receives
@@ -13,7 +13,7 @@ confirmation.
 - Payment is still used by the live legacy app as a booking `paymentMethod` string and notes, but M0 schema tables now exist for `payments` and `payment_events`.
 - Customers, vehicles, users/cleaners, assignments, service packages, bookings_v2, conversations_v2, messages_v2, and agent_actions now exist as normalized M0 foundation tables.
 - Landing page booking form still posts to hardcoded `http://localhost:5000/api/bookings` and has fake success fallback.
-- `/api/public/bookings` exists and creates legacy bookings, but it does not implement the planned normalized M0 flow.
+- `/api/public/bookings` now creates normalized M0 booking records and preserves a legacy-compatible response object. It does not dual-write to the legacy `bookings` table.
 - E2E-12 is planned in docs only; no `e2e/` directory or runnable `test:e2e` script exists.
 
 ## M0-000 Results
@@ -50,11 +50,11 @@ confirmation.
 ## Notes
 
 - Legacy local DB row counts changed during test/import activity, but no destructive migration was performed. The pre-M0 DB copy is preserved in ignored backups.
-- M0 tables are foundation-only. Existing routes still write legacy bookings until M0-003/M0-004.
+- M0 tables are now used by `/api/public/bookings`. Landing-page wiring is still M0-004.
 
 ## Next Recommended PR
 
-M0-003: start wiring `/api/public/bookings` to the new normalized schema.
+M0-004: wire the landing booking form to `/api/public/bookings` and remove fake success fallback.
 
 ## M0-002b Results
 
@@ -64,14 +64,27 @@ M0-003: start wiring `/api/public/bookings` to the new normalized schema.
 - CI security audit now installs and runs `npm audit --audit-level=high` for root, `landing-page`, and `service-agent`; high findings fail the workflow.
 - Root and landing high-severity `esbuild` advisories were cleared by upgrading Vite and `@vitejs/plugin-legacy`; builds passed after upgrade.
 - `docs/rebuild/DATABASE_SCHEMA_PLAN.md` documents `bookings_v2`, `conversations_v2`, and `messages_v2` as intentional non-destructive M0 compatibility names.
-- M0-003 is ready.
+- M0-003 is implemented and ready for Hermes review.
+
+## M0-003 Results
+
+- `/api/public/bookings` writes normalized rows in one transaction through `service-agent/services/public-bookings.js`.
+- Created records: `customers`, optional `vehicles`, `bookings_v2`, `booking_status_history`, `payments`, `payment_events`, and optional `conversations_v2` / `messages_v2` / `agent_actions` for chatbot-style sources.
+- Complete public requests start as `QUOTED`; incomplete requests start as `COLLECTING_INFO`; human-help requests start as `NEEDS_HUMAN`. The public API does not set `BOOKED`.
+- A payment row is always created. Initial status is `PAYMENT_INSTRUCTIONS_SENT` when `INSTAPAY_RECEIVING_NUMBER` is configured, otherwise `UNPAID`.
+- Public input cannot create `VERIFIED` payments or `VERIFIED` payment events.
+- Idempotency behavior: supplied `idempotencyKey` returns the original booking; without a key, duplicate web-form posts for the same customer, service, schedule, and source within five minutes return the existing booking.
+- Legacy `serviceType` maps to seeded M0 service packages where possible. Unknown or missing service data uses `M0_INTAKE_PLACEHOLDER` and keeps the booking in `COLLECTING_INFO`.
+- Because `bookings_v2.scheduled_start` is required by the locked M0 schema, incomplete requests without a time use an intake placeholder timestamp and expose `scheduledStart` in `missingFields`.
+- Legacy `bookings` and `calendar_events` tables are preserved and not written by M0-003.
+- New tests: `service-agent/tests/public-bookings-m0.test.js` (6 tests).
 
 ---
 
 ## Hermes Review of M0-000 + M0-001 (2026-06-15)
 
 ### Verdict
-**PASS** — M0-003 is unblocked. M0-002b is required before M0-003 merges, but it is a 1-day pass and can start immediately.
+**PASS** — M0-003 was unblocked by M0-002b and has now been implemented for review.
 
 ### What is locked in
 - Live SQLite was backed up to `backups/database-before-m0.sqlite` (gitignored). Reproducible.
@@ -98,11 +111,11 @@ M0-003: start wiring `/api/public/bookings` to the new normalized schema.
 3. M0-002b completed: `docs/rebuild/DATABASE_SCHEMA_PLAN.md` documents the v2 naming note.
 
 ### Owner / next action
-- **Codex:** M0-002b PR (1 day) → M0-003 PR (3 days). The exact Codex prompt is in `docs/M0_REVIEW_000_001.md` §9.
-- **Hermes:** review both, do not expand scope, do not re-litigate M0-001.
+- **Codex:** M0-002b and M0-003 are complete. Next implementation is M0-004 after Hermes review.
+- **Hermes:** review M0-003, do not expand scope, do not re-litigate M0-001.
 
-### What M0-003 must do (recap)
-- `POST /api/public/bookings` writes to `customers`, `vehicles`, `bookings_v2`, `payments`, `payment_events`, `booking_status_history` in one transaction.
+### What M0-003 implemented (recap)
+- `POST /api/public/bookings` writes to `customers`, optional `vehicles`, `bookings_v2`, `payments`, `payment_events`, and `booking_status_history` in one transaction.
 - Idempotency on `(customer_id, scheduled_start, service_package_id, source='WEB_FORM')` within 5 minutes.
-- 4 new integration tests; total `service-agent` test count goes from 131 → 135+.
+- 6 new integration tests; total `service-agent` test count goes from 131 to 137.
 - Does not touch the migration runner, the M0 schema, the seed, or the payment-safety triggers.

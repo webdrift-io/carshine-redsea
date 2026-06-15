@@ -25,11 +25,11 @@ Status: DONE - `npm ci`, lint, typecheck, tests, builds, and high-severity audit
 M0-003:
 Title: Public booking API v2
 Goal: Make `/api/public/bookings` create normalized, idempotent bookings with customer, vehicle, service, payment, and status history records.
-Files likely affected: `service-agent/server.js`, `service-agent/routes/public.js`, `service-agent/agents/tools.js`, `service-agent/database.js`
-Acceptance criteria: Valid web booking returns `public_ref`; duplicate idempotency key returns same booking; slot check runs before insert and inside transaction; booking starts with honest payment status.
-Tests required: Integration tests for success, missing fields, duplicate key, unavailable slot, and DB side effects.
-Security notes: Validate input with schema; rate limit public route; no raw SQL string interpolation.
-Status: TODO
+Files affected: `service-agent/server.js`, `service-agent/services/public-bookings.js`, `service-agent/tests/public-bookings-m0.test.js`, flow docs.
+Acceptance criteria: Valid web booking returns `public_ref`; duplicate idempotency key returns same booking; booking writes normalized M0 tables in one transaction; booking starts with honest non-verified payment status.
+Tests required: Integration tests for normalized side effects, missing fields, duplicate key, legacy service mapping, legacy table preservation, conversation/action capture, and payment never verified.
+Security notes: Public route remains rate limited; public input cannot create `VERIFIED`; payment events are append-only by existing DB triggers; no secrets added.
+Status: DONE - `/api/public/bookings` now writes `customers`, optional `vehicles`, `bookings_v2`, `booking_status_history`, `payments`, `payment_events`, and optional conversation/message/action records. Legacy `bookings` table is preserved and not dual-written.
 
 M0-004:
 Title: Landing booking form real wiring
