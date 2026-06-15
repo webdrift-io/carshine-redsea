@@ -1,0 +1,33 @@
+{
+  "name": "CarShine Red Sea",
+  "areas": ["El Gouna", "Hurghada", "Sahl Hasheesh"],
+  "phoneDisplay": "+20 155 556 7205",
+  "whatsappNumber": "201555567205",
+  "instapayNumber": "01555567205",
+  "hours": "By confirmed booking. Standard booking slots are 9:00 AM to 5:00 PM.",
+  "packages": [
+    {
+      "name": "Trial Wash",
+      "price": "150 EGP",
+      "description": "One-time mobile wash trial."
+    },
+    {
+      "name": "Smart Plan",
+      "price": "300 EGP / month",
+      "description": "Monthly care plan for regular maintenance."
+    },
+    {
+      "name": "Premium Plan",
+      "price": "500 EGP / month",
+      "description": "Higher-touch monthly plan for deeper care."
+    }
+  ],
+  "payments": ["Cash", "InstaPay", "Vodafone Cash", "Orange Cash", "Fawry"],
+  "services": [
+    "Mobile car wash at your location",
+    "Exterior cleaning",
+    "Interior cleaning notes by request",
+    "Glass and wheels",
+    "Add-ons by request"
+  ]
+}

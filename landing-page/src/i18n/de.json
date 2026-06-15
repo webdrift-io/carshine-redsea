@@ -1,0 +1,112 @@
+{
+  "lang": "de",
+  "dir": "ltr",
+  "title": "Carshine Redsea | Mobile wasserlose Autowäsche in El Gouna, Hurghada & Sahl Hasheesh",
+  "description": "Buchen Sie Carshine Redsea für mobile wasserlose Autowäsche und Fahrzeugpflege in El Gouna, Hurghada, Sahl Hasheesh und künftigen Cairo-Servicegebieten. Außenwäsche, Innenraumreinigung, Felgen, Glas, Motorraum-Add-ons, Monatspläne, Hotels und Flotten per WhatsApp.",
+  "keywords": "mobile Autowäsche Rotes Meer, wasserlose Autowäsche Ägypten, Autowäsche El Gouna, Autowäsche Hurghada, Autowäsche Sahl Hasheesh, Fahrzeugpflege Ägypten, Hotel Autowäsche Rotes Meer, Carshine Redsea",
+  "hero": {
+    "titleLine1": "Entspannen Sie, wir kommen",
+    "titleLine2": "Auto glänzt",
+    "copy": "In Sekunden buchen. Wir kommen zu Ihrem geparkten Auto mit Premium-wasserloser Pflege, damit Sie Warteschlange, Benzin und Zeit sparen und einen frischen Glanz zu Hause, Hotel, Büro, Villa, Compound oder Marina erhalten.",
+    "ctaPrimary": "Waschen buchen",
+    "ctaSecondary": "Pakete ansehen"
+  },
+  "steps": [
+    { "number": "01", "title": "Online buchen", "desc": "In 60 Sekunden über WhatsApp terminieren." },
+    { "number": "02", "title": "Wir reinigen", "desc": "Unser geschultes Team kommt mit Ausrüstung." },
+    { "number": "03", "title": "Sie entspannen", "desc": "Genießen Sie ein sauberes Auto ohne Warten." }
+  ],
+  "benefits": [
+    { "icon": "clock", "title": "Zeit sparen", "desc": "Kein Fahren, kein Warten, keine verlorene Stunde in der Waschanlage." },
+    { "icon": "fuel", "title": "Benzin sparen", "desc": "Sie müssen Ihr Auto nicht bewegen oder von Ort zu Ort suchen." },
+    { "icon": "effort", "title": "Mühe sparen", "desc": "Kein Verkehr, kein Suchen, keine ungemütlichen Wartebereiche." },
+    { "icon": "quality", "title": "Bessere Qualität", "desc": "Ein geschultes Team kommt mit professionellen Werkzeugen und klarer Checkliste." },
+    { "icon": "comfort", "title": "Mehr Komfort", "desc": "Bleiben Sie bei Familie, Abendessen, Fußball, Arbeit oder Schlaf, während wir das Auto pflegen." },
+    { "icon": "monthly", "title": "Sauberes Auto den ganzen Monat", "desc": "Monatspakete halten Ihr Auto regelmäßig sauber, ohne jedes Mal neu nachzudenken." }
+  ],
+  "packages": [
+    {
+      "id": "trial",
+      "label": "Startangebot",
+      "name": "Probe-Wäsche",
+      "oldPrice": "Normal 220 EGP",
+      "price": "150 EGP",
+      "desc": "Einmaliger Termin für Fahrer, die die Qualität testen wollen.",
+      "features": [
+        "Außenkarosserie",
+        "Glas und Spiegel",
+        "Felgen und Reifen",
+        "Leichte Innenraumreinigung",
+        "Endkontrolle"
+      ],
+      "cta": "Jetzt testen"
+    },
+    {
+      "id": "smart",
+      "label": "Beliebt",
+      "name": "Smart Plan",
+      "oldPrice": "Normal 550 EGP",
+      "price": "300 EGP",
+      "desc": "Drei Wäschen pro Monat für regelmäßige Roten-Meer-Staubpflege.",
+      "features": [
+        "3 geplante mobile Wäschen",
+        "Außen, Glas und Reifen",
+        "Leichte Innenraumreinigung",
+        "WhatsApp-Erinnerungen",
+        "Bestes Preis-Leistungs-Verhältnis für wöchentliche Nutzer"
+      ],
+      "cta": "Smart Plan wählen"
+    },
+    {
+      "id": "premium",
+      "label": "Premium Start",
+      "name": "Premium Plan",
+      "oldPrice": "Normal 750 EGP",
+      "price": "500 EGP",
+      "desc": "Fünf Wäschen pro Monat für Fahrer, die das Auto immer bereit wollen.",
+      "features": [
+        "5 priorisierte mobile Wäschen",
+        "Flexiblere Buchungsfenster",
+        "Innenraumreinigung inklusive",
+        "Glas, Spiegel, Reifen und Finish",
+        "Add-on-Rabatt berechtigt"
+      ],
+      "cta": "Premium wählen"
+    }
+  ],
+  "services": [
+    { "id": "exterior", "title": "Außenkarosserie", "desc": "Staub, Karosserieteile, sichtbare Lackbereiche und Außendetails werden mit autoversicheren Produkten gereinigt." },
+    { "id": "interior", "title": "Innenraum-Auffrischung", "desc": "Armaturenbrett, Sitzbereiche, Türen, Matten und Kabinenoberflächen erhalten eine leichte professionelle Auffrischung." },
+    { "id": "glass", "title": "Glas und Spiegel", "desc": "Fenster und Spiegel werden für klarere Sicht von innen und außen gereinigt." },
+    { "id": "wheels", "title": "Felgen und Reifen", "desc": "Felgenoberflächen und Reifen werden aufgefrischt, weil das finale Detail das ganze Auto verändert." },
+    { "id": "motor-bay", "title": "Motorraum-Zusatz", "desc": "Motorraumreinigung wird sorgfältig als Zusatz nach Prüfung des Fahrzeugzustands durchgeführt." },
+    { "id": "protection", "title": "Schutz-Zusätze", "desc": "Wachsschutz, Duft, tiefe Innenpflege und Flottenpakete können per WhatsApp bestätigt werden." }
+  ],
+  "locations": [
+    { "id": "el-gouna", "name": "El Gouna", "desc": "Häuser, Hotels, Villen, Compounds und Marinas." },
+    { "id": "hurghada", "name": "Hurghada", "desc": "Büros, Mietwagen, Hotels und Wohnungen." },
+    { "id": "sahl-hasheesh", "name": "Sahl Hasheesh", "desc": "Resorts, Villen, Compounds und private Standorte." },
+    { "id": "cairo", "name": "Kairo", "desc": "Zukünftiges Expansionsgebiet für mobile Autopflege in ganz Ägypten." }
+  ],
+  "faq": [
+    { "q": "Muss ich mein Auto irgendwohin bringen?", "a": "Nein. Wir kommen zu Ihrem Standort: Zuhause, Hotel, Büro, Villa, Marina, Compound oder Mietparkplatz." },
+    { "q": "Welche Gebiete decken Sie ab?", "a": "El Gouna, Hurghada und Sahl Hasheesh. Makadi Bay, Soma Bay, Safaga und weitere Standorte in Ägypten sind schrittweise geplant." },
+    { "q": "Arbeiten Sie 24/7?", "a": "Wir arbeiten nach bestätigter Buchung und können späte oder nächtliche Termine vereinbaren, wenn Team und Gebietsplan es zulassen." },
+    { "q": "Wie lange dauert die Wäsche?", "a": "Meistens zwischen 30 und 60 Minuten, abhängig von Fahrzeuggröße, Zustand und Servicetyp." },
+    { "q": "Ist es wirklich wasserlos?", "a": "Bei der Standardpflegewäsche ja. Wir nutzen wasserlose Produkte und Mikrofasertechnik, um unnötigen Wasserverbrauch zu reduzieren." },
+    { "q": "Können Sie den Motorraum reinigen?", "a": "Motorraumreinigung ist ein Zusatz und muss zuerst bestätigt werden, da jeder Fahrzeugzustand anders ist." },
+    { "q": "Kann ich nur Karosserie, nur Innenraum oder nur Felgen anfragen?", "a": "Ja. Schreiben Sie den genauen Wunsch in das Notizfeld, z. B. Karosserie, Innenraum, Felgen, Glas, Sitze, Motorraum, Wachs oder Duft." },
+    { "q": "Welche Zahlungsmethoden akzeptieren Sie?", "a": "Barzahlung, InstaPay, Vodafone Cash, Orange Cash, Fawry und Banküberweisung." },
+    { "q": "Können Hotels oder Firmen mit Ihnen zusammenarbeiten?", "a": "Ja. Wir bieten Partnerschafts- und Flottenpakete für Hotels, Büros, Marinas, Mietwagen und Compounds an." },
+    { "q": "Werden Sie außerhalb des Roten Meeres expandieren?", "a": "Ja. Unsere Vision ist es, schrittweise in ganz Ägypten zu wachsen, nachdem die Startgebiete am Roten Meer stabil sind." }
+  ],
+  "contact": {
+    "whatsapp": "+20 155 556 7205",
+    "areas": "El Gouna, Hurghada, Sahl Hasheesh",
+    "payments": "Barzahlung, InstaPay, Vodafone Cash, Orange Cash, Fawry, Banküberweisung",
+    "schedule": "7 Tage die Woche nach bestätigter Buchung"
+  },
+  "footer": {
+    "description": "Carshine Redsea startet vom Roten Meer mit der Mission, Autopflege sauberer, einfacher und in ganz Ägypten zugänglicher zu machen. Serviceverfügbarkeit, Timing und Zusatzleistungen werden vor Ankunft per WhatsApp bestätigt."
+  }
+}

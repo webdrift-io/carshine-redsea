@@ -1,0 +1,112 @@
+{
+  "lang": "en",
+  "dir": "ltr",
+  "title": "Carshine Redsea | Mobile Waterless Car Wash in El Gouna, Hurghada & Sahl Hasheesh",
+  "description": "Book Carshine Redsea for mobile waterless car wash and doorstep car care in El Gouna, Hurghada, Sahl Hasheesh and future Cairo service areas. Exterior body wash, interior refresh, wheels, glass, motor bay add-ons, monthly plans, hotel fleets and Red Sea car detailing by WhatsApp.",
+  "keywords": "mobile car wash Red Sea, waterless car wash Egypt, doorstep car wash Egypt, car wash El Gouna, car wash Hurghada, car wash Sahl Hasheesh, Cairo mobile car wash, hotel car wash Red Sea, car detailing Hurghada, eco friendly car wash Egypt, fleet car cleaning Egypt, mobile car care Red Sea",
+  "hero": {
+    "titleLine1": "Relax, we come",
+    "titleLine2": "car shines",
+    "copy": "Book in seconds. We come to your parked car with premium waterless care, so you skip the queue, save fuel, and get a fresh finish at home, hotel, office, villa, compound, or marina.",
+    "ctaPrimary": "Book wash",
+    "ctaSecondary": "See packages"
+  },
+  "steps": [
+    { "number": "01", "title": "Book online", "desc": "Schedule in 60 seconds through WhatsApp." },
+    { "number": "02", "title": "We clean", "desc": "Our trained team arrives with supplies." },
+    { "number": "03", "title": "You relax", "desc": "Enjoy a clean car without waiting." }
+  ],
+  "benefits": [
+    { "icon": "clock", "title": "Save time", "desc": "No driving, no waiting, no losing one hour at a wash center." },
+    { "icon": "fuel", "title": "Save fuel", "desc": "You do not need to move your car or search from place to place." },
+    { "icon": "effort", "title": "Save effort", "desc": "No traffic, no searching, no uncomfortable waiting areas." },
+    { "icon": "quality", "title": "Better quality", "desc": "A trained team arrives with professional tools and a clear checklist." },
+    { "icon": "comfort", "title": "More comfort", "desc": "Stay with family, dinner, football, work or sleep while we handle the car." },
+    { "icon": "monthly", "title": "Clean car all month", "desc": "Monthly plans keep your car clean regularly without thinking every time." }
+  ],
+  "packages": [
+    {
+      "id": "trial",
+      "label": "Launch offer",
+      "name": "Trial Wash",
+      "oldPrice": "Normal 220 EGP",
+      "price": "150 EGP",
+      "desc": "One visit for drivers who want to test the quality.",
+      "features": [
+        "Exterior body panels",
+        "Glass and mirrors",
+        "Wheel face and tire refresh",
+        "Light cabin dust wipe",
+        "Final quality check"
+      ],
+      "cta": "Try it now"
+    },
+    {
+      "id": "smart",
+      "label": "Most popular",
+      "name": "Smart Plan",
+      "oldPrice": "Normal 550 EGP",
+      "price": "300 EGP",
+      "desc": "Three washes per month for regular Red Sea dust care.",
+      "features": [
+        "3 scheduled mobile washes",
+        "Exterior, glass and tires",
+        "Light interior refresh",
+        "WhatsApp reminders",
+        "Best value for weekly users"
+      ],
+      "cta": "Choose smart plan"
+    },
+    {
+      "id": "premium",
+      "label": "Premium launch",
+      "name": "Premium Plan",
+      "oldPrice": "Normal 750 EGP",
+      "price": "500 EGP",
+      "desc": "Five monthly washes for drivers who want the car always ready.",
+      "features": [
+        "5 priority mobile washes",
+        "More flexible booking windows",
+        "Interior refresh included",
+        "Glass, mirrors, tires and finish",
+        "Add-on discount eligibility"
+      ],
+      "cta": "Go premium"
+    }
+  ],
+  "services": [
+    { "id": "exterior", "title": "Exterior body", "desc": "Dust, body panels, visible paint areas and exterior details cleaned with car-safe products." },
+    { "id": "interior", "title": "Interior refresh", "desc": "Dashboard, seats area, doors, mats and cabin surfaces get a light professional refresh." },
+    { "id": "glass", "title": "Glass and mirrors", "desc": "Windows and mirrors are cleaned for a sharper look from inside and outside." },
+    { "id": "wheels", "title": "Wheels and tires", "desc": "Wheel faces and tires are refreshed because the final detail changes the whole car." },
+    { "id": "motor-bay", "title": "Motor bay add-on", "desc": "Engine bay cleaning is handled carefully as an add-on after checking the car condition." },
+    { "id": "protection", "title": "Protection add-ons", "desc": "Wax protection, perfume, deep interior care and fleet packages can be confirmed on WhatsApp." }
+  ],
+  "locations": [
+    { "id": "el-gouna", "name": "El Gouna", "desc": "Homes, hotels, villas, compounds and marinas." },
+    { "id": "hurghada", "name": "Hurghada", "desc": "Offices, rental cars, hotels and apartments." },
+    { "id": "sahl-hasheesh", "name": "Sahl Hasheesh", "desc": "Resorts, villas, compounds and private locations." },
+    { "id": "cairo", "name": "Cairo", "desc": "Future expansion area for mobile car care across Egypt." }
+  ],
+  "faq": [
+    { "q": "Do I need to bring my car anywhere?", "a": "No. We come to your location: home, hotel, office, villa, marina, compound or rental parking." },
+    { "q": "Which areas do you cover?", "a": "El Gouna, Hurghada, and Sahl Hasheesh. Makadi Bay, Soma Bay, Safaga and more Egypt locations are planned step by step." },
+    { "q": "Do you work 24/7?", "a": "We work by confirmed booking and can arrange late or night appointments when the team and area schedule are available." },
+    { "q": "How long does the wash take?", "a": "Usually between 30 and 60 minutes depending on car size, condition and service type." },
+    { "q": "Is it really waterless?", "a": "For standard maintenance washes, yes. We use waterless-style products and microfiber technique designed to reduce unnecessary water waste." },
+    { "q": "Can you clean the motor bay?", "a": "Engine or motor bay cleaning is an add-on and must be confirmed first because every car condition is different." },
+    { "q": "Can I ask for body only, inside only or wheels?", "a": "Yes. Write the exact request in the notes field, such as body, inside, wheels, glass, seats, motor bay, wax or perfume." },
+    { "q": "What payment methods do you accept?", "a": "Cash, InstaPay, Vodafone Cash, Orange Cash, Fawry, and bank transfer." },
+    { "q": "Can hotels or companies work with you?", "a": "Yes. We offer partnership and fleet packages for hotels, offices, marinas, rental cars and compounds." },
+    { "q": "Will you expand outside the Red Sea?", "a": "Yes. Our vision is to grow step by step across Egypt after the Red Sea launch areas are stable." }
+  ],
+  "contact": {
+    "whatsapp": "+20 155 556 7205",
+    "areas": "El Gouna, Hurghada, Sahl Hasheesh",
+    "payments": "Cash, InstaPay, Vodafone Cash, Orange Cash, Fawry, bank transfer",
+    "schedule": "7 days a week by confirmed booking"
+  },
+  "footer": {
+    "description": "Carshine Redsea is launching from the Red Sea with a mission to make car care cleaner, easier and more accessible across Egypt. Service availability, timing and add-ons are confirmed on WhatsApp before arrival."
+  }
+}

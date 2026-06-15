@@ -1,0 +1,648 @@
+openapi: 3.0.3
+info:
+  title: CarShine Red Sea API
+  description: |
+    Backend API for CarShine Red Sea admin dashboard and public chatbot.
+    
+    ## Authentication
+    - Admin endpoints (`/api/*` except `/auth/login`, `/webhook/whatsapp`, `/public/*`) require `Authorization: Bearer <jwt>`
+    - Public endpoints (`/api/public/*`) are rate-limited by IP
+    - Webhook endpoints verify signature via X-Hub-Signature-256 (Meta) or X-Twilio-Signature (Twilio)
+    
+    ## Real-time
+    Socket.io available at `ws://host:port` with JWT auth via `auth.token`. Events: `init`, `booking:created`, `booking:approved`, `booking:rejected`, `bookings`, `calendar`, `chat:updated`, `chats`, `autopilot`.
+    
+  version: 1.0.0
+  contact:
+    name: CarShine Red Sea
+    email: admin@carshineredsea.com
+    url: https://carshineredsea.com
+  license:
+    name: UNLICENSED
+    
+servers:
+  - url: http://localhost:5000
+    description: Local development
+  - url: https://api.carshineredsea.com
+    description: Production
+    
+tags:
+  - name: Health
+  - name: Auth
+  - name: Bookings
+  - name: Calendar
+  - name: Chats
+  - name: Agents
+  - name: Settings
+  - name: Social
+  - name: Webhook
+  - name: Public
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+                  timestamp: { type: string, format: date-time }
+                  uptime: { type: number }
+                  memory:
+                    type: object
+                    properties:
+                      rss: { type: integer }
+                      heapTotal: { type: integer }
+                      heapUsed: { type: integer }
+                  version: { type: string }
+                  database: { type: string, example: SQLite (better-sqlite3) }
+                  agents: { type: integer }
+                  aiProvider: { type: string, enum: [minimax, gemini, fallback] }
+
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Admin login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, minLength: 12 }
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  token: { type: string, description: JWT token }
+                  expiresIn: { type: string, example: 8h }
+                  user: 
+                    type: object
+                    properties:
+                      email: { type: string }
+                      role: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/auth/verify:
+    get:
+      tags: [Auth]
+      summary: Verify JWT token
+      responses:
+        '200':
+          description: Token is valid
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/auth/change-password:
+    post:
+      tags: [Auth]
+      summary: Change admin password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, newPassword]
+              properties:
+                currentPassword: { type: string }
+                newPassword: { type: string, minLength: 12 }
+      responses:
+        '200': { description: Password changed }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/bookings:
+    get:
+      tags: [Bookings]
+      summary: List all bookings
+      responses:
+        '200':
+          description: List of bookings
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Booking' }
+    post:
+      tags: [Bookings]
+      summary: Create a booking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookingInput'
+      responses:
+        '201':
+          description: Booking created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  booking: { $ref: '#/components/schemas/Booking' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409': { description: Slot not available }
+
+  /api/bookings/{id}/approve:
+    post:
+      tags: [Bookings]
+      summary: Approve a pending booking
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Booking approved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  booking: { $ref: '#/components/schemas/Booking' }
+                  calendarEvent: { $ref: '#/components/schemas/CalendarEvent' }
+        '404': { description: Booking not found }
+
+  /api/bookings/{id}/reject:
+    post:
+      tags: [Bookings]
+      summary: Reject a pending booking
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Booking rejected }
+        '404': { description: Booking not found }
+
+  /api/calendar:
+    get:
+      tags: [Calendar]
+      summary: List all calendar events
+      responses:
+        '200':
+          description: List of calendar events
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/CalendarEvent' }
+    post:
+      tags: [Calendar]
+      summary: Create calendar event manually
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [bookingId, start]
+              properties:
+                bookingId: { type: string }
+                start: { type: string, format: date-time }
+                customerName: { type: string }
+                carType: { type: string }
+                area: { type: string }
+
+  /api/chats:
+    get:
+      tags: [Chats]
+      summary: List all chat sessions
+      responses:
+        '200':
+          description: List of chat sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ChatSession' }
+
+  /api/chats/{id}:
+    get:
+      tags: [Chats]
+      summary: Get a chat session with messages
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Chat session
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ChatSessionWithMessages' }
+        '404': { description: Chat not found }
+
+  /api/chats/simulate-incoming:
+    post:
+      tags: [Chats]
+      summary: Simulate an incoming WhatsApp message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, text]
+              properties:
+                phone: { type: string }
+                name: { type: string }
+                text: { type: string }
+                language: { type: string, enum: [ar, en, de] }
+      responses:
+        '200':
+          description: Message processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  chat: { $ref: '#/components/schemas/ChatSessionWithMessages' }
+                  messages:
+                    type: array
+                    items: { $ref: '#/components/schemas/Message' }
+                  bookingCreated: { type: boolean }
+                  humanNeeded: { type: boolean }
+
+  /api/chats/{id}/message:
+    post:
+      tags: [Chats]
+      summary: Send a message in an existing chat
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sender, text]
+              properties:
+                sender: { type: string, enum: [customer, agent, bot] }
+                text: { type: string }
+      responses:
+        '200': { description: Message sent }
+
+  /api/agents:
+    get:
+      tags: [Agents]
+      summary: List all simulated agents
+      responses:
+        '200':
+          description: List of agents
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Agent' }
+
+  /api/agents/{id}/toggle:
+    post:
+      tags: [Agents]
+      summary: Toggle an agent's active state
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Agent toggled }
+
+  /api/settings:
+    get:
+      tags: [Settings]
+      summary: Get current settings
+      responses:
+        '200':
+          description: Settings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  autopilot: { type: boolean }
+    post:
+      tags: [Settings]
+      summary: Update settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                autopilot: { type: boolean }
+      responses:
+        '200': { description: Settings updated }
+
+  /api/socials/posts:
+    get:
+      tags: [Social]
+      summary: List social media posts
+      responses:
+        '200':
+          description: List of posts
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/SocialPost' }
+    post:
+      tags: [Social]
+      summary: Create a social post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SocialPostInput' }
+      responses:
+        '201': { description: Post created }
+
+  /api/socials/posts/{id}:
+    delete:
+      tags: [Social]
+      summary: Delete a social post
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Post deleted }
+
+  /api/webhook/whatsapp:
+    post:
+      tags: [Webhook]
+      summary: WhatsApp incoming message webhook
+      description: |
+        Receives WhatsApp messages from Meta Cloud API or Twilio.
+        Signature verification is required (X-Hub-Signature-256 for Meta, X-Twilio-Signature for Twilio).
+        Acknowledged with 200 OK immediately, processed asynchronously.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                From: { type: string, description: Sender phone }
+                Body: { type: string, description: Message text }
+                ProfileName: { type: string, description: Sender name }
+      responses:
+        '200': { description: Webhook received }
+        '401': { description: Invalid signature }
+
+  /api/public/chat:
+    post:
+      tags: [Public]
+      summary: Public chatbot endpoint (for website widget)
+      description: |
+        Public endpoint for the website chat widget. No authentication required,
+        but rate-limited to 20 messages per hour per IP.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                sessionId: { type: string, description: Optional session ID for continuity }
+                message: { type: string, maxLength: 2000 }
+                name: { type: string, maxLength: 100 }
+      responses:
+        '200':
+          description: Bot reply
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  sessionId: { type: string }
+                  reply: { type: string }
+                  bookingCreated: { type: boolean }
+                  humanNeeded: { type: boolean }
+                  aiProvider: { type: string, enum: [minimax, gemini, fallback] }
+        '400': { description: Missing message }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/public/chat/{sessionId}:
+    get:
+      tags: [Public]
+      summary: Get chat history for a public session
+      security: []
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Chat history
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid authentication
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error: { type: string }
+              code: { type: string, example: MISSING_TOKEN }
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error: { type: string }
+              missing: { type: array, items: { type: string } }
+    RateLimited:
+      description: Too many requests
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error: { type: string, example: Too many requests }
+
+  schemas:
+    Booking:
+      type: object
+      properties:
+        id: { type: string }
+        customerName: { type: string }
+        phone: { type: string }
+        area: { type: string, enum: [El Gouna, Hurghada, Sahl Hasheesh] }
+        carType: { type: string }
+        package: { type: string }
+        preferredDate: { type: string, format: date }
+        preferredTime: { type: string, example: '14:00' }
+        location: { type: string }
+        paymentMethod: { type: string }
+        status: { type: string, enum: [pending, confirmed, rejected] }
+        notes: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        approvedAt: { type: string, format: date-time, nullable: true }
+        rejectedAt: { type: string, format: date-time, nullable: true }
+        chatSessionId: { type: string, nullable: true }
+
+    BookingInput:
+      type: object
+      required:
+        - customerName
+        - phone
+        - area
+        - carType
+        - package
+        - preferredDate
+        - preferredTime
+        - location
+        - paymentMethod
+      properties:
+        customerName: { type: string }
+        phone: { type: string }
+        area: { type: string, enum: [El Gouna, Hurghada, Sahl Hasheesh] }
+        carType: { type: string }
+        package: { type: string }
+        preferredDate: { type: string, format: date }
+        preferredTime: { type: string, example: '14:00' }
+        location: { type: string }
+        paymentMethod: { type: string, enum: [Cash, InstaPay, Vodafone Cash, Orange Cash, Fawry, Bank Transfer] }
+        notes: { type: string }
+
+    CalendarEvent:
+      type: object
+      properties:
+        id: { type: string }
+        bookingId: { type: string }
+        start: { type: string, format: date-time }
+        customerName: { type: string }
+        carType: { type: string }
+        area: { type: string }
+        status: { type: string, enum: [confirmed, cancelled] }
+        createdAt: { type: string, format: date-time }
+
+    ChatSession:
+      type: object
+      properties:
+        id: { type: string }
+        customerName: { type: string }
+        phone: { type: string }
+        area: { type: string }
+        carType: { type: string }
+        package: { type: string }
+        preferredDate: { type: string }
+        preferredTime: { type: string }
+        location: { type: string }
+        paymentMethod: { type: string }
+        status: { type: string, enum: [active, waiting_approval, completed, abandoned] }
+        language: { type: string, enum: [ar, en, de] }
+        lastAskedField: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    ChatSessionWithMessages:
+      allOf:
+        - $ref: '#/components/schemas/ChatSession'
+        - type: object
+          properties:
+            messages:
+              type: array
+              items: { $ref: '#/components/schemas/Message' }
+            bookingDetails:
+              type: object
+
+    Message:
+      type: object
+      properties:
+        id: { type: integer }
+        sessionId: { type: string }
+        sender: { type: string, enum: [customer, bot, agent] }
+        text: { type: string }
+        timestamp: { type: string, format: date-time }
+
+    Agent:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        role: { type: string }
+        status: { type: string, enum: [active, inactive] }
+        task: { type: string }
+        logs:
+          type: array
+          items: { type: string }
+
+    SocialPost:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        caption: { type: string }
+        platforms:
+          type: array
+          items: { type: string, enum: [tiktok, instagram, facebook, youtube, threads] }
+        scheduledAt: { type: string, format: date-time, nullable: true }
+        postedAt: { type: string, format: date-time, nullable: true }
+        status: { type: string, enum: [scheduled, posting, posted, failed] }
+        privacyLevel: { type: string, enum: [PUBLIC, FRIENDS, SELF_ONLY] }
+        images:
+          type: array
+          items: { type: string }
+        meta: { type: object }
+        createdAt: { type: string, format: date-time }
+
+    SocialPostInput:
+      type: object
+      required: [caption, platforms]
+      properties:
+        title: { type: string }
+        caption: { type: string }
+        platforms:
+          type: array
+          items: { type: string, enum: [tiktok, instagram, facebook, youtube, threads] }
+        scheduledAt: { type: string, format: date-time }
+        privacyLevel: { type: string, enum: [PUBLIC, FRIENDS, SELF_ONLY] }
+        images:
+          type: array
+          items: { type: string }

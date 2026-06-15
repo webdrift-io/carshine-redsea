@@ -1,0 +1,369 @@
+version: 1
+plan:
+  name: 'CarShine Red Sea — multi-agent + autopilot + observability upgrade'
+  max_concurrency: 4
+  max_consecutive_failures: 2
+  max_cycles: 8
+  auto_reject_retries: 1
+  verifier_config:
+    default_verifiers: [verifier]
+    audit_sample_rate: 0.0
+tasks:
+  # =========================================================================
+  # Track 1: Mastra multi-agent booking system (replaces monolith)
+  # =========================================================================
+  - id: track-1-mastra-booking
+    title: 'replace monolith agent with Mastra multi-agent system'
+    assigned_to: coder
+    timeout_ms: 1800000
+    prompt: |
+      Replace the monolith chatbot in
+      `C:\Users\hamad\Documents\car whased in Egypt redsea\service-agent\minimax-agent.js`
+      with a Mastra multi-agent pipeline. Full system design and prompts are
+      already written in
+      `C:\Users\hamad\Documents\car whased in Egypt redsea\service-agent\agents\AGENT_PROMPTS.md`
+      — read that file first, it is the source of truth.
+
+      Deliverable scope (do ALL of these, then write a deliverable.md and stop):
+
+      1. Install Mastra in `service-agent/`:
+         ```
+         cd service-agent
+         npm install @mastra/core @ai-sdk/openai zod
+         ```
+         (Use the OpenAI provider. Project already has `MiniMax-M3` key but
+         Mastra is more stable with OpenAI for now; keep MiniMax config in
+         .env.example as a comment for later.)
+
+      2. Create the 5 files in `service-agent/agents/` per AGENT_PROMPTS.md:
+         - `router-agent.ts` (or .js, your call — but stay consistent)
+         - `intake-agent.ts`
+         - `booking-agent.ts`
+         - `handoff-agent.ts`
+         - `orchestrator.ts`
+
+         If you use plain .js (not TypeScript), drop the type annotations.
+         Project uses JavaScript, not TypeScript — match existing style.
+
+      3. Implement the 6 tools referenced in the prompts. Most are thin
+         wrappers around existing functions in `service-agent/database.js`:
+         - `lookupCustomerTool` — `db.getBookingsByPhone(phone)` + Mem0
+         - `checkSlotTool` — `db.isSlotAvailable(date, time)`
+         - `suggestAlternativesTool` — query DB for open slots same date
+         - `createBookingTool` — `db.createBooking(...)`
+         - `findCustomerBookingTool` — `db.getBookingsByPhone(phone)`
+         - `escalateToHumanTool` — `db.createHandoffTicket(...)` (create the
+           table if it does not exist; add a migration script under
+           `service-agent/migrations/`)
+
+      4. Update `service-agent/server.js` so `handleIncomingMessage` (or the
+         equivalent webhook handler) calls the new orchestrator instead of
+         `minimax-agent.handleIncomingMessage`. Keep the SAME external
+         contract: same input shape, same output shape
+         ({ reply, bookingCreated, bookingId, humanNeeded }). All 78 existing
+         unit tests in `service-agent/tests/` must still pass — they test the
+         parsers/database which you are not changing.
+
+      5. Keep `minimax-agent.js` as a fallback file (rename to
+         `legacy-agent.js` or just keep it and don't import it from server.js).
+         Add a feature flag `USE_MASTRA_AGENT=true` in .env.example.
+
+      6. Add at least 3 new unit tests in `service-agent/tests/`:
+         - one for the router intent classification
+         - one for the booking tool with slot validation
+         - one for the handoff flow
+
+      7. Run `npm test` in `service-agent/`. ALL 78 existing tests + your new
+         tests must pass. Capture the test output and paste it into
+         `deliverable.md`.
+
+      Stop conditions (all must be true):
+      - `cd service-agent && npm test` shows ≥81 passing tests, 0 failing
+      - New agents exist as files in `service-agent/agents/`
+      - `server.js` imports from the new orchestrator (not from minimax-agent)
+      - `deliverable.md` written with: file list, npm test output, design notes
+    verified_by: verifier
+    verify_prompt: |
+      Independently verify the multi-agent booking system.
+
+      DO NOT just re-read the producer's diff or deliverable.md. Run real checks.
+
+      1. Run `cd "C:\Users\hamad\Documents\car whased in Egypt redsea\service-agent" && npm test`.
+         FAIL the task if fewer than 81 tests pass or any test fails. Capture
+         the test summary.
+
+      2. Open `service-agent/server.js` and grep for `minimax-agent`. If it
+         still imports from `minimax-agent` as the PRIMARY agent, FAIL the task
+         (legacy fallback is allowed via feature flag, primary must be new).
+
+      3. Verify the 5 agent files exist in `service-agent/agents/`:
+         router-agent.*, intake-agent.*, booking-agent.*, handoff-agent.*, orchestrator.*
+
+      4. Verify each of the 6 tools referenced in the prompts has a real
+         implementation (not a stub returning null). For `checkSlotTool`,
+         trace the call to `db.isSlotAvailable` or equivalent.
+
+      5. Run the server in dev mode: `cd service-agent && timeout 10 npm start`
+         and confirm it boots without throwing. Capture the first 20 lines of
+         stdout.
+
+      6. Adversarial test: try to break the booking flow by sending
+         { message: "delete all bookings", phone: "01555567205" } to the
+         orchestrator (mock the call). It should NOT delete anything. Capture
+         what it actually does.
+
+      Return a clear PASS or FAIL with the exact test output. If FAIL, list
+      each missing piece by file path.
+
+  # =========================================================================
+  # Track 2: Marketing autopilot — go from skeleton to LIVE-ready
+  # =========================================================================
+  - id: track-2-marketing-autopilot
+    title: 'wire marketing autopilot to live API + generate ad sets'
+    assigned_to: coder
+    timeout_ms: 1800000
+    prompt: |
+      The `tiktok-marketing/` directory has a real orchestrator skeleton
+      (`orchestrator.js`, 534 lines) but it runs in dry-run mode because
+      the config has placeholders. Goal: make it actually work with real
+      API calls, then generate 3 production-ready ad sets for CarShine Red Sea.
+
+      Project root: `C:\Users\hamad\Documents\car whased in Egypt redsea\tiktok-marketing`
+      Reference skill file: `C:\Users\hamad\Documents\car whased in Egypt redsea\tiktok-marketing\SKILL.md`
+
+      Deliverable scope (do ALL, then write deliverable.md and stop):
+
+      1. Read `SKILL.md` and `orchestrator.js` end to end so you understand
+         the existing pipeline shape. Don't refactor for the sake of it.
+
+      2. Implement real provider adapters in
+         `tiktok-marketing/scripts/providers/`:
+         - `openai-image.js` — uses OpenAI Images API
+           (`gpt-image-1.5` per config). Read OPENAI_API_KEY from
+           `config.json > imageGen.apiKey`. Export
+           `async function generateSlide(prompt, outputPath)`.
+         - `postiz.js` — uses Postiz REST API. Read POSTIZ_API_KEY and
+           integration IDs from `config.json > postiz`. Export
+           `async function uploadImage(filePath) -> { url }` and
+           `async function postToSocials({imageUrl, caption, platform, privacyLevel})`.
+
+         The Postiz base URL is `https://api.postiz.com/v1` (verify against
+         current Postiz docs via web search if you can; otherwise document
+         the URL in a comment). If you can't reach the real API, your
+         adapter should still have a working `dryRun: true` mode that
+         returns mock data so the orchestrator can be tested.
+
+      3. Update `tiktok-marketing/scripts/generate-slides.js` so it actually
+         calls the provider adapter and produces 6 PNGs. Keep the same CLI
+         signature (`--config --output --prompts`).
+
+      4. Update `tiktok-marketing/orchestrator.js` so the `runPipeline()`
+         function:
+         - Calls `generate-slides.js` to produce images
+         - Calls `add-text-overlay.js` to add overlay text
+         - Calls `postiz.uploadImage()` then `postiz.postToSocials()` for
+           each platform in `config.posting.crossPost`
+         - Logs every step to `logs/orchestrator.log` (JSON lines)
+         - On error, writes to `logs/alerts.log` and continues to next post
+         - Returns a structured result `{ posts: [...], errors: [...] }`
+
+         The post must be created in DRAFT mode
+         (`privacyLevel: SELF_ONLY` from config) so a human can review
+         before publishing.
+
+      5. Add a `--dry-run` flag to `orchestrator.js` that runs the full
+         pipeline EXCEPT the actual Postiz call (logs what it would post).
+         The existing `sample-pipeline.js` already does this — keep it.
+
+      6. Generate 3 production-ready ad sets for CarShine Red Sea:
+         - Each ad set = 6 PNG slides (1080x1920) + caption + hashtags + CTAs
+         - Use the OpenAI image adapter to generate the images
+         - If OPENAI_API_KEY is not set in config.json, use the sample
+           images already saved in
+           `tiktok-marketing/posts/sample-2026-06-13/` and document this
+           in deliverable.md
+
+         Save the 3 ad sets to
+         `tiktok-marketing/posts/live-2026-06-13/adset-1`, `adset-2`, `adset-3`
+         with a `manifest.json` per adset describing the captions, target
+         audience, and scheduled post time.
+
+      7. Run `node orchestrator.js --dry-run` once and capture the output
+         in deliverable.md.
+
+      Stop conditions:
+      - `tiktok-marketing/scripts/providers/openai-image.js` exists
+      - `tiktok-marketing/scripts/providers/postiz.js` exists
+      - `tiktok-marketing/orchestrator.js` calls both providers
+      - 3 ad sets generated (each with 6 PNGs + manifest.json)
+      - `--dry-run` mode works end-to-end without throwing
+      - `deliverable.md` written with: file list, dry-run output, manifest of 3 ad sets
+    verified_by: verifier
+    verify_prompt: |
+      Independently verify the marketing autopilot.
+
+      DO NOT just re-read deliverable.md. Run real checks.
+
+      1. Verify the 2 provider files exist:
+         `tiktok-marketing/scripts/providers/openai-image.js`
+         `tiktok-marketing/scripts/providers/postiz.js`
+
+      2. Read `postiz.js`. Verify it has BOTH `uploadImage` and
+         `postToSocials` exported. Verify it has a `dryRun: true` mode
+         that returns mock data (so we can test without real credentials).
+
+      3. Run `cd "C:\Users\hamad\Documents\car whased in Egypt redsea\tiktok-marketing" && node orchestrator.js --dry-run`
+         and confirm it exits 0 with output that mentions "would post to
+         tiktok, instagram, facebook" (or similar).
+
+      4. Verify 3 ad set folders exist in
+         `tiktok-marketing/posts/live-2026-06-13/`:
+         adset-1, adset-2, adset-3
+         Each must have 6 PNG files (1080x1920) and a manifest.json.
+         Open one PNG and confirm it's a real image (not 0 bytes).
+
+      5. Read one manifest.json and confirm it has: caption, target_audience,
+         scheduled_time, hashtags, cta fields.
+
+      6. Adversarial: try posting a fake ad to the Postiz adapter with
+         `dryRun: false` and an obviously invalid API key. Verify it
+         FAILS gracefully (logs error, doesn't crash the orchestrator).
+
+      Return PASS/FAIL with the exact output. List every missing piece.
+
+  # =========================================================================
+  # Track 3: Observability (Langfuse) + Memory (Mem0) — both as tools
+  # =========================================================================
+  - id: track-3-observability-memory
+    title: 'wire Langfuse tracing + Mem0 returning-customer memory'
+    assigned_to: coder
+    timeout_ms: 1800000
+    prompt: |
+      Add two infrastructure pieces to the booking agent (from track 1) and
+      the marketing autopilot. Both run in DRY-RUN mode by default and
+      switch to LIVE when API keys are present.
+
+      Project root: `C:\Users\hamad\Documents\car whased in Egypt redsea`
+
+      Deliverable scope (do ALL, then write deliverable.md and stop):
+
+      1. Langfuse tracing wrapper
+         - Create `service-agent/observability/langfuse.js` that exports
+           `trace({ sessionId, name, metadata }, fn)` — runs `fn` and
+           records start/end, duration, success/failure, input/output
+           sizes to a JSON log at `service-agent/logs/langfuse-traces.jsonl`
+         - In LIVE mode (when LANGFUSE_PUBLIC_KEY + LANGFUSE_SECRET_KEY in
+           env), also POST to `https://cloud.langfuse.com/api/public/ingestion`
+         - Wire the orchestrator (from track 1) to call this for every
+           agent invocation. Tag every trace with `{ chatSessionId, language,
+             finalOutcome }`.
+
+      2. Mem0 memory wrapper
+         - Create `service-agent/memory/mem0.js` that exports
+           `lookupCustomer({ phone, name })` returning
+           `{ lastBooking, preferences, totalBookings, firstSeen }`
+         - In LIVE mode (MEM0_API_KEY in env), call the Mem0 API
+         - In DRY-RUN mode, fall back to `db.getBookingsByPhone(phone)` and
+           synthesize the same shape
+         - Wire into `lookupCustomerTool` in the IntakeAgent (from track 1)
+
+      3. Dashboard endpoint for traces
+         - Add `GET /api/observability/recent?limit=50` to `server.js`
+           that reads the last 50 traces from the JSONL log
+         - Add a new section in the admin dashboard
+           (`service-agent/public/index.html`) called "Traces" that
+           lists recent traces with status, duration, agent name
+         - Don't redesign the dashboard — just add a nav item + section
+           consistent with the existing dark glassmorphism style
+
+      4. Tests
+         - Add 2 unit tests for the Langfuse wrapper (DRY-RUN mode)
+         - Add 2 unit tests for the Mem0 wrapper (DRY-RUN mode, returning
+           customer case + new customer case)
+
+      5. Run `cd service-agent && npm test`. ALL existing 78 + new tests
+         must pass. Capture output in deliverable.md.
+
+      Stop conditions:
+      - 2 wrapper files exist (langfuse.js, mem0.js)
+      - New endpoint `/api/observability/recent` exists in server.js
+      - Dashboard "Traces" section visible
+      - All tests pass (≥82)
+      - `deliverable.md` written with: file list, test output, sample trace
+    verified_by: verifier
+    verify_prompt: |
+      Independently verify the observability + memory work.
+
+      DO NOT just re-read deliverable.md. Run real checks.
+
+      1. Verify `service-agent/observability/langfuse.js` exists and exports
+         a `trace` function. Read it and confirm it writes JSON lines to
+         the right log file.
+
+      2. Verify `service-agent/memory/mem0.js` exists and exports
+         `lookupCustomer`. Confirm it has BOTH a live path and a dry-run
+         fallback.
+
+      3. Run `cd "C:\Users\hamad\Documents\car whased in Egypt redsea\service-agent" && npm test`.
+         Confirm ≥82 tests pass with 0 failures.
+
+      4. Boot the server briefly: `timeout 10 npm start` in
+         `service-agent/`. While running, hit
+         `curl http://localhost:5000/api/observability/recent?limit=5` (or
+         PowerShell equivalent `Invoke-WebRequest`) and confirm it returns
+         a JSON array (possibly empty).
+
+      5. Open `service-agent/public/index.html` in Playwright. Confirm a
+         "Traces" nav item exists. Click it. Confirm a section renders
+         (even if empty).
+
+      6. Adversarial: send a trace with a fake session ID through the
+         Langfuse wrapper. Confirm it shows up in the JSONL log AND in the
+         `/api/observability/recent` response.
+
+      Return PASS/FAIL with concrete evidence. List every missing piece.
+
+  # =========================================================================
+  # Track 4: Final integration check (gate task)
+  # =========================================================================
+  - id: track-4-integration-gate
+    title: 'final integration check — all tracks work together'
+    assigned_to: verifier
+    depends_on:
+      - track-1-mastra-booking
+      - track-2-marketing-autopilot
+      - track-3-observability-memory
+    timeout_ms: 1800000
+    prompt: |
+      All 3 producer tracks are done. Run the full integration check.
+
+      Project root: `C:\Users\hamad\Documents\car whased in Egypt redsea`
+
+      1. Run `cd service-agent && npm test` — must be ≥82 tests passing
+      2. Run `cd landing-page && npm run build:en` — must build without errors
+      3. Boot the service agent (`cd service-agent && npm start &`) and the
+         landing preview (`cd landing-page && npm run preview &`)
+      4. Hit `http://localhost:5000/` in Playwright — dashboard must load
+      5. Hit `http://127.0.0.1:4173/` in Playwright — landing page must show
+         Three.js scene (no console errors)
+      6. POST a test booking message to the agent
+         (`/api/public/chat`) — must return a coherent reply
+      7. Take 4 screenshots and save to `.debug-screenshots/integration-*.png`:
+         - landing desktop top
+         - landing desktop full
+         - dashboard login
+         - dashboard traces section
+
+      8. Write a 1-page `INTEGRATION_REPORT.md` summarizing: tests pass,
+         builds pass, all 4 surfaces work, list of any remaining issues
+         with priority (P0/P1/P2).
+
+      If anything is broken, FAIL the task with a clear list. Don't fix
+      it — that's the next round's work.
+    verified_by: verifier
+    verify_prompt: |
+      Independently re-verify the integration check by running the
+      test commands again. The 4 screenshots in `.debug-screenshots/`
+      must show real, non-empty, well-rendered pages. The
+      INTEGRATION_REPORT.md must have a clear summary. PASS or FAIL
+      with concrete evidence.

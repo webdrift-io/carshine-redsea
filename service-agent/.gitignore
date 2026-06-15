@@ -1,0 +1,33 @@
+# Service Agent Specific Ignores
+# Dependencies (already in root .gitignore but explicit here too)
+node_modules/
+
+# Database
+database.sqlite
+database.sqlite-journal
+*.db
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+logs/
+
+# CLI history
+cli_history.json
+
+# Bookings/Calendar data (JSON backups - real data in SQLite)
+bookings.json
+calendar.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

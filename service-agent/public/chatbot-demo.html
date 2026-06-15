@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CarShine Chatbot Widget Demo</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, #061425 0%, #0a2540 100%);
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .demo {
+      max-width: 700px;
+      text-align: center;
+    }
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, #00b894, #00cec9);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    p {
+      font-size: 1.1rem;
+      line-height: 1.6;
+      opacity: 0.9;
+      margin-bottom: 1.5rem;
+    }
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-top: 2rem;
+    }
+    .feature {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .feature h3 {
+      color: #00b894;
+      margin-bottom: 8px;
+      font-size: 1rem;
+    }
+    .feature p {
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+  <div class="demo">
+    <h1>🚗 CarShine Red Sea</h1>
+    <p>Try our AI-powered booking assistant. Click the chat button in the bottom-left corner to start a conversation.</p>
+    
+    <div class="features">
+      <div class="feature">
+        <h3>🤖 AI-Powered</h3>
+        <p>MiniMax agent handles bookings end-to-end</p>
+      </div>
+      <div class="feature">
+        <h3>🌍 Multilingual</h3>
+        <p>Speaks English, Arabic, and German</p>
+      </div>
+      <div class="feature">
+        <h3>📅 Real-time</h3>
+        <p>Calendar sync and instant confirmation</p>
+      </div>
+      <div class="feature">
+        <h3>🔔 Notifications</h3>
+        <p>Auto-sends WhatsApp confirmations</p>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Load the chatbot widget -->
+  <script src="./chatbot-widget.js"></script>
+  <script>
+    CarShineChat.init({
+      apiUrl: 'http://localhost:5000',
+      position: 'bottom-left',
+      title: 'Layla - CarShine Assistant',
+      subtitle: 'Online • Powered by AI',
+      welcomeMessage: 'Hi! 👋 I\'m Layla, your CarShine assistant. I can help you book a mobile car wash in El Gouna, Hurghada, or Sahl Hasheesh. What\'s your name?',
+      autoOpen: true
+    });
+  </script>
+</body>
+</html>

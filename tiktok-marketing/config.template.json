@@ -1,0 +1,37 @@
+{
+  "app": {
+    "name": "CarShine Red Sea",
+    "description": "Premium mobile car detailing service in El Gouna, Hurghada, and Egypt Red Sea region.",
+    "audience": "Car owners, luxury vehicle owners, yacht owners, expats in El Gouna and Hurghada.",
+    "problem": "Harsh desert dust, salty sea air, and intense sun destroy car paint and interiors. Finding high-quality, reliable, and convenient detailing is hard.",
+    "differentiator": "Mobile waterless and eco-friendly premium detailing at your doorstep, utilizing ceramic coatings and high-end German products.",
+    "appStoreUrl": "https://carshineredsea.com",
+    "category": "other",
+    "isMobileApp": false
+  },
+  "imageGen": {
+    "provider": "openai",
+    "apiKey": "sk-proj-...",
+    "model": "gpt-image-1.5"
+  },
+  "postiz": {
+    "apiKey": "postiz_public_key_...",
+    "integrationIds": {
+      "tiktok": "tiktok_integration_id_here",
+      "facebook": "facebook_integration_id_here",
+      "instagram": "instagram_integration_id_here"
+    }
+  },
+  "revenuecat": {
+    "enabled": false,
+    "v2SecretKey": "sk_...",
+    "projectId": "proj_..."
+  },
+  "posting": {
+    "privacyLevel": "SELF_ONLY",
+    "schedule": ["07:30", "16:30", "21:00"],
+    "crossPost": ["instagram", "facebook"]
+  },
+  "competitors": "tiktok-marketing/competitor-research.json",
+  "strategy": "tiktok-marketing/strategy.json"
+}

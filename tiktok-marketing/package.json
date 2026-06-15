@@ -1,0 +1,19 @@
+{
+  "name": "tiktok-marketing-orchestrator",
+  "version": "1.0.0",
+  "description": "Multi-platform social media orchestrator (TikTok, Instagram, Facebook) with config validation, error alerting, and automated scheduling",
+  "main": "orchestrator.js",
+  "scripts": {
+    "start": "node orchestrator.js",
+    "validate": "node orchestrator.js --validate",
+    "pipeline": "node orchestrator.js --pipeline",
+    "analytics": "node orchestrator.js --analytics",
+    "schedule": "node orchestrator.js --schedule"
+  },
+  "dependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "author": "CarShine Red Sea",
+  "license": "UNLICENSED"
+}

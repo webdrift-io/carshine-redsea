@@ -1,0 +1,32 @@
+{
+  "name": "landing-page",
+  "version": "1.0.0",
+  "description": "Carshine Red Sea Landing Page - Multi-language (EN/AR/DE)",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "build:en": "vite build --mode en",
+    "build:ar": "vite build --mode ar",
+    "build:de": "vite build --mode de",
+    "build:all": "npm run build:en && npm run build:ar && npm run build:de"
+  },
+  "keywords": [
+    "carshine",
+    "landing-page",
+    "multilingual",
+    "vite"
+  ],
+  "author": "Carshine Red Sea",
+  "license": "ISC",
+  "devDependencies": {
+    "@vitejs/plugin-legacy": "^5.4.0",
+    "sass": "^1.77.0",
+    "vite": "^5.2.0"
+  },
+  "dependencies": {
+    "gsap": "^3.15.0",
+    "three": "^0.184.0"
+  }
+}
