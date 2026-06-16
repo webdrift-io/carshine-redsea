@@ -31,6 +31,7 @@ describe('M0 public booking API service', () => {
     process.env.INSTAPAY_RECEIVING_NUMBER = '01000000000';
     process.env.INSTAPAY_RECEIVING_NAME = 'CarShine Red Sea';
 
+    delete require.cache[require.resolve('../services/slot-overlap')];
     delete require.cache[require.resolve('../services/public-bookings')];
     delete require.cache[require.resolve('../database')];
     database = require('../database');
@@ -48,6 +49,7 @@ describe('M0 public booking API service', () => {
     restoreEnv('NODE_ENV', previousNodeEnv);
     restoreEnv('INSTAPAY_RECEIVING_NUMBER', previousInstapayNumber);
     restoreEnv('INSTAPAY_RECEIVING_NAME', previousInstapayName);
+    delete require.cache[require.resolve('../services/slot-overlap')];
     delete require.cache[require.resolve('../services/public-bookings')];
     delete require.cache[require.resolve('../database')];
   });
@@ -161,6 +163,34 @@ describe('M0 public booking API service', () => {
       phone: '01033333333',
       email: 'ahmed@example.com',
       idempotencyKey: 'slot-second-1'
+    }));
+
+    const quotedCount = database.db
+      .prepare("SELECT COUNT(*) AS count FROM bookings_v2 WHERE status = 'QUOTED'")
+      .get().count;
+
+    expect(second.success).toBe(false);
+    expect(second.status).toBe('NEEDS_HUMAN');
+    expect(quotedCount).toBe(1);
+  });
+
+  it('M0-005a: rejects overlap, not just exact scheduledStart match (window-overlap)', () => {
+    const first = createPublicBooking(validBookingPayload({
+      idempotencyKey: 'm0-005a-window-first',
+      preferredDate: '2026-08-15',
+      preferredTime: '10:00'
+    }));
+    expect(first.status).toBe('QUOTED');
+
+    // 30 minutes later — old equality check would have missed this. New
+    // window-overlap query must reject it.
+    const second = createPublicBooking(validBookingPayload({
+      idempotencyKey: 'm0-005a-window-second',
+      customerName: 'Lina Mostafa',
+      phone: '01044444444',
+      email: 'lina@example.com',
+      preferredDate: '2026-08-15',
+      preferredTime: '10:30'
     }));
 
     const quotedCount = database.db

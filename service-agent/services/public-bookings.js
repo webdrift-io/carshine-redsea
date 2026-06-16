@@ -2,6 +2,7 @@
 
 const crypto = require('crypto');
 const database = require('../database');
+const { assertNoSlotConflict } = require('./slot-overlap');
 
 const { db } = database;
 
@@ -18,9 +19,10 @@ function createPublicBooking(input = {}) {
     const missingFields = getMissingFields(normalized, servicePackage);
     const draftStatus = normalized.needsHuman ? 'NEEDS_HUMAN' : missingFields.length > 0 ? 'COLLECTING_INFO' : 'QUOTED';
 
-    // Slot/past-time precondition — runs before any customer/booking writes
+    // Slot/past-time precondition — runs before any customer/booking writes.
+    // M0-005a: window-overlap + malformed-date guard lives in slot-overlap.js.
     if (draftStatus === 'QUOTED') {
-      const slotError = checkSlotConflict(normalized);
+      const slotError = assertNoSlotConflict(normalized, servicePackage, now);
       if (slotError) return slotError;
     }
 
@@ -135,37 +137,6 @@ function createPublicBooking(input = {}) {
       servicePackage
     });
   })();
-}
-
-function checkSlotConflict(normalized) {
-  const scheduledDate = new Date(normalized.scheduledStart);
-  if (Number.isNaN(scheduledDate.getTime())) return null;
-
-  if (scheduledDate.getTime() < Date.now()) {
-    return {
-      success: false,
-      status: 'COLLECTING_INFO',
-      missingFields: ['scheduledStart'],
-      message: 'The requested time slot is in the past. Please provide a future date and time.'
-    };
-  }
-
-  const conflict = db.prepare(`
-    SELECT public_ref FROM bookings_v2
-    WHERE scheduled_start = ?
-      AND status IN ('QUOTED', 'CONFIRMED', 'IN_PROGRESS')
-    LIMIT 1
-  `).get(normalized.scheduledStart);
-
-  if (conflict) {
-    return {
-      success: false,
-      status: 'NEEDS_HUMAN',
-      message: 'The requested time slot is unavailable. Please choose a different time or contact us for assistance.'
-    };
-  }
-
-  return null;
 }
 
 function normalizeInput(input) {
