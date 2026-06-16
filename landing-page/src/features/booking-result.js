@@ -12,6 +12,12 @@
 //   | 'quoted' | 'collecting_info' | 'needs_human' | 'duplicate'
 //   | 'backend_error' | 'network_error'
 //
+// i18n source: the active language copy is read from
+// `window.BOOKING_I18N` (populated by the i18n Vite plugin in
+// `vite-plugins/i18n.js`) and falls back to `options.copy` if a caller
+// passes one explicitly. When neither is present, the renderer falls
+// back to short English copy.
+//
 // M0-004A submit handler is owned by Hermes Coding. This module is opt-in:
 // M0-004A's existing renderStatus() helper does the work today; this module
 // provides a richer renderer that Hermes can swap in by calling
@@ -25,7 +31,13 @@
 // success. We never hardcode localhost. Payment instructions only render
 // when the backend has actually attached a `paymentInstructions` object
 // (the same `paymentStatus === 'PAYMENT_INSTRUCTIONS_SENT' -> block` rule
-// M0-004A already uses internally).
+// M0-004A already uses internally). The receiving address comes from
+// `paymentInstructions.receivingNumber` (backend-driven) and falls back
+// to `APP_CONFIG.instapayMobile` (the public business number) only when
+// the backend value is missing. The copy itself is the local i18n copy
+// that explicitly tells the customer to send the receipt screenshot on
+// WhatsApp for manual review — we never mark the payment as verified
+// from the UI.
 // ============================================================================
 
 import { APP_CONFIG } from '../shared/constants.js';
@@ -131,6 +143,24 @@ function getRegions() {
 
 // ---- Render ----------------------------------------------------------------
 
+/**
+ * Resolve the i18n copy to use. Preference order:
+ *   1. options.copy (explicit caller-provided bundle, e.g. tests)
+ *   2. window.BOOKING_I18N (runtime bridge from the i18n Vite plugin)
+ *   3. null (caller will fall back to English hard-coded copy)
+ *
+ * The runtime bridge is the supported path for production. The explicit
+ * `options.copy` exists so tests and the dashboard preview can override
+ * without depending on the bridge being present in the bundle.
+ */
+function resolveCopy(optionsCopy) {
+  if (optionsCopy && optionsCopy.bookingStates) return optionsCopy;
+  if (typeof window !== 'undefined' && window.BOOKING_I18N && window.BOOKING_I18N.bookingStates) {
+    return window.BOOKING_I18N;
+  }
+  return null;
+}
+
 function pickCopy(copy, state) {
   return (copy && copy.bookingStates) ? copy.bookingStates : null;
 }
@@ -204,12 +234,15 @@ function renderPaymentInstructions(regions, paymentInstructions, copy) {
     regions.instapay.innerHTML = '';
     return;
   }
-  const bundle = pickCopy(copy, '__ip__'); // unused key
-  const ipCopy = copy?.bookingStates?.paymentInstructions;
+  const ipCopy = pickCopy(copy, 'paymentInstructions');
   if (!ipCopy) {
     regions.instapay.hidden = true;
     return;
   }
+  // Backend-driven address. Fall back to the public business number only
+  // when the backend did not provide one. We never mark the payment as
+  // verified from the UI; the local i18n copy always asks the customer
+  // to send the receipt on WhatsApp for manual review.
   const receiving = paymentInstructions.receivingNumber || APP_CONFIG.instapayMobile;
   regions.instapay.innerHTML = `
     <h4>${escapeHtml(ipCopy.title)}</h4>
@@ -319,13 +352,17 @@ export function renderBookingState(form, result, options = {}) {
   const regions = ensureMounted(form);
   if (!regions) return 'idle';
 
+  // Resolve the active i18n copy. The runtime bridge (window.BOOKING_I18N)
+  // is the production source; options.copy overrides for tests / preview.
+  const copy = resolveCopy(options.copy);
+
   const state = (result && result.state) || 'idle';
   const tone = STATE_TONES[state] || 'idle';
 
   applyTone(regions, tone);
   renderIcon(regions, state);
 
-  const stateCopy = getStateCopy(options.copy, state) || {};
+  const stateCopy = getStateCopy(copy, state) || {};
   const fallback = (result && result.message) || '';
   let main = '';
   let detail = '';
@@ -345,7 +382,7 @@ export function renderBookingState(form, result, options = {}) {
     || (result && result.data && result.data.missingFields)
     || []);
   renderPills(regions, missing, stateCopy.missingLabel);
-  renderPaymentInstructions(regions, options.paymentInstructions || (result && result.data && result.data.paymentInstructions), options.copy);
+  renderPaymentInstructions(regions, options.paymentInstructions || (result && result.data && result.data.paymentInstructions), copy);
 
   if (state === 'idle') {
     regions.region.hidden = true;
@@ -353,7 +390,7 @@ export function renderBookingState(form, result, options = {}) {
     regions.region.hidden = false;
   }
 
-  renderActions(regions, state, options.copy, {
+  renderActions(regions, state, copy, {
     whatsappUrl: (result && result.whatsappUrl) || options.whatsappUrl,
     onRetry: options.onRetry,
     onEdit: options.onEdit

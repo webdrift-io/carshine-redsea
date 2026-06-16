@@ -1,6 +1,6 @@
 # M0 Status
 
-Status: M0-000 safe baseline complete; M0-001 schema foundation implemented; M0-002b config/audit gate complete; M0-003 public booking API v2 implemented; M0-003b payment/slot preconditions implemented; M0-004A landing form real wiring landed.
+Status: M0-000 safe baseline complete; M0-001 schema foundation implemented; M0-002b config/audit gate complete; M0-003 public booking API v2 implemented; M0-003b payment/slot preconditions implemented; M0-004A landing form real wiring landed; M0-004B UI polish (MiniMax) landed on `feature/m0-004b-ui-polish`; M0-004C-A renderer integration landed.
 
 M0 target: customer creates booking, booking appears in dashboard calendar,
 owner assigns cleaner, payment is tracked and verified, and customer receives
@@ -222,3 +222,30 @@ M0-004: wire the landing booking form to `/api/public/bookings` and remove fake 
 - **Dashboard preview is design-only.** All data lives in `DESIGN_ONLY_MOCKS.js`. The shipping dashboard is untouched. Reviewers can preview the 7 sections at `service-agent/public/m0-004b-design/dashboard-preview.html`.
 - **Verification (in worktree):** `landing-page npm ci` / `npm run build:all` (3 langs) / `npm audit --audit-level=high` = 0/0/0. Root `npm ci` / `npm run build` / `npm audit --audit-level=high` = 0/0/0. 0 service-agent files touched.
 - **Next:** M0-005 (MiniMax + Claude Code) — dashboard reads from `bookings_v2` instead of legacy `bookings`, calendar uses real booking data, replace `checkSlotConflict` equality check with window-overlap query, add malformed-date guard.
+
+## M0-004C-A Results (2026-06-16) — renderer integration
+
+- **Owner:** Hermes Coding. Live form now calls MiniMax's renderer.
+- **Scope (per Opus 4.8 review of M0-004):** the live submit path delegates to `window.renderBookingState(form, result, options)` when present. The inline renderer from M0-004A is extracted into `renderInlineStatus(form, result)` and kept as the fallback path. The hard rule "do not key InstaPay UI on user-selected payment method" is enforced: the success-modal InstaPay argument is now `Boolean(result.data?.paymentInstructions)` (backend truth), not `values.payment === 'InstaPay'`.
+- **Files changed:** `landing-page/src/features/booking-form.js` (only Hermes-owned file touched), `docs/M0_STATUS.md`, `docs/AGENT_HANDOFF.md`.
+- **Files NOT changed:** `booking-api.js`, `config.js`, `booking-result.js`, `index.{en,ar,de}.html`, `styles.css`, i18n JSONs, `main.js`, any backend file, schema, migration, or payment trigger.
+- **Success-modal rule:** `showSuccessModal` is called only when `result.state === 'quoted'`. The `paymentInstructions` argument is `''` (no InstaPay block in the legacy modal) unless the backend attached a real `paymentInstructions` object.
+- **Form-reset rule:** `form.reset()` is called only when `result.state === 'quoted'`. Every other state preserves user input.
+- **Renderer dispatch contract:**
+  - `window.renderBookingState(form, result, { copy: window.BOOKING_I18N, whatsappUrl: result.whatsappUrl || WHATSAPP_FALLBACK_URL })` if the global is present.
+  - Else `renderInlineStatus(form, result)` (extracted M0-004A switch).
+  - The renderer is wrapped in `try/catch`; on throw, log + fall through to the inline renderer (no fake success, never silent).
+- **Verification (in worktree):** `landing-page npm ci` / `npm run build:all` (3 langs) / `npm audit --audit-level=high` = 0/0/0. Root `npm ci` / `npm run build` / `npm audit --audit-level=high` = 0/0/0. 5/5 dispatch unit tests pass. 7/7 inline-copy unit tests pass. `feature-booking` chunk grew from 8.98 kB → 9.57 kB (+0.6 kB for the dispatcher + extracted helper). `values.payment` no longer appears in the bundle (0 hits).
+- **Out of scope (untouched):** backend, DB schema, migrations, payment triggers, dashboard, calendar, cleaner UI, social/marketing, new runtime deps. M0-005 not started.
+
+## M0-004C-B Results (2026-06-16) — runtime i18n bridge
+
+- **Status:** M0-004C-B shipped 2026-06-16.
+- **Owner:** MiniMax (Senior Engineer B / UI design builder + i18n).
+- **Scope:** runtime i18n bridge for the booking result UI. The Vite i18n plugin now injects `window.BOOKING_I18N` per language so `booking-result.js` can render localized result states without Hermes' submit handler needing to pass a copy bundle.
+- **Files changed:** `landing-page/vite-plugins/i18n.js` (rewritten — injects `<script id="i18n-bridge">` before `</head>`, JSON-escaped against `</script>`, `<!--`, U+2028, U+2029, only exposes the `bookingStates` subset; plus a tiny inline parser that sets `window.BOOKING_I18N` and dispatches `booking-i18n:ready`), `landing-page/src/features/booking-result.js` (new `resolveCopy()` helper: `options.copy || window.BOOKING_I18N || null`; `renderPaymentInstructions()` hardened to prefer `paymentInstructions.receivingNumber` and fall back to `APP_CONFIG.instapayMobile` only when missing; never says VERIFIED).
+- **Files NOT changed:** `booking-form.js`, `booking-api.js`, `config.js` (Hermes-owned), `service-agent/public/{index.html,app.js,style.css}` (live dashboard), any backend, schema, migration, or payment trigger.
+- **No new dependencies. No backend changes. No fake success. No `VERIFIED` in the UI.** The "AI never marks payment VERIFIED" decision is unchanged — the bridge only contains static copy; runtime never marks anything as verified. The InstaPay receiving number is NOT in the bridge — it stays in the backend `paymentInstructions.receivingNumber` and `APP_CONFIG.instapayMobile` only.
+- **Security:** the bridge payload contains only `{ lang, dir, bookingStates }`. No secrets, no API keys, no full i18n bundle. Hero, packages, services, faq, contact, footer copy never reaches the renderer.
+- **Verification:** `landing-page npm ci` / `npm run build:all` / `npm audit --audit-level=high` = 0/0/0. Bridge payload sizes: EN 4169 bytes, AR 5418 bytes, DE 4425 bytes. All 8 state keys present in every bridge (`loading`, `quoted`, `collecting_info`, `needs_human`, `duplicate`, `backend_error`, `network_error`, `paymentInstructions`). AR uses Egyptian colloquial; DE is neutral. No "VERIFIED" string in any bridge.
+- **Next:** M0-005 (MiniMax + Claude Code) — dashboard reads from `bookings_v2`, calendar uses real booking data, slot-overlap refinement, malformed-date guard.

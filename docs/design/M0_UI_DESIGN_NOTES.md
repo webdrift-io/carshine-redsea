@@ -168,6 +168,15 @@ The renderer pulls copy from the i18n bundle under
 - `backend_error.*` (same shape; secondary action = `retry`)
 - `network_error.*` (same shape; secondary action = `retry`)
 
+**Runtime bridge.** The Vite i18n plugin injects
+`<script id="i18n-bridge" type="application/json">{lang, dir, bookingStates}</script>`
+before `</head>` plus a tiny inline parser that sets
+`window.BOOKING_I18N` and dispatches `booking-i18n:ready`. The
+renderer reads `options.copy || window.BOOKING_I18N || null` —
+production path uses the bridge, callers can override. The bridge
+is the only place `bookingStates` reaches the renderer at runtime;
+we never bundle the full i18n JSON.
+
 All three language bundles have these keys. The Arabic bundle uses
 Egyptian colloquial.
 

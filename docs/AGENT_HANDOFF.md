@@ -1,6 +1,6 @@
 # Agent Handoff
 
-Status: M0-000 complete; M0-001 implemented and verified; M0-002b complete; M0-003 implemented and verified by Hermes; M0-003b implemented; M0-004A landed; M0-004B (UI design layer) implemented.
+Status: M0-000 complete; M0-001 implemented and verified; M0-002b complete; M0-003 implemented and verified by Hermes; M0-003b implemented; M0-004A landed; M0-004B (UI design layer) implemented; M0-004C-A (renderer integration) landed.
 
 ## Current Controller Notes
 
@@ -38,6 +38,7 @@ Status: M0-000 complete; M0-001 implemented and verified; M0-002b complete; M0-0
 - M0-004B: new `landing-page/src/features/booking-result.js` renderer composes with M0-004A's `SubmitResult` discriminated union (snake_case states: `loading | quoted | collecting_info | needs_human | duplicate | backend_error | network_error`). Renders into the existing `#bookingFormStatus` region with per-state copy in EN/AR/DE, per-state color tone, an icon, an optional InstaPay address block (for `quoted + paymentInstructions`), and a missing-fields pill list (for `collecting_info`). No localhost, no fake success, no `VERIFIED` in the UI. Exposes `window.renderBookingState(form, submitResult, { copy, onRetry, onEdit })` and `window.clearBookingStatus(form)` for Hermes' submit handler to opt into.
 - M0-004B: dashboard design-only preview at `service-agent/public/m0-004b-design/dashboard-preview.html` shows the 7 sections (Today's bookings, Live inbox, Calendar, Payment review, Cleaner assignment, AI autopilot, Human takeover) with empty / loading / error states. All data lives in `DESIGN_ONLY_MOCKS.js` (single file, clearly marked). The shipping dashboard is untouched.
 - M0-004B: docs/design/M0_UI_DESIGN_NOTES.md captures the full design contract (state map, file ownership, accessibility, what Hermes must connect, what Opus should review).
+- M0-004C-A: live submit path now calls `window.renderBookingState(form, result, { copy: window.BOOKING_I18N, whatsappUrl: result.whatsappUrl || WHATSAPP_FALLBACK_URL })` when MiniMax's renderer is present. The M0-004A switch is extracted into `renderInlineStatus(form, result)` and kept as a fallback so the form keeps working in dev/test contexts that don't load the result module. The renderer call is wrapped in `try/catch`; on throw, log + fall through to the inline renderer (no fake success, never silent). Success modal opens only on `result.state === 'quoted'`, and the modal's InstaPay block is gated on `result.data?.paymentInstructions` (backend truth) — no longer on `values.payment === 'InstaPay'`. `form.reset()` runs only on `quoted`. Loading state, `disabled` submit button, `aria-busy`, and idempotency behavior are preserved.
 
 ## Verification Snapshot
 
@@ -75,3 +76,10 @@ Status: M0-000 complete; M0-001 implemented and verified; M0-002b complete; M0-0
 - Next backend task: M0-005 (dashboard calendar + slot-check refinement). M0-004 (landing form) is owned by MiniMax/frontend.
 - **Implementation agent: Claude Code** (Co-Authored-By: Claude Sonnet 4.6 in commit 9f342c9). Codex is on standby.
 - Full review: `docs/M0_REVIEW_000_003b.md`.
+
+## M0-004C-B — runtime i18n bridge shipped (2026-06-16)
+
+- **Pass.** Build clean, audit clean, bridge verified, no leak, no secrets, AR/DE localized.
+- **What M0-004C-B delivered:** the Vite i18n plugin now injects `<script id="i18n-bridge" type="application/json">{lang, dir, bookingStates}</script>` before `</head>`, plus a tiny inline parser that sets `window.BOOKING_I18N` and dispatches `booking-i18n:ready`. The JSON is escaped against `</script>`, `<!--`, U+2028, U+2029, and only the `bookingStates` subset is exposed (no full bundle, no secrets, no payment credentials). `booking-result.js` gained a `resolveCopy()` helper (`options.copy || window.BOOKING_I18N || null`) used by `renderBookingState()`. `renderPaymentInstructions()` now prefers `paymentInstructions.receivingNumber` and falls back to `APP_CONFIG.instapayMobile` only when missing, and never says VERIFIED.
+- **What Hermes must connect:** nothing required. The bridge is auto-injected at build time and auto-read by the renderer. If Hermes wants to override the copy, she can still pass `options.copy` to `renderBookingState()`.
+- **What Opus should review:** bridge JSON shape, escape rules, no full bundle leak, no `VERIFIED` in any state, payment-instructions prefer-backend-then-fallback contract.
