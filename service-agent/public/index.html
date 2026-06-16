@@ -43,6 +43,11 @@
           <span>Approvals</span>
           <span class="badge badge-pending" id="badge-approval-count">0</span>
         </a>
+        <a href="#" class="nav-item" data-section="bookings-v2">
+          <i class="fa-solid fa-globe"></i>
+          <span>Web Bookings</span>
+          <span class="badge badge-pending" id="badge-v2-needs-human" style="display:none;">0</span>
+        </a>
         <a href="#" class="nav-item" data-section="calendar">
           <i class="fa-solid fa-calendar-days"></i>
           <span>Calendar</span>
@@ -153,6 +158,50 @@
               <h3>Active Chats</h3>
               <p class="kpi-value" id="kpi-chats">0</p>
               <span class="kpi-trend info" id="kpi-autopilot-mode">Autopilot ON</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- V2 Bookings KPI Row -->
+        <div class="kpi-grid" style="margin-top:0.5rem;">
+          <div class="kpi-card card-glass">
+            <div class="kpi-icon" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);">
+              <i class="fa-solid fa-globe"></i>
+            </div>
+            <div class="kpi-details">
+              <h3>Web Bookings (V2)</h3>
+              <p class="kpi-value" id="kpi-v2-total">0</p>
+              <span class="kpi-trend info">Normalized channel</span>
+            </div>
+          </div>
+          <div class="kpi-card card-glass">
+            <div class="kpi-icon green">
+              <i class="fa-solid fa-receipt"></i>
+            </div>
+            <div class="kpi-details">
+              <h3>Quoted</h3>
+              <p class="kpi-value" id="kpi-v2-quoted">0</p>
+              <span class="kpi-trend positive">Awaiting payment</span>
+            </div>
+          </div>
+          <div class="kpi-card card-glass">
+            <div class="kpi-icon orange">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div class="kpi-details">
+              <h3>Needs Attention</h3>
+              <p class="kpi-value" id="kpi-v2-needs-human">0</p>
+              <span class="kpi-trend warning">Review required</span>
+            </div>
+          </div>
+          <div class="kpi-card card-glass">
+            <div class="kpi-icon" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9);">
+              <i class="fa-solid fa-hourglass-half"></i>
+            </div>
+            <div class="kpi-details">
+              <h3>Collecting Info</h3>
+              <p class="kpi-value" id="kpi-v2-collecting">0</p>
+              <span class="kpi-trend info">Incomplete forms</span>
             </div>
           </div>
         </div>
@@ -343,6 +392,22 @@
             <div class="empty-state">
               <i class="fa-solid fa-clipboard-check"></i>
               <p>No pending approvals. The AI chatbot is waiting for new bookings.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3.5. Web Bookings V2 Section -->
+      <section id="section-bookings-v2" class="dashboard-section">
+        <div class="approvals-container">
+          <div class="approvals-header">
+            <h2>Web Bookings (V2)</h2>
+            <span class="count-badge" id="v2-bookings-count-badge">0 bookings</span>
+          </div>
+          <div class="approvals-list" id="v2-bookings-list-container">
+            <div class="empty-state">
+              <i class="fa-solid fa-globe"></i>
+              <p>No V2 bookings yet. Web form, chatbot, and WhatsApp bookings will appear here.</p>
             </div>
           </div>
         </div>

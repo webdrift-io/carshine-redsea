@@ -989,8 +989,9 @@ app.post('/api/notifications/send-daily-summary', async (req, res) => {
   res.json({ success: true, result, summary });
 });
 
-// Bookings
+// Bookings — DEPRECATED (M0-005c): use /api/admin/bookings-v2 for normalized data
 app.get('/api/bookings', (req, res) => {
+  res.set('X-Deprecated', 'true; use /api/admin/bookings-v2');
   res.json(db.getAllBookings());
 });
 
@@ -1049,8 +1050,9 @@ app.post('/api/bookings/:id/reject', (req, res) => {
   res.json({ success: true, booking: { ...booking, status: 'rejected' } });
 });
 
-// Calendar
+// Calendar — DEPRECATED (M0-005c): use /api/admin/calendar-v2 for normalized data
 app.get('/api/calendar', (req, res) => {
+  res.set('X-Deprecated', 'true; use /api/admin/calendar-v2');
   res.json(db.getAllCalendar());
 });
 

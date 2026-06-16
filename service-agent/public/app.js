@@ -4,6 +4,7 @@ let activeChatId = null;
 let autopilotActive = true;
 let bookingsList = [];
 let calendarEvents = [];
+let bookingsV2List = [];
 let chatSessions = [];
 let socialsPosts = [];
 let integrationsStatus = null;
@@ -299,6 +300,7 @@ function switchSection(sectionId) {
     'chat-simulator': { title: 'Chatbot Inbox', subtitle: 'Saved website, WhatsApp, Instagram, and Facebook conversations with customer details.' },
     'approvals': { title: 'Booking Approvals Queue', subtitle: 'Confirm or decline reservation requests captured by AI.' },
     'calendar': { title: 'Washes Schedule Calendar', subtitle: 'Timeline and dispatch overview for El Gouna, Hurghada & Sahl Hasheesh.' },
+    'bookings-v2': { title: 'Web Bookings (V2)', subtitle: 'Normalized booking records from the web form, chatbot and WhatsApp.' },
     'socials': { title: 'Social Media Campaigns', subtitle: 'Manage slideshow scheduling, cross-platform posting, and views analytics.' },
     'settings': { title: 'Autopilot Configurations', subtitle: 'Manage AI autonomy level, business triggers and webhooks.' },
     'agents': { title: 'AI Autopilot Agents', subtitle: 'Control center and activity feed for the 10 operational agents.' },
@@ -316,10 +318,18 @@ async function fetchData() {
     const settings = await fetchJsonOrAuth('/api/settings', 'Settings');
     updateAutopilotUI(settings.autopilot);
     
-    // 2. Fetch bookings
+    // 2. Fetch bookings (legacy)
     bookingsList = await fetchJsonOrAuth('/api/bookings', 'Bookings');
-    
-    // 3. Fetch calendar
+
+    // 2b. Fetch V2 bookings (normalized bookings_v2) — non-fatal if empty
+    try {
+      const v2Result = await fetchJsonOrAuth('/api/admin/bookings-v2?limit=200', 'BookingsV2');
+      bookingsV2List = (v2Result && v2Result.bookings) || [];
+    } catch (e) {
+      if (!String(e.message).startsWith('AUTH_REQUIRED:')) bookingsV2List = [];
+    }
+
+    // 3. Fetch calendar (legacy)
     calendarEvents = await fetchJsonOrAuth('/api/calendar', 'Calendar');
     
     // 4. Fetch chats
@@ -342,6 +352,7 @@ async function fetchData() {
     renderApprovalsQueue();
     renderChatSidebar();
     renderCalendar();
+    renderBookingsV2();
     renderIntegrationStatus();
     
     if (activeChatId) {
@@ -544,7 +555,20 @@ function updateKPIs() {
   document.getElementById('kpi-confirmed').textContent = confirmed;
   document.getElementById('kpi-pending').textContent = pending;
   document.getElementById('kpi-chats').textContent = chatsCount;
-  
+
+  // V2 KPIs
+  const v2Total = bookingsV2List.length;
+  const v2Quoted = bookingsV2List.filter(b => b.status === 'QUOTED').length;
+  const v2NeedsHuman = bookingsV2List.filter(b => b.status === 'NEEDS_HUMAN').length;
+  const v2Collecting = bookingsV2List.filter(b => b.status === 'COLLECTING_INFO').length;
+  document.getElementById('kpi-v2-total').textContent = v2Total;
+  document.getElementById('kpi-v2-quoted').textContent = v2Quoted;
+  document.getElementById('kpi-v2-needs-human').textContent = v2NeedsHuman;
+  document.getElementById('kpi-v2-collecting').textContent = v2Collecting;
+  const v2Badge = document.getElementById('badge-v2-needs-human');
+  v2Badge.textContent = v2NeedsHuman;
+  v2Badge.style.display = v2NeedsHuman > 0 ? 'inline' : 'none';
+
   // Badges update
   const approvalsBadge = document.getElementById('badge-approval-count');
   approvalsBadge.textContent = pending;
@@ -1145,7 +1169,8 @@ function renderCalendar() {
     // Check if cell has events scheduled
     const cellDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
     
-    const dayEvents = calendarEvents.filter(e => {
+    const allCalEvents = [...calendarEvents, ...adaptV2EventsForCalendar(bookingsV2List)];
+    const dayEvents = allCalEvents.filter(e => {
       // Event date match
       const eventDateStr = e.start.split('T')[0];
       const isFiltered = activeFilters.includes('all') || activeFilters.includes(e.area);
@@ -1186,15 +1211,16 @@ function renderCalendarSidebarTimeline(activeFilters) {
   const container = document.getElementById('calendar-timeline-list');
   
   // Filter events based on active filters
-  const filteredEvents = calendarEvents.filter(e => activeFilters.includes('all') || activeFilters.includes(e.area));
-  
+  const allSidebarEvents = [...calendarEvents, ...adaptV2EventsForCalendar(bookingsV2List)];
+  const filteredEvents = allSidebarEvents.filter(e => activeFilters.includes('all') || activeFilters.includes(e.area));
+
   // Sort events by date & time ascending
   filteredEvents.sort((a, b) => new Date(a.start) - new Date(b.start));
-  
+
   // Update sidebar counter values
-  const gounaCount = calendarEvents.filter(e => e.area === 'El Gouna').length;
-  const hurghadaCount = calendarEvents.filter(e => e.area === 'Hurghada').length;
-  const sahlCount = calendarEvents.filter(e => e.area === 'Sahl Hasheesh').length;
+  const gounaCount = allSidebarEvents.filter(e => e.area === 'El Gouna').length;
+  const hurghadaCount = allSidebarEvents.filter(e => e.area === 'Hurghada').length;
+  const sahlCount = allSidebarEvents.filter(e => e.area === 'Sahl Hasheesh').length;
   
   document.getElementById('summary-gouna-count').textContent = gounaCount;
   document.getElementById('summary-hurghada-count').textContent = hurghadaCount;
@@ -1246,6 +1272,9 @@ function openBookingModal(bookingId) {
   const body = document.getElementById('modal-body-content');
   const footer = document.getElementById('modal-footer-actions');
   
+  // Check V2 bookings first (bookingV2Id), then fall back to legacy
+  const bv2 = bookingsV2List.find(x => x.bookingV2Id === bookingId);
+  if (bv2) { openBookingModalV2(bv2); return; }
   const b = bookingsList.find(x => x.id === bookingId);
   if (!b) return;
   
@@ -1323,6 +1352,174 @@ function closeModalAndApprove(id) {
 function closeModalAndReject(id) {
   document.getElementById('booking-modal').classList.remove('active');
   rejectBooking(id);
+}
+
+// --- V2 BOOKING MODAL ---
+function openBookingModalV2(b) {
+  const modal = document.getElementById('booking-modal');
+  const body = document.getElementById('modal-body-content');
+  const footer = document.getElementById('modal-footer-actions');
+
+  const statusColor = {
+    QUOTED: 'var(--accent-green)',
+    CONFIRMED: '#0ea5e9',
+    IN_PROGRESS: '#8b5cf6',
+    COLLECTING_INFO: 'var(--accent-orange)',
+    NEEDS_HUMAN: 'var(--accent-red)',
+    COMPLETED: '#6b7280',
+    CANCELLED: '#6b7280'
+  }[b.status] || 'var(--text-secondary)';
+
+  const fmtDate = iso => iso ? new Date(iso).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+  const fmtPrice = p => p != null ? `EGP ${(p / 100).toFixed(2)}` : '—';
+
+  body.innerHTML = `
+    <div class="modal-row">
+      <span class="modal-label">Ref:</span>
+      <span class="modal-val"><code>${escapeHtml(b.publicRef)}</code></span>
+    </div>
+    <div class="modal-row">
+      <span class="modal-label">Status:</span>
+      <span class="modal-val"><strong style="text-transform:uppercase;color:${statusColor}">${escapeHtml(b.status)}</strong>${b.paymentStatus ? ` — <em>${escapeHtml(b.paymentStatus)}</em>` : ''}</span>
+    </div>
+    <div class="modal-row">
+      <span class="modal-label">Customer:</span>
+      <span class="modal-val">${b.customer ? escapeHtml(b.customer.fullName) : '—'}</span>
+    </div>
+    <div class="modal-row">
+      <span class="modal-label">Phone:</span>
+      <span class="modal-val">${b.customer ? escapeHtml(b.customer.phoneRaw || b.customer.phoneE164) : '—'}</span>
+    </div>
+    <div class="modal-row">
+      <span class="modal-label">Vehicle:</span>
+      <span class="modal-val">${b.vehicle ? escapeHtml(`${b.vehicle.make || ''} ${b.vehicle.model || ''} (${b.vehicle.carType})`).trim() : '—'}</span>
+    </div>
+    <div class="modal-row">
+      <span class="modal-label">Service:</span>
+      <span class="modal-val">${b.servicePackage ? escapeHtml(b.servicePackage.nameEn) : '—'} ${b.servicePackage ? `— ${fmtPrice(b.servicePackage.pricePiasters)}` : ''}</span>
+    </div>
+    <div class="modal-row">
+      <span class="modal-label">Scheduled:</span>
+      <span class="modal-val">${fmtDate(b.scheduledStart)} → ${fmtDate(b.scheduledEnd)}</span>
+    </div>
+    <div class="modal-row">
+      <span class="modal-label">Area / Address:</span>
+      <span class="modal-val">${escapeHtml(b.area || '—')}${b.address ? ` — ${escapeHtml(b.address)}` : ''}</span>
+    </div>
+    <div class="modal-row">
+      <span class="modal-label">Source:</span>
+      <span class="modal-val">${escapeHtml(b.source || '—')} / ${escapeHtml(b.language || '—')}</span>
+    </div>
+    ${b.missingFields && b.missingFields.length ? `
+    <div class="modal-row">
+      <span class="modal-label">Missing Fields:</span>
+      <span class="modal-val" style="color:var(--accent-orange)">${b.missingFields.map(escapeHtml).join(', ')}</span>
+    </div>` : ''}
+    ${b.notes ? `
+    <div class="modal-row">
+      <span class="modal-label">Notes:</span>
+      <span class="modal-val">${escapeHtml(b.notes)}</span>
+    </div>` : ''}
+  `;
+  footer.innerHTML = `<button class="btn btn-primary" onclick="document.getElementById('booking-modal').classList.remove('active')">Close</button>`;
+  modal.classList.add('active');
+}
+
+// --- V2 CALENDAR ADAPTER ---
+function adaptV2EventsForCalendar(bookings) {
+  return bookings
+    .filter(b => ['QUOTED', 'CONFIRMED', 'IN_PROGRESS'].includes(b.status))
+    .map(b => ({
+      bookingId: b.bookingV2Id,
+      isV2: true,
+      start: b.scheduledStart,
+      customerName: b.customer ? b.customer.fullName : b.publicRef,
+      carType: b.vehicle
+        ? (`${b.vehicle.make || ''} ${b.vehicle.model || ''}`.trim() || b.vehicle.carType)
+        : '—',
+      area: b.area || 'El Gouna'
+    }));
+}
+
+// --- WEB BOOKINGS V2 LIST ---
+const V2_STATUS_LABEL = {
+  QUOTED: { label: 'Quoted', color: 'var(--accent-green)' },
+  CONFIRMED: { label: 'Confirmed', color: '#0ea5e9' },
+  IN_PROGRESS: { label: 'In Progress', color: '#8b5cf6' },
+  COLLECTING_INFO: { label: 'Collecting Info', color: 'var(--accent-orange)' },
+  NEEDS_HUMAN: { label: 'Needs Attention', color: 'var(--accent-red)' },
+  COMPLETED: { label: 'Completed', color: '#6b7280' },
+  CANCELLED: { label: 'Cancelled', color: '#6b7280' }
+};
+
+function renderBookingsV2() {
+  const container = document.getElementById('v2-bookings-list-container');
+  const badge = document.getElementById('v2-bookings-count-badge');
+  if (!container) return;
+
+  badge.textContent = `${bookingsV2List.length} booking${bookingsV2List.length !== 1 ? 's' : ''}`;
+
+  if (bookingsV2List.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <i class="fa-solid fa-globe"></i>
+        <p>No V2 bookings yet. Web form, chatbot, and WhatsApp bookings will appear here.</p>
+      </div>`;
+    return;
+  }
+
+  const sorted = [...bookingsV2List].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  container.innerHTML = sorted.map(b => {
+    const st = V2_STATUS_LABEL[b.status] || { label: b.status, color: 'var(--text-secondary)' };
+    const fmtDate = iso => iso ? new Date(iso).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+    const customerName = b.customer ? escapeHtml(b.customer.fullName) : '—';
+    const phone = b.customer ? escapeHtml(b.customer.phoneRaw || b.customer.phoneE164) : '';
+    const vehicle = b.vehicle ? escapeHtml(`${b.vehicle.carType}`) : '—';
+    const service = b.servicePackage ? escapeHtml(b.servicePackage.nameEn) : '—';
+    const scheduled = fmtDate(b.scheduledStart);
+    const missingHtml = b.missingFields && b.missingFields.length
+      ? `<div class="payment-routing-note" style="color:var(--accent-orange)"><i class="fa-solid fa-circle-exclamation"></i> Missing: ${b.missingFields.map(escapeHtml).join(', ')}</div>`
+      : '';
+
+    return `
+      <div class="approval-card card-glass" id="v2-card-${escapeHtml(b.bookingV2Id)}">
+        <div class="customer-card-meta">
+          <h3>${customerName}</h3>
+          <span class="meta-phone">${phone}</span>
+          <div class="meta-detail-row">
+            <span><i class="fa-solid fa-tag"></i> <code>${escapeHtml(b.publicRef)}</code></span>
+          </div>
+          <div class="meta-detail-row">
+            <span><i class="fa-solid fa-calendar-check"></i> ${scheduled}</span>
+          </div>
+          ${missingHtml}
+        </div>
+        <div class="booking-specs-col">
+          <div class="specs-item">
+            <i class="fa-solid fa-car"></i>
+            <span>${vehicle}</span>
+          </div>
+          <div class="specs-item">
+            <i class="fa-solid fa-cube"></i>
+            <span class="badge-outline">${service}</span>
+          </div>
+          <div class="specs-item">
+            <i class="fa-solid fa-location-dot"></i>
+            <span>${escapeHtml(b.area || '—')}</span>
+          </div>
+          <div class="specs-item">
+            <i class="fa-solid fa-circle-half-stroke"></i>
+            <span style="color:${st.color};font-weight:600">${st.label}</span>
+          </div>
+        </div>
+        <div class="approval-actions-col">
+          <button class="btn btn-primary btn-sm" onclick="openBookingModal('${escapeHtml(b.bookingV2Id)}')">
+            <i class="fa-solid fa-eye"></i> Details
+          </button>
+        </div>
+      </div>`;
+  }).join('');
 }
 
 // --- COLOR THEME TOGGLER ---
