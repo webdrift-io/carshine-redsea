@@ -167,6 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupHeroCarFallback();
   setupSectionTransitions();
   setupCleanerOps();
+  setupMobileMenu();
 
   // Start system clock
   updateClock();
@@ -2178,6 +2179,48 @@ function setupPaymentReview() {
   if (refreshBtn) refreshBtn.addEventListener('click', refreshPaymentReview);
   const filter = document.getElementById('payments-status-filter');
   if (filter) filter.addEventListener('change', refreshPaymentReview);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// M1: Mobile menu toggle
+// Hamburger button (visible ≤ 768px) opens the sidebar as a drawer with a
+// backdrop. Auto-closes on section change or escape key.
+// ─────────────────────────────────────────────────────────────────────────────
+function setupMobileMenu() {
+  const toggle = document.getElementById('mobile-menu-toggle');
+  const sidebar = document.querySelector('.sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  if (!toggle || !sidebar || !backdrop) return;
+
+  function open() {
+    sidebar.classList.add('is-open');
+    backdrop.classList.add('is-open');
+    document.body.style.overflow = 'hidden';
+  }
+  function close() {
+    sidebar.classList.remove('is-open');
+    backdrop.classList.remove('is-open');
+    document.body.style.overflow = '';
+  }
+  function isOpen() { return sidebar.classList.contains('is-open'); }
+
+  toggle.addEventListener('click', () => isOpen() ? close() : open());
+  backdrop.addEventListener('click', close);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && isOpen()) close();
+  });
+
+  // Auto-close on any nav item click (so we don't trap the user)
+  sidebar.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      if (window.innerWidth <= 768) close();
+    });
+  });
+
+  // Auto-close on window resize to desktop
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 768 && isOpen()) close();
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
