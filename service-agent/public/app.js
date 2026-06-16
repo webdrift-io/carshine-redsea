@@ -2019,15 +2019,19 @@ function renderPaymentReview(payments) {
       : ageHrs < 1 ? `${Math.round(ageHrs * 60)}m ago`
       : `${Math.round(ageHrs)}h ago`;
 
+    // Payment IDs are server-generated (`pay_` + hex), so they are safe to embed
+    // as a single-quoted JS string inside the double-quoted onclick attribute.
+    // (JSON.stringify here would inject literal double-quotes and break the attribute.)
+    const safeId = escapeHtml(p.id);
     const verifyBtn = isOwner && p.status === 'PAYMENT_PENDING_REVIEW'
-      ? `<button class="btn btn-primary btn-sm" onclick="handlePaymentVerify(${JSON.stringify(p.id)})" style="margin-right:6px;">
+      ? `<button class="btn btn-primary btn-sm" onclick="handlePaymentVerify('${safeId}')" style="margin-right:6px;">
            <i class="fa-solid fa-check"></i> Verify
          </button>`
       : '';
 
     const rejectBtn = isOwner && p.status === 'PAYMENT_PENDING_REVIEW'
       ? `<button class="btn btn-sm" style="background:var(--accent-red,#c0392b);color:#fff;border:none;padding:6px 14px;border-radius:8px;cursor:pointer;"
-             onclick="handlePaymentReject(${JSON.stringify(p.id)})">
+             onclick="handlePaymentReject('${safeId}')">
            <i class="fa-solid fa-xmark"></i> Reject
          </button>`
       : '';
