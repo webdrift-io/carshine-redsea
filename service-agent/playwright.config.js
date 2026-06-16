@@ -5,7 +5,14 @@ const os = require('os');
 const path = require('path');
 
 const E2E_PORT = 15099;
-const E2E_DB = path.join(os.tmpdir(), 'carshine_e2e_test.sqlite');
+// Unique DB file per run. The webServer is launched by this (the main Playwright
+// process) using this single evaluation, so it gets one fresh, empty SQLite file
+// every invocation — migrations + dev seeds run clean. This makes the suite
+// deterministic and repeatable regardless of whether the post-run teardown can
+// delete the file (on Windows the server may still hold the lock at teardown).
+const E2E_DB = path.join(os.tmpdir(), `carshine_e2e_${process.pid}_${Date.now()}.sqlite`);
+// Expose to teardown for best-effort cleanup.
+process.env.E2E_DB_PATH = E2E_DB;
 const E2E_JWT_SECRET = 'e2e-only-test-secret-do-not-use-in-production';
 
 module.exports = defineConfig({

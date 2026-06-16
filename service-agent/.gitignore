@@ -22,6 +22,11 @@ cli_history.json
 bookings.json
 calendar.json
 
+# Playwright E2E
+test-results/
+playwright-report/
+.playwright/
+
 # IDE
 .vscode/
 .idea/
