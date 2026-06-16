@@ -17,6 +17,9 @@ const http = require('http');
 // Import modules
 const db = require('./database');
 const { createPublicBooking } = require('./services/public-bookings');
+const adminRead = require('./services/admin-bookings-read');
+const { findOverlappingBookings } = require('./services/slot-overlap');
+const { requireRole } = require('./middleware/require-role');
 
 // Feature flag: USE_MASTRA_AGENT (default: true). When false, the legacy
 // monolith in ./minimax-agent.js is used. The legacy file is kept around as a
@@ -1331,6 +1334,133 @@ app.post('/api/webhook/meta', whatsappLimiter, verifyMetaSignature, async (req, 
   } catch (error) {
     console.error('[Meta Webhook] Processing error:', error);
   }
+});
+
+// ============================================================================
+// ADMIN BOOKINGS V2 — M0-005a
+// Read model endpoints for the normalized bookings_v2 table.
+// OWNER + DISPATCHER may read; only OWNER may reschedule.
+// Legacy /api/bookings and /api/calendar are preserved untouched.
+// ============================================================================
+
+app.get('/api/admin/bookings-v2', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (req, res) => {
+  const result = adminRead.listBookingsForAdmin({
+    dateFrom: req.query.dateFrom || null,
+    dateTo: req.query.dateTo || null,
+    status: req.query.status || null,
+    paymentStatus: req.query.paymentStatus || null,
+    source: req.query.source || null,
+    language: req.query.language || null,
+    limit: req.query.limit,
+    offset: req.query.offset
+  });
+  res.json(result);
+});
+
+app.get('/api/admin/bookings-v2/:id', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (req, res) => {
+  const result = adminRead.getBookingDetailForAdmin(req.params.id);
+  if (!result.success) {
+    if (result.code === 'NOT_FOUND') return res.status(404).json(result);
+    return res.status(400).json(result);
+  }
+  res.json(result);
+});
+
+app.get('/api/admin/calendar-v2', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (req, res) => {
+  const result = adminRead.getCalendarForAdmin({
+    dateFrom: req.query.dateFrom || null,
+    dateTo: req.query.dateTo || null
+  });
+  if (!result.success) return res.status(400).json(result);
+  res.json(result);
+});
+
+app.post('/api/admin/bookings-v2/:id/reschedule', requireAuth, requireRole(['OWNER']), (req, res) => {
+  const bookingId = req.params.id;
+  const { newStart } = req.body;
+
+  if (!newStart || typeof newStart !== 'string') {
+    return res.status(400).json({ success: false, code: 'MISSING_NEW_START', error: 'newStart (ISO timestamp) is required' });
+  }
+
+  const startDate = new Date(newStart);
+  if (Number.isNaN(startDate.getTime())) {
+    return res.status(400).json({ success: false, code: 'INVALID_NEW_START', error: 'newStart must be a valid ISO timestamp' });
+  }
+
+  if (startDate.getTime() <= Date.now()) {
+    return res.status(409).json({ success: false, code: 'SLOT_IN_PAST', error: 'newStart must be in the future' });
+  }
+
+  const bookingRow = db.db.prepare('SELECT * FROM bookings_v2 WHERE id = ? AND deleted_at IS NULL').get(bookingId);
+  if (!bookingRow) {
+    return res.status(404).json({ success: false, code: 'NOT_FOUND', error: 'Booking not found' });
+  }
+
+  if (!['QUOTED', 'CONFIRMED'].includes(bookingRow.status)) {
+    return res.status(409).json({ success: false, code: 'WRONG_STATUS', error: `Cannot reschedule a booking with status ${bookingRow.status}` });
+  }
+
+  const pkg = db.db.prepare('SELECT duration_minutes FROM service_packages WHERE id = ?').get(bookingRow.service_package_id);
+  const durationMinutes = (pkg && pkg.duration_minutes) || 60;
+  const endDate = new Date(startDate.getTime() + durationMinutes * 60 * 1000);
+
+  const overlaps = findOverlappingBookings({
+    scheduledStart: startDate.toISOString(),
+    scheduledEnd: endDate.toISOString(),
+    excludeBookingId: bookingId
+  });
+
+  if (overlaps.length > 0) {
+    return res.status(409).json({
+      success: false,
+      code: 'SLOT_UNAVAILABLE',
+      error: 'The requested time slot overlaps with an existing booking',
+      conflictingBookings: overlaps.map(o => ({
+        id: o.id,
+        publicRef: o.public_ref,
+        scheduledStart: o.scheduled_start,
+        scheduledEnd: o.scheduled_end
+      }))
+    });
+  }
+
+  const updatedAt = new Date().toISOString();
+  const histId = 'hist_' + Math.random().toString(36).slice(2, 12);
+  const actorId = (req.user && (req.user.sub || req.user.email)) || null;
+
+  db.db.transaction(() => {
+    db.db.prepare(
+      'UPDATE bookings_v2 SET scheduled_start = ?, scheduled_end = ?, updated_at = ? WHERE id = ?'
+    ).run(startDate.toISOString(), endDate.toISOString(), updatedAt, bookingId);
+    db.db.prepare(
+      `INSERT INTO booking_status_history
+         (id, booking_id, from_status, to_status, actor_type, actor_id, reason, metadata, created_at)
+       VALUES (?, ?, ?, ?, 'OWNER', ?, 'RESCHEDULED', '{}', ?)`
+    ).run(histId, bookingId, bookingRow.status, bookingRow.status, actorId, updatedAt);
+  })();
+
+  const updatedRow = db.db.prepare(`
+    SELECT
+      b.id, b.public_ref, b.status, b.payment_status, b.scheduled_start, b.scheduled_end,
+      b.timezone, b.source, b.language, b.notes, b.created_at, b.updated_at,
+      c.id AS customer_id, c.full_name, c.phone_e164, c.phone_raw, c.email,
+      c.address AS customer_address, c.area AS customer_area,
+      v.id AS vehicle_id, v.car_type, v.make AS v_make, v.model AS v_model, v.plate AS v_plate,
+      sp.id AS sp_id, sp.code AS sp_code, sp.name_en, sp.name_ar, sp.name_de,
+      sp.duration_minutes, sp.price_amount, sp.price_currency,
+      p.id AS payment_id, p.status AS payment_row_status, p.method AS payment_method,
+      p.amount AS payment_amount, p.currency AS payment_currency,
+      p.submitted_at AS payment_submitted_at, p.verified_at AS payment_verified_at
+    FROM bookings_v2 b
+    JOIN customers c ON c.id = b.customer_id
+    LEFT JOIN vehicles v ON v.id = b.vehicle_id
+    JOIN service_packages sp ON sp.id = b.service_package_id
+    LEFT JOIN payments p ON p.booking_id = b.id
+    WHERE b.id = ? AND b.deleted_at IS NULL
+  `).get(bookingId);
+
+  res.json({ success: true, booking: adminRead.formatBookingForAdmin(updatedRow) });
 });
 
 // ============================================================================
