@@ -2036,9 +2036,13 @@ function renderPaymentReview(payments) {
          </button>`
       : '';
 
-    const screenshotLink = p.screenshotUrl
-      ? `<a href="${escapeHtml(p.screenshotUrl)}" target="_blank" rel="noopener" style="color:var(--accent-blue,#2980b9);font-size:0.78rem;">View screenshot</a>`
-      : '<span style="color:var(--text-secondary);font-size:0.78rem;">No screenshot</span>';
+    const screenshotUrl = p.screenshotUrl;
+    const isSafeScreenshotUrl = screenshotUrl && /^https?:\/\//i.test(screenshotUrl);
+    const screenshotLink = isSafeScreenshotUrl
+      ? `<a href="${escapeHtml(screenshotUrl)}" target="_blank" rel="noopener" style="color:var(--accent-blue,#2980b9);font-size:0.78rem;">View screenshot</a>`
+      : screenshotUrl
+        ? '<span style="color:var(--text-secondary);font-size:0.78rem;">Screenshot (invalid URL)</span>'
+        : '<span style="color:var(--text-secondary);font-size:0.78rem;">No screenshot</span>';
 
     return `<div class="card-glass" style="padding:18px 20px;display:flex;flex-direction:column;gap:10px;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">

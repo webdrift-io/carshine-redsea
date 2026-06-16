@@ -4,8 +4,8 @@
  * M0-008 — cleaner assignment E2E.
  *
  * Covers: assign cleaner to QUOTED booking, verify in booking detail, release.
- * M0-007 status lifecycle (EN_ROUTE/ON_SITE/COMPLETED) is NOT_STARTED — tests
- * for those transitions are intentionally omitted here and skipped explicitly below.
+ * M0-007 status lifecycle (ON_THE_WAY/IN_PROGRESS/COMPLETED) is implemented and
+ * tested in the second describe block below.
  *
  * Each test creates its own QUOTED booking on a unique date to avoid slot conflicts.
  * The detail endpoint response shape is: { success, booking, statusHistory, paymentEvents }
@@ -168,9 +168,173 @@ test.describe.serial('Cleaner assignment', () => {
     expect(assignBody.code).toBe('WRONG_STATUS');
   });
 
-  test.skip('M0-007 cleaner status lifecycle (EN_ROUTE/ON_SITE/COMPLETED) — NOT_STARTED', () => {
-    // Status lifecycle transitions for the cleaner mobile path are not yet implemented.
-    // This test is intentionally skipped — not a fake pass.
-    // When M0-007 lifecycle is implemented, add: EN_ROUTE, ON_SITE, IN_PROGRESS, COMPLETED, NO_SHOW transitions.
+});
+
+// ---------------------------------------------------------------------------
+// M0-007 — cleaner job status lifecycle (ON_THE_WAY / IN_PROGRESS / COMPLETED)
+//
+// Schema names used:
+//   ON_THE_WAY  = "EN_ROUTE" in the task spec
+//   IN_PROGRESS = "ON_SITE" in the task spec
+// ---------------------------------------------------------------------------
+
+async function cleanerLogin(request) {
+  const res = await request.post('/api/auth/login', {
+    data: { email: 'mahmoud.cleaner@example.com', password: 'CleanerChangeMe123!' },
+  });
+  const body = await res.json();
+  return body.token;
+}
+
+async function dispatcherLogin(request) {
+  const res = await request.post('/api/auth/login', {
+    data: { email: 'dispatcher@carshineredsea.com', password: 'DispatcherChangeMe123!' },
+  });
+  const body = await res.json();
+  return body.token;
+}
+
+test.describe.serial('M0-007 cleaner status lifecycle', () => {
+  let ownerToken;
+  let cleanerToken;
+  let dispatcherToken;
+  let bookingId;
+  let paymentId;
+  let cleanerId;
+
+  test('login: owner, cleaner, dispatcher', async ({ request }) => {
+    ownerToken = await ownerLogin(request);
+    cleanerToken = await cleanerLogin(request);
+    dispatcherToken = await dispatcherLogin(request);
+    expect(ownerToken).toBeTruthy();
+    expect(cleanerToken).toBeTruthy();
+    expect(dispatcherToken).toBeTruthy();
+  });
+
+  test('create QUOTED booking for lifecycle test', async ({ request }) => {
+    bookingId = await createQuotedBooking(request, '2027-09-10');
+    expect(bookingId).toBeTruthy();
+  });
+
+  test('get payment ID from booking detail', async ({ request }) => {
+    const res = await request.get(`/api/admin/bookings-v2/${bookingId}`, {
+      headers: { Authorization: `Bearer ${ownerToken}` },
+    });
+    expect(res.status()).toBe(200);
+    const body = await res.json();
+    paymentId = body.booking.payment.id;
+    expect(paymentId).toBeTruthy();
+  });
+
+  test('owner submits payment proof → PAYMENT_PENDING_REVIEW', async ({ request }) => {
+    const res = await request.post(`/api/admin/payments/${paymentId}/submit`, {
+      headers: { Authorization: `Bearer ${ownerToken}` },
+      data: { reference: 'LIFECYCLE-E2E-001' },
+    });
+    expect(res.status()).toBe(200);
+    const body = await res.json();
+    expect(body.success).toBe(true);
+    expect(body.payment.status).toBe('PAYMENT_PENDING_REVIEW');
+  });
+
+  test('owner verifies payment → VERIFIED', async ({ request }) => {
+    const res = await request.post(`/api/admin/payments/${paymentId}/verify`, {
+      headers: { Authorization: `Bearer ${ownerToken}` },
+    });
+    expect(res.status()).toBe(200);
+    const body = await res.json();
+    expect(body.success).toBe(true);
+    expect(body.payment.status).toBe('VERIFIED');
+  });
+
+  test('owner assigns cleaner to the booking', async ({ request }) => {
+    const cleanerListRes = await request.get('/api/admin/users/cleaners', {
+      headers: { Authorization: `Bearer ${ownerToken}` },
+    });
+    const { cleaners } = await cleanerListRes.json();
+    cleanerId = cleaners[0].id;
+
+    const res = await request.post(`/api/admin/bookings-v2/${bookingId}/assign`, {
+      headers: { Authorization: `Bearer ${ownerToken}` },
+      data: { cleanerId },
+    });
+    expect(res.status()).toBe(200);
+    expect((await res.json()).success).toBe(true);
+  });
+
+  test('cleaner lists own bookings — sees the assigned booking', async ({ request }) => {
+    const res = await request.get('/api/cleaner/bookings', {
+      headers: { Authorization: `Bearer ${cleanerToken}` },
+    });
+    expect(res.status()).toBe(200);
+    const body = await res.json();
+    expect(body.success).toBe(true);
+    const found = body.bookings.find(b => b.bookingV2Id === bookingId);
+    expect(found).toBeTruthy();
+    expect(found.paymentStatus).toBe('VERIFIED');
+  });
+
+  test('DISPATCHER cannot use cleaner lifecycle endpoint → 403', async ({ request }) => {
+    const res = await request.post(`/api/cleaner/bookings/${bookingId}/status`, {
+      headers: { Authorization: `Bearer ${dispatcherToken}` },
+      data: { status: 'ON_THE_WAY' },
+    });
+    expect(res.status()).toBe(403);
+  });
+
+  test('cleaner transitions to ON_THE_WAY (EN_ROUTE)', async ({ request }) => {
+    const res = await request.post(`/api/cleaner/bookings/${bookingId}/status`, {
+      headers: { Authorization: `Bearer ${cleanerToken}` },
+      data: { status: 'ON_THE_WAY' },
+    });
+    expect(res.status()).toBe(200);
+    const body = await res.json();
+    expect(body.success).toBe(true);
+    expect(body.booking.status).toBe('ON_THE_WAY');
+  });
+
+  test('cleaner transitions to IN_PROGRESS (ON_SITE)', async ({ request }) => {
+    const res = await request.post(`/api/cleaner/bookings/${bookingId}/status`, {
+      headers: { Authorization: `Bearer ${cleanerToken}` },
+      data: { status: 'IN_PROGRESS' },
+    });
+    expect(res.status()).toBe(200);
+    const body = await res.json();
+    expect(body.success).toBe(true);
+    expect(body.booking.status).toBe('IN_PROGRESS');
+  });
+
+  test('cleaner transitions to COMPLETED', async ({ request }) => {
+    const res = await request.post(`/api/cleaner/bookings/${bookingId}/status`, {
+      headers: { Authorization: `Bearer ${cleanerToken}` },
+      data: { status: 'COMPLETED' },
+    });
+    expect(res.status()).toBe(200);
+    const body = await res.json();
+    expect(body.success).toBe(true);
+    expect(body.booking.status).toBe('COMPLETED');
+  });
+
+  test('invalid transition after COMPLETED → 409', async ({ request }) => {
+    const res = await request.post(`/api/cleaner/bookings/${bookingId}/status`, {
+      headers: { Authorization: `Bearer ${cleanerToken}` },
+      data: { status: 'ON_THE_WAY' },
+    });
+    expect(res.status()).toBe(409);
+    const body = await res.json();
+    expect(body.code).toBe('ALREADY_COMPLETED');
+  });
+
+  test('admin read model reflects COMPLETED status', async ({ request }) => {
+    const res = await request.get(`/api/admin/bookings-v2/${bookingId}`, {
+      headers: { Authorization: `Bearer ${ownerToken}` },
+    });
+    expect(res.status()).toBe(200);
+    const body = await res.json();
+    expect(body.success).toBe(true);
+    expect(body.booking.status).toBe('COMPLETED');
+    // Status history has lifecycle transitions
+    const lifecycleHistory = body.statusHistory.filter(h => h.reason === 'CLEANER_LIFECYCLE');
+    expect(lifecycleHistory.length).toBe(3);
   });
 });

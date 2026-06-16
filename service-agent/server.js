@@ -23,6 +23,7 @@ const { requireRole } = require('./middleware/require-role');
 const usersService = require('./services/users');
 const { assignCleaner, releaseAssignment } = require('./services/assignments');
 const paymentsReview = require('./services/payments-review');
+const cleanerLifecycle = require('./services/cleaner-lifecycle');
 
 // Feature flag: USE_MASTRA_AGENT (default: true). When false, the legacy
 // monolith in ./minimax-agent.js is used. The legacy file is kept around as a
@@ -1610,6 +1611,55 @@ app.post('/api/admin/payments/:id/reject', requireAuth, requireRole(['OWNER']), 
   );
   if (!result.success) {
     const statusMap = { NOT_FOUND: 404, WRONG_STATUS: 409, REASON_REQUIRED: 400, OWNER_REQUIRED: 403 };
+    return res.status(statusMap[result.code] || 400).json(result);
+  }
+  res.json(result);
+});
+
+// ============================================================================
+// M0-007: Cleaner job status lifecycle
+// CLEANER can list their own assigned bookings and transition job status.
+// OWNER can override on any assigned booking.
+// DISPATCHER gets 403 from requireRole.
+// ============================================================================
+
+app.get('/api/cleaner/bookings', requireAuth, requireRole(['CLEANER', 'OWNER']), (req, res) => {
+  const role = req.user.role === 'admin' ? 'OWNER' : req.user.role;
+  let cleanerId;
+  if (role === 'OWNER') {
+    cleanerId = req.query.cleanerId || null;
+    if (!cleanerId) return res.json({ success: true, count: 0, bookings: [] });
+  } else {
+    cleanerId = req.user.sub;
+  }
+  const result = cleanerLifecycle.getCleanerAssignedBookings(cleanerId);
+  if (!result.success) {
+    return res.status(400).json(result);
+  }
+  res.json(result);
+});
+
+app.post('/api/cleaner/bookings/:id/status', requireAuth, requireRole(['CLEANER', 'OWNER']), (req, res) => {
+  const { status } = req.body || {};
+  if (!status) {
+    return res.status(400).json({ success: false, code: 'MISSING_STATUS', error: 'body.status is required' });
+  }
+  const result = cleanerLifecycle.transitionCleanerBookingStatus(
+    req.params.id,
+    status,
+    buildActor(req)
+  );
+  if (!result.success) {
+    const statusMap = {
+      NOT_FOUND: 404,
+      INVALID_TRANSITION: 409,
+      INVALID_FROM_STATUS: 409,
+      ALREADY_COMPLETED: 409,
+      PAYMENT_NOT_VERIFIED: 409,
+      NOT_ASSIGNED: 409,
+      NOT_YOUR_BOOKING: 403,
+      ROLE_NOT_ALLOWED: 403,
+    };
     return res.status(statusMap[result.code] || 400).json(result);
   }
   res.json(result);

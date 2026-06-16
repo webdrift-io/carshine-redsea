@@ -1,6 +1,26 @@
 # Agent Handoff
 
-Status: M0-000 through M0-008 implemented. M0-005 DONE. M0-008 E2E DONE. **M0-006 (payment review) NOT_STARTED. M0-007 cleaner status lifecycle NOT_STARTED. M0 is not complete.**
+Status: M0-000 through M0-008 implemented. M0-005 DONE. M0-006 DONE. M0-007 DONE. M0-008 DONE. **M0 is complete. Final Opus acceptance is next.**
+
+## M0-007 Cleaner Lifecycle Completed (2026-06-16, Sonnet)
+- Service: `service-agent/services/cleaner-lifecycle.js` (new).
+  - `validateCleanerTransition(currentStatus, targetStatus)` — pure, no DB.
+  - `getCleanerAssignedBookings(cleanerId)` — returns only this cleaner's active assignments.
+  - `transitionCleanerBookingStatus(bookingId, targetStatus, actor)` — enforces payment VERIFIED, ownership, valid transition, appends `booking_status_history`.
+- Lifecycle transitions (actual schema status names):
+  - QUOTED | BOOKED | ASSIGNED → ON_THE_WAY (EN_ROUTE in task spec)
+  - ON_THE_WAY → IN_PROGRESS (ON_SITE in task spec)
+  - IN_PROGRESS → COMPLETED
+- API endpoints (2 new routes in `server.js`):
+  - `GET /api/cleaner/bookings` — CLEANER (own bookings) or OWNER (via ?cleanerId=).
+  - `POST /api/cleaner/bookings/:id/status` — body: `{ status }`. CLEANER ownership enforced. OWNER override. DISPATCHER gets 403 from `requireRole`.
+- RBAC: CLEANER can only act on their own assigned booking. OWNER overrides. DISPATCHER cannot transition.
+- Payment gate: `payment_status = 'VERIFIED'` required before ON_THE_WAY. Returns 409 `PAYMENT_NOT_VERIFIED` otherwise.
+- `booking_status_history` row appended on every transition with `actor_type`, `actor_id`, `reason = 'CLEANER_LIFECYCLE'`.
+- screenshotUrl security fix (LOW from Opus M0-006): `public/app.js` now validates `http(s):` scheme before rendering as `<a>` link; invalid URLs render as plain text.
+- Vitest: 13 new tests in `tests/cleaner-lifecycle.test.js`. Total: 209 (all pass).
+- E2E: lifecycle describe block added in `e2e/cleaner-assignment.spec.js`. 12 lifecycle tests. M0-007 skip removed. Total: 44 pass / 1 skip (pre-existing).
+- Run results: 209 vitest (all pass), 44 E2E pass / 1 skip (deterministic × 2 runs), lint 0 errors, typecheck clean, audit 0 HIGH.
 
 ## M0-008 Completed (2026-06-16, Sonnet)
 - Playwright E2E harness added: `service-agent/playwright.config.js`, `service-agent/e2e/` (booking-api, admin-auth, payment-safety, cleaner-assignment specs).

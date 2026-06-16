@@ -371,6 +371,38 @@ M0-004: wire the landing booking form to `/api/public/bookings` and remove fake 
 - M0-007 cleaner status lifecycle: NOT_STARTED.
 - M0 is not complete until M0-006 and M0-007 remaining scope are done.
 
+## M0-007 Results (2026-06-16, Sonnet)
+
+- Cleaner job status lifecycle implemented end-to-end.
+- Schema status names used (task spec alias in parentheses):
+  - ON_THE_WAY (EN_ROUTE), IN_PROGRESS (ON_SITE), COMPLETED
+- Service: `service-agent/services/cleaner-lifecycle.js` (new).
+  - `validateCleanerTransition` — pure function, no DB, covers all allowed and blocked paths.
+  - `getCleanerAssignedBookings(cleanerId)` — returns only bookings where the cleaner has an active (unreleased) assignment.
+  - `transitionCleanerBookingStatus(bookingId, targetStatus, actor)` — enforces: payment VERIFIED before ON_THE_WAY; CLEANER ownership; valid transition; appends `booking_status_history`.
+- API endpoints (2 new):
+  - `GET /api/cleaner/bookings` — CLEANER sees own bookings; OWNER can query via ?cleanerId=.
+  - `POST /api/cleaner/bookings/:id/status` — body: `{ status }`. 409 on invalid transition, 409 on PAYMENT_NOT_VERIFIED, 403 for NOT_YOUR_BOOKING, 403 for DISPATCHER.
+- RBAC: `requireRole(['CLEANER', 'OWNER'])`. DISPATCHER blocked at middleware (403). CLEANER ownership enforced at service layer. OWNER override allowed.
+- Every transition writes `booking_status_history` with `actor_type`, `actor_id`, `reason = 'CLEANER_LIFECYCLE'`.
+- Payment safety: 5 triggers intact, untouched. No payment verification in this task.
+- screenshotUrl LOW fix: `public/app.js` now validates `http(s):` scheme; invalid URL renders plain text instead of clickable link.
+- Vitest: 13 new tests (total 209, all pass).
+- E2E: 12 new lifecycle tests in `e2e/cleaner-assignment.spec.js` (total 44 pass / 1 skip; deterministic × 2 runs).
+
+### Truth table (as of M0-007)
+| Milestone | Status |
+|---|---|
+| M0-005 dashboard read model | DONE |
+| M0-006 manual InstaPay payment review | DONE |
+| M0-007 cleaner assignment (assign/release) | DONE |
+| M0-007 cleaner status lifecycle (ON_THE_WAY/IN_PROGRESS/COMPLETED) | DONE |
+| M0-008 E2E/live QA | DONE |
+
+**M0 is complete. Pending Opus final acceptance.**
+
+Dashboard socket.io client remains deferred (server emits `booking:created` but no client subscriber; 40s polling only). Tracked for post-M0.
+
 ## M0-006 Results (2026-06-16, Sonnet)
 
 - Manual InstaPay payment review workflow implemented end-to-end.

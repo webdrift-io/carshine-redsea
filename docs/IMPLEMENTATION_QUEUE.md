@@ -91,11 +91,22 @@ Status: DONE (2026-06-16)
 M0-007:
 Title: Staff assignment and cleaner job status
 Goal: Let owner assign a paid booking to a cleaner and let that cleaner move through job statuses.
-Files likely affected: `service-agent/routes/admin.js`, `service-agent/routes/cleaner.js`, `service-agent/public/app.js`, `service-agent/public/cleaner.*`
-Acceptance criteria: Only paid bookings can be assigned; assignment creates audit history; cleaner sees only own jobs; status transitions emit updates and messages.
-Tests required: Owner assignment integration, cleaner own-job authorization, invalid transition, socket event.
-Security notes: Enforce RBAC and assignment ownership on every cleaner endpoint.
-Status: TODO
+Files changed:
+  - `service-agent/services/cleaner-lifecycle.js` (new)
+  - `service-agent/server.js` (2 new routes + import)
+  - `service-agent/public/app.js` (screenshotUrl scheme validation fix)
+  - `service-agent/tests/cleaner-lifecycle.test.js` (new, 13 tests)
+  - `service-agent/e2e/cleaner-assignment.spec.js` (lifecycle describe block, 12 E2E tests)
+Acceptance criteria met:
+  - QUOTED+VERIFIED booking with active assignment transitions: ON_THE_WAY → IN_PROGRESS → COMPLETED.
+  - CLEANER can only act on own assigned booking (NOT_YOUR_BOOKING 403 otherwise).
+  - OWNER override allowed. DISPATCHER blocked at middleware (403).
+  - Payment must be VERIFIED before ON_THE_WAY (409 PAYMENT_NOT_VERIFIED).
+  - Every transition writes booking_status_history with actor_type, actor_id, reason.
+  - 209 vitest pass (13 new); 44 E2E pass / 1 skip (12 new lifecycle tests).
+  - screenshotUrl LOW security fix: http(s) scheme validated before rendering link.
+Security notes: RBAC enforced at middleware + service layer. Ownership enforced per request. DISPATCHER blocked. Payment safety triggers untouched.
+Status: DONE (2026-06-16)
 
 M0-008:
 Title: Full M0 E2E harness
