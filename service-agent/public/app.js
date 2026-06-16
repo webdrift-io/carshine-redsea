@@ -6,6 +6,7 @@ let bookingsList = [];
 let calendarEvents = [];
 let bookingsV2List = [];
 let cleanersList = [];
+let paymentReviewList = [];
 let chatSessions = [];
 let socialsPosts = [];
 let integrationsStatus = null;
@@ -162,6 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupCalendarControls();
   setupSocialMedia();
   setupTraces();
+  setupPaymentReview();
   
   // Start system clock
   updateClock();
@@ -305,6 +307,7 @@ function switchSection(sectionId) {
     'socials': { title: 'Social Media Campaigns', subtitle: 'Manage slideshow scheduling, cross-platform posting, and views analytics.' },
     'settings': { title: 'Autopilot Configurations', subtitle: 'Manage AI autonomy level, business triggers and webhooks.' },
     'agents': { title: 'AI Autopilot Agents', subtitle: 'Control center and activity feed for the 10 operational agents.' },
+    'payments-review': { title: 'Payment Review', subtitle: 'Manual InstaPay proof review queue. Owner verifies or rejects; Dispatcher submits proof only.' },
     'traces': { title: 'Agent Traces', subtitle: 'Recent Langfuse trace events from the orchestrator and subagents.' }
   };
   
@@ -335,6 +338,12 @@ async function fetchData() {
     } catch (e) {
       if (!String(e.message).startsWith('AUTH_REQUIRED:')) cleanersList = [];
     }
+    try {
+      const prResult = await fetchJsonOrAuth('/api/admin/payments?status=PAYMENT_PENDING_REVIEW&limit=100', 'PaymentReview');
+      paymentReviewList = (prResult && prResult.payments) || [];
+    } catch (e) {
+      if (!String(e.message).startsWith('AUTH_REQUIRED:')) paymentReviewList = [];
+    }
 
     // 3. Fetch calendar (legacy)
     calendarEvents = await fetchJsonOrAuth('/api/calendar', 'Calendar');
@@ -361,6 +370,7 @@ async function fetchData() {
     renderCalendar();
     renderBookingsV2();
     renderIntegrationStatus();
+    renderPaymentReview();
     
     if (activeChatId) {
       const selectedSession = chatSessions.find(c => c.id === activeChatId);
@@ -1954,6 +1964,166 @@ function renderTraceRow(t) {
     '<td style="padding: 10px 14px; color: var(--text-secondary); font-family: monospace;">' + escapeHtml(dur) + '</td>' +
     '<td style="padding: 10px 14px; color: var(--text-primary);">' + escapeHtml(outcome) + '</td>' +
     '</tr>';
+}
+
+// ============================================================================
+// PAYMENT REVIEW (M0-006)
+// ============================================================================
+
+function paymentStatusPill(status) {
+  const map = {
+    PAYMENT_PENDING_REVIEW: ['#e59600', 'Pending Review'],
+    VERIFIED: ['#27ae60', 'Verified'],
+    REJECTED: ['#c0392b', 'Rejected'],
+    UNPAID: ['#666', 'Unpaid'],
+    PAYMENT_INSTRUCTIONS_SENT: ['#2980b9', 'Instructions Sent']
+  };
+  const [color, label] = map[status] || ['#888', escapeHtml(status || '—')];
+  return `<span style="display:inline-block;padding:2px 10px;border-radius:99px;font-size:0.72rem;font-weight:600;color:#fff;background:${color};">${label}</span>`;
+}
+
+function renderPaymentReview(payments) {
+  const list = payments || paymentReviewList;
+  const container = document.getElementById('payments-review-list');
+  if (!container) return;
+
+  const badge = document.getElementById('badge-payments-pending');
+  const pendingCount = list.filter(p => p.status === 'PAYMENT_PENDING_REVIEW').length;
+  if (badge) {
+    badge.textContent = pendingCount;
+    badge.style.display = pendingCount > 0 ? '' : 'none';
+  }
+
+  // Detect current user role from JWT (best-effort parse; no crypto validation needed here)
+  let currentRole = 'UNKNOWN';
+  try {
+    const payload = JSON.parse(atob(authToken.split('.')[1]));
+    currentRole = (payload.role === 'admin' ? 'OWNER' : payload.role) || 'UNKNOWN';
+  } catch (_e) { /* dev bypass has no token */ currentRole = 'OWNER'; }
+
+  const isOwner = currentRole === 'OWNER';
+
+  if (!list.length) {
+    container.innerHTML = '<p style="color:var(--text-secondary);padding:20px 0;">No payments match this filter.</p>';
+    return;
+  }
+
+  const rows = list.map(p => {
+    const ageMs = p.submittedAt ? (Date.now() - new Date(p.submittedAt).getTime()) : null;
+    const ageHrs = ageMs != null ? ageMs / 3_600_000 : null;
+    const ageColor = ageHrs == null ? 'var(--text-secondary)'
+      : ageHrs < 1 ? '#27ae60'
+      : ageHrs < 6 ? '#e59600'
+      : '#c0392b';
+    const ageLabel = ageHrs == null ? '—'
+      : ageHrs < 1 ? `${Math.round(ageHrs * 60)}m ago`
+      : `${Math.round(ageHrs)}h ago`;
+
+    const verifyBtn = isOwner && p.status === 'PAYMENT_PENDING_REVIEW'
+      ? `<button class="btn btn-primary btn-sm" onclick="handlePaymentVerify(${JSON.stringify(p.id)})" style="margin-right:6px;">
+           <i class="fa-solid fa-check"></i> Verify
+         </button>`
+      : '';
+
+    const rejectBtn = isOwner && p.status === 'PAYMENT_PENDING_REVIEW'
+      ? `<button class="btn btn-sm" style="background:var(--accent-red,#c0392b);color:#fff;border:none;padding:6px 14px;border-radius:8px;cursor:pointer;"
+             onclick="handlePaymentReject(${JSON.stringify(p.id)})">
+           <i class="fa-solid fa-xmark"></i> Reject
+         </button>`
+      : '';
+
+    const screenshotLink = p.screenshotUrl
+      ? `<a href="${escapeHtml(p.screenshotUrl)}" target="_blank" rel="noopener" style="color:var(--accent-blue,#2980b9);font-size:0.78rem;">View screenshot</a>`
+      : '<span style="color:var(--text-secondary);font-size:0.78rem;">No screenshot</span>';
+
+    return `<div class="card-glass" style="padding:18px 20px;display:flex;flex-direction:column;gap:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">
+        <div>
+          <strong style="font-size:1rem;">${escapeHtml(p.publicRef || p.bookingId)}</strong>
+          <span style="margin-left:10px;">${paymentStatusPill(p.status)}</span>
+        </div>
+        <span style="color:${ageColor};font-size:0.82rem;font-weight:600;">${ageLabel}</span>
+      </div>
+      <div style="display:flex;gap:24px;flex-wrap:wrap;font-size:0.85rem;color:var(--text-secondary);">
+        <span><i class="fa-solid fa-user" style="margin-right:4px;"></i>${escapeHtml(p.customer && p.customer.name || '—')}</span>
+        <span><i class="fa-solid fa-phone" style="margin-right:4px;"></i>${escapeHtml(p.customer && p.customer.phone || '—')}</span>
+        <span><i class="fa-solid fa-car" style="margin-right:4px;"></i>${escapeHtml(p.service && p.service.name || '—')}</span>
+        <span><i class="fa-solid fa-money-bill" style="margin-right:4px;"></i>${((p.amountPiasters || 0) / 100).toFixed(2)} ${escapeHtml(p.currency || 'EGP')}</span>
+      </div>
+      ${p.reference ? `<div style="font-size:0.82rem;"><strong>Ref:</strong> ${escapeHtml(p.reference)}</div>` : ''}
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        ${screenshotLink}
+        ${verifyBtn}${rejectBtn}
+        ${p.rejectionReason ? `<span style="font-size:0.8rem;color:var(--accent-red,#c0392b);">Rejected: ${escapeHtml(p.rejectionReason)}</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  container.innerHTML = rows;
+}
+
+async function handlePaymentVerify(paymentId) {
+  if (!confirm('Verify this payment? This confirms the customer paid.')) return;
+  try {
+    const res = await fetch(`/api/admin/payments/${encodeURIComponent(paymentId)}/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({})
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(`Verify failed: ${data.error || res.status}`);
+      return;
+    }
+    await refreshPaymentReview();
+  } catch (err) {
+    alert(`Error: ${err.message}`);
+  }
+}
+
+async function handlePaymentReject(paymentId) {
+  const reason = prompt('Rejection reason (required):');
+  if (!reason || !reason.trim()) return;
+  try {
+    const res = await fetch(`/api/admin/payments/${encodeURIComponent(paymentId)}/reject`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason: reason.trim() })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(`Reject failed: ${data.error || res.status}`);
+      return;
+    }
+    await refreshPaymentReview();
+  } catch (err) {
+    alert(`Error: ${err.message}`);
+  }
+}
+
+async function refreshPaymentReview() {
+  const filter = document.getElementById('payments-status-filter');
+  const status = filter ? filter.value : 'PAYMENT_PENDING_REVIEW';
+  const url = status
+    ? `/api/admin/payments?status=${encodeURIComponent(status)}&limit=100`
+    : '/api/admin/payments?limit=100';
+  try {
+    const result = await fetchJsonOrAuth(url, 'PaymentReview');
+    paymentReviewList = (result && result.payments) || [];
+    renderPaymentReview(paymentReviewList);
+  } catch (e) {
+    if (!String(e.message).startsWith('AUTH_REQUIRED:')) {
+      const container = document.getElementById('payments-review-list');
+      if (container) container.innerHTML = `<p style="color:var(--accent-red,#c0392b);">Failed to load payments: ${escapeHtml(e.message)}</p>`;
+    }
+  }
+}
+
+function setupPaymentReview() {
+  const refreshBtn = document.getElementById('btn-payments-refresh');
+  if (refreshBtn) refreshBtn.addEventListener('click', refreshPaymentReview);
+  const filter = document.getElementById('payments-status-filter');
+  if (filter) filter.addEventListener('change', refreshPaymentReview);
 }
 
 function escapeHtml(s) {

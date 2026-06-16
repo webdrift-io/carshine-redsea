@@ -73,11 +73,20 @@ Out of scope for all of M0-005: payment approval UI (M0-006); cleaner assignment
 M0-006:
 Title: Owner payment review
 Goal: Implement manual InstaPay submission tracking plus owner-only verify/reject.
-Files likely affected: `service-agent/routes/admin.js`, `service-agent/routes/public.js`, `service-agent/integrations/instapay.js`, `service-agent/public/app.js`
-Acceptance criteria: Customer proof creates `payments.status = PENDING_REVIEW`; owner verify sets `VERIFIED` and booking payment status to `PAID`; reject requires reason; customer messages are queued/logged.
-Tests required: Payment submission, verify, reject-without-reason, append-only event, and AI-never-verifies regression.
-Security notes: `payment_verify` must be owner-only; receipt access authenticated; file uploads type/size checked.
-Status: TODO
+Files changed:
+  - `service-agent/services/payments-review.js` (new)
+  - `service-agent/server.js` (5 new routes + import)
+  - `service-agent/public/app.js` (new payment review section)
+  - `service-agent/public/index.html` (new nav item + section HTML)
+  - `service-agent/tests/payments-review.test.js` (new, 12 tests)
+  - `service-agent/e2e/payment-review.spec.js` (new, 10 E2E tests)
+  - `service-agent/e2e/payment-safety.spec.js` (updated M0-006 test)
+Acceptance criteria met:
+  - Customer/dispatcher proof sets payments.status = PAYMENT_PENDING_REVIEW; owner verify sets VERIFIED; reject requires reason; events are append-only.
+  - OWNER-only verify/reject; DISPATCHER submit only; CLEANER 403; AI blocked at service + DB trigger; public 404.
+  - 196 vitest tests pass (12 new); 31 E2E pass / 2 skip (2 consecutive runs, deterministic).
+  - Payment-safety triggers: all 5 intact.
+Status: DONE (2026-06-16)
 
 M0-007:
 Title: Staff assignment and cleaner job status

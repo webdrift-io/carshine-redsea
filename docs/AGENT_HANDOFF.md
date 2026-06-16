@@ -135,3 +135,31 @@ Status: M0-000 through M0-008 implemented. M0-005 DONE. M0-008 E2E DONE. **M0-00
 
 ### Date sanity check
 - All M0-004C and M0-005 dates in this file and `M0_STATUS.md` are **June 16, 2026** (not January 2026). Verified by full-text search. No corrections needed.
+
+---
+
+## M0-006 Completed: Manual InstaPay Payment Review (2026-06-16, Sonnet)
+
+**Commit:** `feat: add manual payment review workflow`
+
+**What was built:**
+- `service-agent/services/payments-review.js` — full service layer (list, submit, verify, reject, detail).
+- 5 admin API endpoints at `/api/admin/payments` — OWNER + DISPATCHER read/submit; OWNER-only verify/reject.
+- Dashboard UI section "Payment Review" in `public/app.js` + `public/index.html`.
+- 12 Vitest tests in `tests/payments-review.test.js` (196 total, all green).
+- Playwright E2E in `e2e/payment-review.spec.js` (31 pass / 2 skip on 2 consecutive runs).
+- `e2e/payment-safety.spec.js` updated to reflect M0-006 endpoint is live.
+
+**RBAC:**
+- OWNER: list, detail, submit, verify, reject.
+- DISPATCHER: list, detail, submit only. Cannot verify or reject (403).
+- CLEANER: 403 on all payment endpoints.
+- AI: blocked at service layer AND DB trigger.
+- Public: 404 on all admin payment paths.
+
+**Payment safety triggers:** all 5 intact and tested.
+
+**Remaining M0 work:**
+- M0-007 cleaner status lifecycle (EN_ROUTE → ON_SITE → COMPLETED) — NOT_STARTED.
+- Dashboard socket.io client — NOT_STARTED (server emits, no client subscriber).
+- M0 is NOT complete until M0-007 lifecycle is done and Opus accepts.

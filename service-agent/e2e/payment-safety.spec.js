@@ -52,15 +52,17 @@ test.describe('Payment safety — API level', () => {
     expect(res.status()).toBe(404);
   });
 
-  test('M0-006 admin payment verify endpoint is NOT_STARTED — returns 404', async ({ request }) => {
+  test('M0-006 admin payment verify endpoint exists and requires a real payment ID', async ({ request }) => {
     const token = await getOwnerToken(request);
-    // M0-006 has not been implemented yet — no verify endpoint should exist.
-    const res = await request.post('/api/admin/payments/fake-id/verify', {
+    // M0-006 is implemented. A non-existent payment ID must return 404 (not found),
+    // confirming the endpoint is wired and validates input correctly.
+    const res = await request.post('/api/admin/payments/nonexistent-payment-id/verify', {
       headers: { Authorization: `Bearer ${token}` },
       data: {},
     });
-    // Must not be 200 — endpoint not implemented
     expect(res.status()).toBe(404);
+    const body = await res.json();
+    expect(body.success).toBe(false);
   });
 
   test('booking detail API never exposes payment hash or raw credentials', async ({ request }) => {

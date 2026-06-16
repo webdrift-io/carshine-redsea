@@ -370,3 +370,42 @@ M0-004: wire the landing booking form to `/api/public/bookings` and remove fake 
 - M0-006 payment review: NOT_STARTED.
 - M0-007 cleaner status lifecycle: NOT_STARTED.
 - M0 is not complete until M0-006 and M0-007 remaining scope are done.
+
+## M0-006 Results (2026-06-16, Sonnet)
+
+- Manual InstaPay payment review workflow implemented end-to-end.
+- Service layer: `service-agent/services/payments-review.js` (new).
+  - `listPendingPaymentReviews` — paginated queue, defaults to PAYMENT_PENDING_REVIEW status.
+  - `submitPaymentProof` — OWNER or DISPATCHER; sets PAYMENT_PENDING_REVIEW; appends SUBMITTED event.
+  - `verifyPayment` — OWNER only; sets VERIFIED; sets `verified_by_user_id`; updates booking; appends VERIFIED event.
+  - `rejectPayment` — OWNER only; reason required; sets REJECTED; booking reverts to UNPAID; appends REJECTED event.
+  - `getPaymentReviewDetail` — returns payment + event log.
+  - All SQL uses `db.prepare()` with bound params. Transactions wrap every multi-row change.
+- API endpoints (5 new routes in `server.js`):
+  - `GET /api/admin/payments` — OWNER, DISPATCHER.
+  - `GET /api/admin/payments/:id` — OWNER, DISPATCHER.
+  - `POST /api/admin/payments/:id/submit` — OWNER, DISPATCHER.
+  - `POST /api/admin/payments/:id/verify` — OWNER only (requireRole enforced).
+  - `POST /api/admin/payments/:id/reject` — OWNER only.
+  - CLEANER gets 403 from `requireRole` on all endpoints. Public path returns 404.
+- Dashboard UI: `public/app.js` + `public/index.html` updated.
+  - New "Payment Review" nav item and section.
+  - Lists payments with status badge, age (colour-coded), customer info.
+  - Verify/Reject buttons visible only to OWNER (role read from JWT).
+  - All customer fields escaped via `escapeHtml`. No fake verification.
+- Vitest tests: 12 new cases in `tests/payments-review.test.js`. 196 total (all pass).
+- E2E tests: `e2e/payment-review.spec.js` — 10 new tests (full submit→verify flow, DISPATCHER 403, CLEANER 403, public 404, no-reason 400, event log). 31 pass / 2 skip (same M0-007 lifecycle skip as before).
+- `e2e/payment-safety.spec.js` updated: M0-006 "NOT_STARTED" test replaced with "endpoint exists, returns 404 for unknown ID".
+- Payment-safety triggers: all 5 intact, untouched.
+- Run results: 196 vitest + 31 playwright (2 skip, 0 failures), lint 0 errors, typecheck clean, audit 0 high/critical.
+
+### Truth table (as of M0-006)
+| Milestone | Status |
+|---|---|
+| M0-005 dashboard read model | DONE |
+| M0-006 manual InstaPay payment review | DONE |
+| M0-007 cleaner assignment (assign/release) | DONE |
+| M0-007 cleaner status lifecycle (EN_ROUTE/ON_SITE/COMPLETED) | NOT_STARTED |
+| M0-008 E2E/live QA | DONE |
+
+M0 is not complete until M0-007 cleaner status lifecycle is implemented and Opus final accepts.

@@ -22,6 +22,7 @@ const { findOverlappingBookings } = require('./services/slot-overlap');
 const { requireRole } = require('./middleware/require-role');
 const usersService = require('./services/users');
 const { assignCleaner, releaseAssignment } = require('./services/assignments');
+const paymentsReview = require('./services/payments-review');
 
 // Feature flag: USE_MASTRA_AGENT (default: true). When false, the legacy
 // monolith in ./minimax-agent.js is used. The legacy file is kept around as a
@@ -1541,6 +1542,77 @@ app.post('/api/admin/bookings-v2/:id/reschedule', requireAuth, requireRole(['OWN
   `).get(bookingId);
 
   res.json({ success: true, booking: adminRead.formatBookingForAdmin(updatedRow) });
+});
+
+// ============================================================================
+// ADMIN PAYMENTS — M0-006
+// Manual InstaPay payment review workflow.
+// OWNER + DISPATCHER may list/detail/submit.
+// Only OWNER may verify or reject.
+// CLEANER gets 403 from requireRole.
+// ============================================================================
+
+function buildActor(req) {
+  return {
+    role: req.user && req.user.role,
+    userId: req.user && req.user.sub
+  };
+}
+
+app.get('/api/admin/payments', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (req, res) => {
+  const result = paymentsReview.listPendingPaymentReviews({
+    status: req.query.status || null,
+    limit: req.query.limit,
+    offset: req.query.offset
+  });
+  res.json(result);
+});
+
+app.get('/api/admin/payments/:id', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (req, res) => {
+  const result = paymentsReview.getPaymentReviewDetail(req.params.id);
+  if (!result.success) {
+    return res.status(result.code === 'NOT_FOUND' ? 404 : 400).json(result);
+  }
+  res.json(result);
+});
+
+app.post('/api/admin/payments/:id/submit', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (req, res) => {
+  const result = paymentsReview.submitPaymentProof(
+    req.params.id,
+    req.body || {},
+    buildActor(req)
+  );
+  if (!result.success) {
+    const statusMap = { NOT_FOUND: 404, WRONG_STATUS: 409, AI_FORBIDDEN: 403 };
+    return res.status(statusMap[result.code] || 400).json(result);
+  }
+  res.json(result);
+});
+
+app.post('/api/admin/payments/:id/verify', requireAuth, requireRole(['OWNER']), (req, res) => {
+  const result = paymentsReview.verifyPayment(
+    req.params.id,
+    req.body || {},
+    buildActor(req)
+  );
+  if (!result.success) {
+    const statusMap = { NOT_FOUND: 404, WRONG_STATUS: 409, OWNER_REQUIRED: 403, ACTOR_USER_REQUIRED: 400 };
+    return res.status(statusMap[result.code] || 400).json(result);
+  }
+  res.json(result);
+});
+
+app.post('/api/admin/payments/:id/reject', requireAuth, requireRole(['OWNER']), (req, res) => {
+  const result = paymentsReview.rejectPayment(
+    req.params.id,
+    req.body || {},
+    buildActor(req)
+  );
+  if (!result.success) {
+    const statusMap = { NOT_FOUND: 404, WRONG_STATUS: 409, REASON_REQUIRED: 400, OWNER_REQUIRED: 403 };
+    return res.status(statusMap[result.code] || 400).json(result);
+  }
+  res.json(result);
 });
 
 // ============================================================================
