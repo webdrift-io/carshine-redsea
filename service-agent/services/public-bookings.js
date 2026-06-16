@@ -57,6 +57,7 @@ function createPublicBooking(input = {}) {
       source: normalized.source,
       language: normalized.language,
       notes,
+      missingFields: missingFields.length > 0 ? JSON.stringify(missingFields) : null,
       now
     });
 
@@ -396,9 +397,9 @@ function insertBooking(data) {
   db.prepare(`
     INSERT INTO bookings_v2 (
       id, public_ref, customer_id, vehicle_id, service_package_id, scheduled_start,
-      scheduled_end, status, payment_status, source, language, notes, created_at, updated_at
+      scheduled_end, status, payment_status, source, language, notes, missing_fields, created_at, updated_at
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     data.id,
     data.publicRef,
@@ -412,6 +413,7 @@ function insertBooking(data) {
     data.source,
     data.language,
     data.notes,
+    data.missingFields || null,
     data.now,
     data.now
   );

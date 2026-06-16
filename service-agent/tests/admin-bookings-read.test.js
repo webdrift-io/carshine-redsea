@@ -164,6 +164,38 @@ describe('M0-005a admin bookings read model', () => {
     expect(event).not.toHaveProperty('vehicle');
     expect(event).not.toHaveProperty('servicePackage');
   });
+
+  it('parseMissingFields reads from the dedicated column when present', () => {
+    // Seed a COLLECTING_INFO booking with missing_fields column populated (migration 091)
+    const id = seedBooking({
+      status: 'COLLECTING_INFO',
+      scheduledStart: '2026-09-15T10:00:00+02:00',
+      withPayment: false,
+      paymentStatus: 'UNPAID',
+      notes: ''
+    });
+    const db = require('../database').db;
+    db.prepare('UPDATE bookings_v2 SET missing_fields = ? WHERE id = ?')
+      .run(JSON.stringify(['scheduledStart', 'vehicle']), id);
+
+    const result = adminRead.getBookingDetailForAdmin(id);
+    expect(result.success).toBe(true);
+    expect(result.booking.missingFields).toEqual(['scheduledStart', 'vehicle']);
+  });
+
+  it('parseMissingFields falls back to notes when missing_fields column is NULL', () => {
+    const id = seedBooking({
+      status: 'COLLECTING_INFO',
+      scheduledStart: '2026-09-16T10:00:00+02:00',
+      withPayment: false,
+      paymentStatus: 'UNPAID',
+      notes: 'Missing fields: phoneE164, carType'
+    });
+
+    const result = adminRead.getBookingDetailForAdmin(id);
+    expect(result.success).toBe(true);
+    expect(result.booking.missingFields).toEqual(['phoneE164', 'carType']);
+  });
 });
 
 function seedBooking({ status, scheduledStart, scheduledEnd, scheduledEndOffsetMs, paymentStatus, withPayment = true, notes }) {

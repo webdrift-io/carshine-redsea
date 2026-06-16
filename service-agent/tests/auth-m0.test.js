@@ -98,6 +98,24 @@ describe('M0-006 users service', () => {
     const invalid = users.listUsersByRole('SUPERADMIN');
     expect(invalid).toEqual([]);
   });
+
+  it('getUserByEmail returns DISPATCHER user from dev seed', () => {
+    const user = users.getUserByEmail('dispatcher@carshineredsea.com');
+    expect(user).not.toBeNull();
+    expect(user.role).toBe('DISPATCHER');
+    expect(user.display_name).toBe('CarShine Dispatcher');
+    expect(user.active).toBe(1);
+  });
+
+  it('updatePassword changes the stored hash', () => {
+    const owner = users.getUserByEmail('owner@carshineredsea.com');
+    const originalHash = owner.password_hash;
+    users.updatePassword(owner.id, 'newhash_placeholder');
+    const updated = users.getUserByEmail('owner@carshineredsea.com');
+    expect(updated.password_hash).toBe('newhash_placeholder');
+    // Restore original hash so other tests are not affected
+    users.updatePassword(owner.id, originalHash);
+  });
 });
 
 function restoreEnv(name, value) {

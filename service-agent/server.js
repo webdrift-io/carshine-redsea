@@ -22,6 +22,7 @@ const { findOverlappingBookings } = require('./services/slot-overlap');
 const { requireRole } = require('./middleware/require-role');
 const usersService = require('./services/users');
 const { assignCleaner, releaseAssignment } = require('./services/assignments');
+const { updatePassword: updateUserPassword } = require('./services/users');
 
 // Feature flag: USE_MASTRA_AGENT (default: true). When false, the legacy
 // monolith in ./minimax-agent.js is used. The legacy file is kept around as a
@@ -770,29 +771,49 @@ app.get('/api/auth/verify', requireAuth, (req, res) => {
 
 app.post('/api/auth/change-password', requireAuth, async (req, res) => {
   const { currentPassword, newPassword } = req.body;
-  
+
   if (!currentPassword || !newPassword) {
     return res.status(400).json({ error: 'Current and new password required' });
   }
-  
+
   if (newPassword.length < 12) {
     return res.status(400).json({ error: 'New password must be at least 12 characters' });
   }
-  
+
+  // M0-006: M0 users (OWNER/DISPATCHER/CLEANER) use the users table
+  const userRole = req.user && req.user.role;
+  const isM0User = userRole && userRole !== 'admin';
+  if (isM0User) {
+    const m0User = usersService.getActiveUserById(req.user.sub);
+    if (!m0User) {
+      return res.status(404).json({ error: 'User not found', code: 'USER_NOT_FOUND' });
+    }
+    const fullUser = usersService.getUserByEmail(m0User.email);
+    const valid = await verifyPassword(currentPassword, fullUser.password_hash);
+    if (!valid) {
+      await new Promise(r => setTimeout(r, 100));
+      return res.status(401).json({ error: 'Current password incorrect' });
+    }
+    const newHash = await hashPassword(newPassword);
+    updateUserPassword(m0User.id, newHash);
+    return res.json({ success: true, message: 'Password changed.' });
+  }
+
+  // Legacy: single admin_credentials record
   const admin = db.getAdmin(ADMIN_EMAIL);
   if (!admin) {
     return res.status(500).json({ error: 'Admin not found' });
   }
-  
+
   const valid = await verifyPassword(currentPassword, admin.passwordHash);
   if (!valid) {
     return res.status(401).json({ error: 'Current password incorrect' });
   }
-  
+
   const newHash = await hashPassword(newPassword);
   db.setAdminPassword(ADMIN_EMAIL, newHash);
   console.log('[Auth] Admin password changed');
-  
+
   res.json({ success: true, message: 'Password changed. Update ADMIN_PASSWORD_HASH in .env!' });
 });
 

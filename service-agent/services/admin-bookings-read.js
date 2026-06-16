@@ -22,7 +22,7 @@ const { db } = database;
 const LIST_SQL = `
   SELECT
     b.id, b.public_ref, b.status, b.payment_status, b.scheduled_start, b.scheduled_end,
-    b.timezone, b.source, b.language, b.notes, b.created_at, b.updated_at,
+    b.timezone, b.source, b.language, b.notes, b.missing_fields, b.created_at, b.updated_at,
     c.id AS customer_id, c.full_name, c.phone_e164, c.phone_raw, c.email,
     c.address AS customer_address, c.area AS customer_area,
     v.id AS vehicle_id, v.car_type, v.make AS v_make, v.model AS v_model, v.plate AS v_plate,
@@ -174,7 +174,7 @@ function getBookingDetailForAdmin(bookingV2Id) {
   const rows = db.prepare(`
     SELECT
       b.id, b.public_ref, b.status, b.payment_status, b.scheduled_start, b.scheduled_end,
-      b.timezone, b.source, b.language, b.notes, b.created_at, b.updated_at,
+      b.timezone, b.source, b.language, b.notes, b.missing_fields, b.created_at, b.updated_at,
       c.id AS customer_id, c.full_name, c.phone_e164, c.phone_raw, c.email,
       c.address AS customer_address, c.area AS customer_area,
       v.id AS vehicle_id, v.car_type, v.make AS v_make, v.model AS v_model, v.plate AS v_plate,
@@ -237,7 +237,7 @@ function getCalendarForAdmin(opts = {}) {
  * @returns {Object} admin shape
  */
 function formatBookingForAdmin(row) {
-  const missingFields = parseMissingFields(row.notes, row.status);
+  const missingFields = parseMissingFields(row.missing_fields, row.notes, row.status);
   const needsHuman = row.status === 'NEEDS_HUMAN';
   return {
     bookingV2Id: row.id,
@@ -357,14 +357,20 @@ function formatPaymentEvent(row) {
   };
 }
 
-function parseMissingFields(notes, status) {
-  if (status !== 'COLLECTING_INFO' || !notes) return [];
+function parseMissingFields(missingFieldsCol, notes, status) {
+  if (status !== 'COLLECTING_INFO') return [];
+  // Prefer the dedicated column (migration 091) — JSON array string
+  if (missingFieldsCol) {
+    try {
+      const parsed = JSON.parse(missingFieldsCol);
+      if (Array.isArray(parsed)) return parsed;
+    } catch (e) { /* fall through to legacy notes parsing */ }
+  }
+  // Legacy fallback: parse from "Missing fields: a, b, c" in notes
+  if (!notes) return [];
   const match = MISSING_FIELDS_REGEX.exec(notes);
   if (!match) return [];
-  return match[1]
-    .split(',')
-    .map(s => s.trim())
-    .filter(Boolean);
+  return match[1].split(',').map(s => s.trim()).filter(Boolean);
 }
 
 module.exports = {

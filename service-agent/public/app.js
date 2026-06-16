@@ -591,9 +591,26 @@ function updateKPIs() {
 // --- OVERVIEW PENDING LIST ---
 function renderOverviewPendingList() {
   const container = document.getElementById('overview-pending-list');
-  const pending = bookingsList.filter(b => b.status === 'pending').slice(0, 3); // show top 3
-  
-  if (pending.length === 0) {
+
+  // Legacy pending bookings
+  const legacyPending = bookingsList.filter(b => b.status === 'pending').slice(0, 3).map(b => ({
+    label: b.customerName,
+    sub: `${(b.package || '').split(' - ')[0]} | ${b.area || ''}`,
+    section: 'approvals',
+    badge: 'Pending'
+  }));
+
+  // V2 NEEDS_HUMAN bookings
+  const v2Pending = bookingsV2List.filter(b => b.status === 'NEEDS_HUMAN').slice(0, 3).map(b => ({
+    label: b.customer ? b.customer.fullName : '—',
+    sub: `${b.servicePackage ? b.servicePackage.nameEn : '—'} | ${b.area || '—'}`,
+    section: 'bookings-v2',
+    badge: 'Needs Review'
+  }));
+
+  const combined = [...legacyPending, ...v2Pending].slice(0, 5);
+
+  if (combined.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
         <i class="fa-solid fa-circle-check" style="color:var(--accent-green);"></i>
@@ -601,14 +618,14 @@ function renderOverviewPendingList() {
       </div>`;
     return;
   }
-  
-  container.innerHTML = pending.map(b => `
+
+  container.innerHTML = combined.map(item => `
     <div class="mini-booking-card">
       <div class="mini-booking-info">
-        <h4>${b.customerName}</h4>
-        <p>${b.package.split(' - ')[0]} | ${b.area}</p>
+        <h4>${item.label}</h4>
+        <p>${item.sub} <span class="status-pill" style="background:var(--accent-red);color:#fff;font-size:0.7rem;padding:1px 6px;border-radius:4px;">${item.badge}</span></p>
       </div>
-      <button class="btn btn-primary btn-sm" onclick="switchSection('approvals')">Review</button>
+      <button class="btn btn-primary btn-sm" onclick="switchSection('${item.section}')">Review</button>
     </div>
   `).join('');
 }

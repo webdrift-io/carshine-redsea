@@ -59,4 +59,9 @@ function listUsersByRole(role) {
   `).all(role);
 }
 
-module.exports = { getUserByEmail, getActiveUserById, updateLastLogin, listActiveCleaners, listUsersByRole };
+function updatePassword(userId, newHash) {
+  const now = new Date().toISOString();
+  db.prepare('UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?').run(newHash, now, userId);
+}
+
+module.exports = { getUserByEmail, getActiveUserById, updateLastLogin, updatePassword, listActiveCleaners, listUsersByRole };
