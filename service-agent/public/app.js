@@ -622,10 +622,10 @@ function renderOverviewPendingList() {
   container.innerHTML = combined.map(item => `
     <div class="mini-booking-card">
       <div class="mini-booking-info">
-        <h4>${item.label}</h4>
-        <p>${item.sub} <span class="status-pill" style="background:var(--accent-red);color:#fff;font-size:0.7rem;padding:1px 6px;border-radius:4px;">${item.badge}</span></p>
+        <h4>${escapeHtml(item.label)}</h4>
+        <p>${escapeHtml(item.sub)} <span class="status-pill" style="background:var(--accent-red);color:#fff;font-size:0.7rem;padding:1px 6px;border-radius:4px;">${escapeHtml(item.badge)}</span></p>
       </div>
-      <button class="btn btn-primary btn-sm" onclick="switchSection('${item.section}')">Review</button>
+      <button class="btn btn-primary btn-sm" onclick="switchSection('${escapeHtml(item.section)}')">Review</button>
     </div>
   `).join('');
 }
