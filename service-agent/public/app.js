@@ -166,6 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupPaymentReview();
   setupHeroCarFallback();
   setupSectionTransitions();
+  setupCleanerOps();
 
   // Start system clock
   updateClock();
@@ -309,6 +310,7 @@ function switchSection(sectionId) {
     'socials': { title: 'Social Media Campaigns', subtitle: 'Manage slideshow scheduling, cross-platform posting, and views analytics.' },
     'settings': { title: 'Autopilot Configurations', subtitle: 'Manage AI autonomy level, business triggers and webhooks.' },
     'agents': { title: 'AI Autopilot Agents', subtitle: 'Control center and activity feed for the 10 operational agents.' },
+    'cleaners-ops': { title: 'Cleaner Operations', subtitle: 'Field-team view: one card per cleaner, with their active queue and lifecycle status.' },
     'payments-review': { title: 'Payment Review', subtitle: 'Manual InstaPay proof review queue. Owner verifies or rejects; Dispatcher submits proof only.' },
     'traces': { title: 'Agent Traces', subtitle: 'Recent Langfuse trace events from the orchestrator and subagents.' }
   };
@@ -590,6 +592,9 @@ function updateKPIs() {
 
   // M1: hero live stats
   if (typeof updateHeroStats === 'function') updateHeroStats();
+
+  // M1: cleaner operations
+  if (typeof renderCleanerOps === 'function') renderCleanerOps();
 
   // Badges update
   const approvalsBadge = document.getElementById('badge-approval-count');
@@ -1576,17 +1581,28 @@ function renderBookingsV2() {
 
   if (bookingsV2List.length === 0) {
     container.innerHTML = `
-      <div class="empty-state">
-        <i class="fa-solid fa-globe"></i>
-        <p>No V2 bookings yet. Web form, chatbot, and WhatsApp bookings will appear here.</p>
+      <div class="empty-state" style="padding:48px 20px;">
+        <i class="fa-solid fa-globe" style="font-size:32px;color:var(--accent-blue-light);opacity:0.5;"></i>
+        <h3 style="color:var(--text-primary);font-size:15px;margin:8px 0 4px;">No web bookings yet</h3>
+        <p style="font-size:12.5px;max-width:340px;text-align:center;">Bookings from the public website form, chatbot, and WhatsApp will land here. They are normalized, idempotent, and start as <code>QUOTED</code>, <code>COLLECTING_INFO</code>, or <code>NEEDS_HUMAN</code>.</p>
       </div>`;
     return;
   }
 
   const sorted = [...bookingsV2List].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
+  // Owner-only UI hint: if the JWT has admin role, show a small badge.
+  let isOwner = true;
+  try {
+    if (authToken) {
+      const payload = JSON.parse(atob(authToken.split('.')[1]));
+      isOwner = payload.role === 'admin' || payload.role === 'OWNER';
+    }
+  } catch (_) { isOwner = true; }
+
   container.innerHTML = sorted.map(b => {
     const st = V2_STATUS_LABEL[b.status] || { label: b.status, color: 'var(--text-secondary)' };
+    const statusCls = String(b.status || '').toLowerCase().replace(/_/g, '-');
     const fmtDate = iso => iso ? new Date(iso).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
     const customerName = b.customer ? escapeHtml(b.customer.fullName) : '—';
     const phone = b.customer ? escapeHtml(b.customer.phoneRaw || b.customer.phoneE164) : '';
@@ -1596,6 +1612,22 @@ function renderBookingsV2() {
     const missingHtml = b.missingFields && b.missingFields.length
       ? `<div class="payment-routing-note" style="color:var(--accent-orange)"><i class="fa-solid fa-circle-exclamation"></i> Missing: ${b.missingFields.map(escapeHtml).join(', ')}</div>`
       : '';
+    // Source channel chip
+    const source = String(b.source || '').toUpperCase();
+    const sourceHtml = source ? `<span class="m1-status-pill" style="background:rgba(255,255,255,0.04);border:1px solid var(--glass-border);color:var(--text-muted);">${escapeHtml(source)}</span>` : '';
+    // Payment status chip (if present)
+    const pStatus = String(b.paymentStatus || '').toUpperCase();
+    let payHtml = '';
+    if (pStatus === 'VERIFIED') {
+      payHtml = `<span class="m1-status-pill verified"><i class="fa-solid fa-check"></i> Paid</span>`;
+    } else if (pStatus === 'PAYMENT_PENDING_REVIEW' || pStatus === 'PENDING') {
+      payHtml = `<span class="m1-status-pill pending"><i class="fa-solid fa-clock"></i> Awaiting proof</span>`;
+    } else if (pStatus === 'REJECTED') {
+      payHtml = `<span class="m1-status-pill rejected"><i class="fa-solid fa-xmark"></i> Proof rejected</span>`;
+    } else if (pStatus === 'UNPAID') {
+      payHtml = `<span class="m1-status-pill quoted"><i class="fa-solid fa-hourglass-half"></i> Unpaid</span>`;
+    }
+    const ownerHint = isOwner ? '' : `<span class="m1-status-pill" style="background:rgba(8,145,178,0.12);border:1px solid rgba(8,145,178,0.28);color:#67e8f9;" title="Dispatcher view: read-only"><i class="fa-solid fa-eye"></i> Read-only</span>`;
 
     return `
       <div class="approval-card card-glass" id="v2-card-${escapeHtml(b.bookingV2Id)}">
@@ -1607,6 +1639,12 @@ function renderBookingsV2() {
           </div>
           <div class="meta-detail-row">
             <span><i class="fa-solid fa-calendar-check"></i> ${scheduled}</span>
+          </div>
+          <div class="meta-detail-row" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
+            <span class="m1-status-pill ${statusCls}">${escapeHtml(st.label)}</span>
+            ${payHtml}
+            ${sourceHtml}
+            ${ownerHint}
           </div>
           ${missingHtml}
         </div>
@@ -1622,10 +1660,6 @@ function renderBookingsV2() {
           <div class="specs-item">
             <i class="fa-solid fa-location-dot"></i>
             <span>${escapeHtml(b.area || '—')}</span>
-          </div>
-          <div class="specs-item">
-            <i class="fa-solid fa-circle-half-stroke"></i>
-            <span style="color:${st.color};font-weight:600">${st.label}</span>
           </div>
         </div>
         <div class="approval-actions-col">
@@ -2144,6 +2178,181 @@ function setupPaymentReview() {
   if (refreshBtn) refreshBtn.addEventListener('click', refreshPaymentReview);
   const filter = document.getElementById('payments-status-filter');
   if (filter) filter.addEventListener('change', refreshPaymentReview);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// M1: Cleaner Operations section
+// Renders one .m1-cleaner-card per active cleaner with their assigned jobs.
+// Status filter chips let the owner drill into a lifecycle stage.
+// ─────────────────────────────────────────────────────────────────────────────
+let cleanerOpsFilter = 'all';
+
+function statusPillHtml(status) {
+  const cls = String(status || '').toLowerCase().replace(/_/g, '-');
+  return `<span class="m1-status-pill ${cls}">${escapeHtml(status || '—')}</span>`;
+}
+
+function renderCleanerOps() {
+  const container = document.getElementById('cleaners-ops-list');
+  if (!container) return;
+
+  // Build jobs-by-cleaner from bookingsV2List assignments.
+  // Each booking has an `assignments` array (per M0-007) or we infer from
+  // a `cleanerId`/`cleanerName` field if present.
+  const jobsByCleaner = new Map();
+  const uncategorized = [];
+
+  const bookings = bookingsV2List || [];
+  for (const b of bookings) {
+    const assignments = Array.isArray(b.assignments) ? b.assignments : [];
+    if (assignments.length) {
+      for (const a of assignments) {
+        const key = a.cleanerId || a.cleaner_id || a.id || 'unknown';
+        if (!jobsByCleaner.has(key)) {
+          jobsByCleaner.set(key, {
+            cleaner: {
+              id: key,
+              displayName: a.displayName || a.display_name || a.cleanerName || 'Cleaner',
+              phone: a.phone || a.cleanerPhone || '',
+              language: a.language || 'ar'
+            },
+            jobs: []
+          });
+        }
+        jobsByCleaner.get(key).jobs.push({ booking: b, assignment: a });
+      }
+    } else if (b.cleanerId || b.cleanerName) {
+      // older shape: cleanerId/cleanerName directly on the booking
+      const key = b.cleanerId || b.cleanerName;
+      if (!jobsByCleaner.has(key)) {
+        jobsByCleaner.set(key, {
+          cleaner: {
+            id: key,
+            displayName: b.cleanerName || b.cleanerDisplayName || 'Cleaner',
+            phone: b.cleanerPhone || '',
+            language: 'ar'
+          },
+          jobs: []
+        });
+      }
+      jobsByCleaner.get(key).jobs.push({ booking: b, assignment: null });
+    } else {
+      uncategorized.push(b);
+    }
+  }
+
+  // Merge the /api/admin/users/cleaners list so unassigned cleaners still
+  // appear (with an empty queue) when they should.
+  for (const c of (cleanersList || [])) {
+    const key = c.id;
+    if (!jobsByCleaner.has(key)) {
+      jobsByCleaner.set(key, {
+        cleaner: {
+          id: c.id,
+          displayName: c.displayName || c.display_name || c.email || 'Cleaner',
+          phone: c.phone || '',
+          language: c.language || 'ar',
+          shift: c.shift_start && c.shift_end ? `${c.shift_start}–${c.shift_end}` : ''
+        },
+        jobs: []
+      });
+    } else {
+      // Backfill phone / shift if missing
+      const entry = jobsByCleaner.get(key);
+      if (!entry.cleaner.phone && c.phone) entry.cleaner.phone = c.phone;
+      if (!entry.cleaner.shift && c.shift_start) entry.cleaner.shift = `${c.shift_start}–${c.shift_end}`;
+    }
+  }
+
+  // Sort cleaners by active job count desc
+  const entries = Array.from(jobsByCleaner.values())
+    .sort((a, b) => b.jobs.length - a.jobs.length);
+
+  // Filter chips
+  const filterJobs = (jobs) => cleanerOpsFilter === 'all'
+    ? jobs
+    : jobs.filter(j => String(j.booking.status || '').toUpperCase() === cleanerOpsFilter);
+
+  // Update chip counts (total job count + per-status)
+  const totalAll = bookings.length;
+  const counts = {
+    all: totalAll,
+    ASSIGNED: bookings.filter(b => b.status === 'ASSIGNED').length,
+    ON_THE_WAY: bookings.filter(b => b.status === 'ON_THE_WAY').length,
+    IN_PROGRESS: bookings.filter(b => b.status === 'IN_PROGRESS').length,
+    COMPLETED: bookings.filter(b => b.status === 'COMPLETED').length
+  };
+  const setCount = (id, n) => { const el = document.getElementById(id); if (el) el.textContent = n; };
+  setCount('cleaner-count-all', counts.all);
+
+  // Empty DB
+  if (entries.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <i class="fa-solid fa-spray-can-sparkles" style="color:var(--accent-blue-light);"></i>
+        <p>No cleaners registered yet. Add one in Settings to start dispatching jobs.</p>
+      </div>`;
+    return;
+  }
+
+  // Render
+  const html = entries.map(entry => {
+    const visibleJobs = filterJobs(entry.jobs);
+    const initials = (entry.cleaner.displayName || 'C').split(/\s+/).map(p => p[0]).slice(0, 2).join('').toUpperCase();
+    const phoneHtml = entry.cleaner.phone
+      ? `<span><i class="fa-solid fa-phone"></i> ${escapeHtml(entry.cleaner.phone)}</span>` : '';
+    const shiftHtml = entry.cleaner.shift
+      ? `<span><i class="fa-regular fa-clock"></i> ${escapeHtml(entry.cleaner.shift)}</span>` : '';
+    const langHtml = entry.cleaner.language
+      ? `<span><i class="fa-solid fa-language"></i> ${escapeHtml(String(entry.cleaner.language).toUpperCase())}</span>` : '';
+
+    const jobsHtml = visibleJobs.length === 0
+      ? `<div class="m1-cleaner-jobs"><div class="cleaner-job-row" style="opacity:0.6;"><span class="cleaner-job-customer">No jobs in this filter.</span></div></div>`
+      : `<div class="m1-cleaner-jobs">${visibleJobs.map(j => {
+          const b = j.booking || {};
+          const customer = b.customer ? (b.customer.fullName || b.customer.name || '—') : (b.customerName || '—');
+          const area = b.area || b.zone || '';
+          const time = b.scheduledStart ? new Date(b.scheduledStart).toLocaleString('en-US', { weekday: 'short', hour: '2-digit', minute: '2-digit' }) : (b.createdAt ? new Date(b.createdAt).toLocaleString('en-US', { weekday: 'short', hour: '2-digit', minute: '2-digit' }) : '—');
+          return `<div class="cleaner-job-row">
+            <div>
+              <span class="cleaner-job-time">${escapeHtml(time)}</span>
+              <span class="cleaner-job-customer">${escapeHtml(customer)}</span>
+              ${area ? `<span class="cleaner-job-area">· ${escapeHtml(area)}</span>` : ''}
+            </div>
+            <div>${statusPillHtml(b.status || 'ASSIGNED')}</div>
+          </div>`;
+        }).join('')}</div>`;
+
+    return `<div class="m1-cleaner-card">
+      <div class="m1-cleaner-avatar">${escapeHtml(initials)}</div>
+      <div class="m1-cleaner-info">
+        <div class="m1-cleaner-name">${escapeHtml(entry.cleaner.displayName)}</div>
+        <div class="m1-cleaner-meta">${phoneHtml}${shiftHtml}${langHtml}</div>
+        ${jobsHtml}
+      </div>
+      <div class="m1-cleaner-queue">
+        <div class="m1-cleaner-queue-count">${entry.jobs.length}</div>
+        <div class="m1-cleaner-queue-label">Active jobs</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  container.innerHTML = html;
+}
+
+function setupCleanerOps() {
+  // Filter chips
+  document.querySelectorAll('.cleaner-status-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('.cleaner-status-chip').forEach(c => c.classList.remove('is-active'));
+      chip.classList.add('is-active');
+      cleanerOpsFilter = chip.getAttribute('data-filter') || 'all';
+      renderCleanerOps();
+    });
+  });
+  // Refresh button
+  const refresh = document.getElementById('btn-cleaners-refresh');
+  if (refresh) refresh.addEventListener('click', () => { renderCleanerOps(); });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

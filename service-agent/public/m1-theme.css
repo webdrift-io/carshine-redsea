@@ -451,11 +451,12 @@ body.light-mode {
   background-size: 32px 32px;
   pointer-events: none;
   border-radius: inherit;
+  z-index: 0;
 }
 
 .m1-hero-left {
   position: relative;
-  z-index: 1;
+  z-index: 3;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -1691,14 +1692,15 @@ body.light-mode .m1-hero-eyebrow { color: rgba(255,255,255,0.85); }
   position: relative;
   z-index: 2;
   max-width: 100%;
-  width: 320px;
+  width: 380px;
   height: auto;
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow:
     0 24px 60px rgba(0,0,0,0.55),
-    0 0 0 1px rgba(255,255,255,0.04),
-    0 0 40px rgba(37,99,235,0.18);
+    0 0 0 1px rgba(37,99,235,0.35),
+    0 0 60px rgba(37,99,235,0.35);
+  background: #0a1830;  /* fallback while image loads */
   transform: translateZ(0);
   animation: m1-car-enter 700ms var(--ease-out-expo) both;
   animation-delay: 200ms;
@@ -2095,5 +2097,111 @@ body.light-mode .m1-hero-eyebrow { color: rgba(255,255,255,0.85); }
   .m1-cleaner-avatar { grid-area: avatar; width: 36px; height: 36px; font-size: 12px; }
   .m1-cleaner-info   { grid-area: info; }
   .m1-cleaner-queue  { grid-area: queue; flex-direction: row; align-items: center; gap: 8px; }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   32. CLEANER OPERATIONS SECTION
+   Status filter chips + the wrapper around the cleaner card list.
+───────────────────────────────────────────────────────────── */
+.cleaners-ops-container {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-bottom: 28px;
+}
+
+.cleaner-status-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 4px 0 2px;
+}
+
+.cleaner-status-chip {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--text-secondary);
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 160ms ease;
+  font-family: inherit;
+}
+
+.cleaner-status-chip:hover {
+  background: var(--bg-hover);
+  border-color: var(--glass-border-hover);
+  color: var(--text-primary);
+}
+
+.cleaner-status-chip.is-active {
+  background: rgba(37,99,235,0.15);
+  border-color: rgba(37,99,235,0.35);
+  color: var(--accent-blue-light);
+  box-shadow: 0 0 0 1px rgba(37,99,235,0.18) inset;
+}
+
+.cleaner-status-chip span {
+  background: rgba(255,255,255,0.06);
+  border-radius: 8px;
+  padding: 1px 6px;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.cleaner-status-chip.is-active span {
+  background: rgba(37,99,235,0.25);
+  color: var(--accent-blue-light);
+}
+
+/* Cleaner job row inside a card */
+.cleaner-job-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  margin-top: 8px;
+  font-size: 12.5px;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.cleaner-job-row:hover {
+  background: var(--bg-hover);
+  border-color: var(--glass-border-hover);
+}
+
+.cleaner-job-row .cleaner-job-time {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cleaner-job-row .cleaner-job-customer {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cleaner-job-row .cleaner-job-area {
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  margin-left: 6px;
+}
+
+/* Cleaner card list of jobs */
+.m1-cleaner-jobs {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 .m1-dot.cyan   { background: #22d3ee; }

@@ -46,6 +46,11 @@
           <span>Approvals</span>
           <span class="badge badge-pending" id="badge-approval-count">0</span>
         </a>
+        <a href="#" class="nav-item" data-section="cleaners-ops">
+          <i class="fa-solid fa-spray-can-sparkles"></i>
+          <span>Cleaner Operations</span>
+          <span class="badge badge-waiting" id="badge-cleaners-active" style="display:none;">0</span>
+        </a>
         <a href="#" class="nav-item" data-section="payments-review">
           <i class="fa-solid fa-receipt"></i>
           <span>Payment Review</span>
@@ -773,7 +778,39 @@
         </div>
       </section>
 
-      <!-- 8. Payment Review Section (M0-006) -->
+      <!-- 8. Cleaner Operations Section (M1) -->
+      <section id="section-cleaners-ops" class="dashboard-section">
+        <div class="cleaners-ops-container">
+          <div class="m1-section-header">
+            <div class="m1-section-header-left">
+              <div class="m1-section-title">
+                <i class="fa-solid fa-spray-can-sparkles"></i>
+                Cleaner Operations
+                <span class="m1-chip live"><i class="fa-solid fa-circle"></i> Live</span>
+              </div>
+              <div class="m1-section-sub">Field-team view. Each card is one cleaner with their assigned queue, current job, and lifecycle status. Owner sees everything; Dispatcher is read-only; Cleaner only sees their own jobs.</div>
+            </div>
+            <div class="m1-section-header-right">
+              <button class="btn btn-secondary btn-sm" id="btn-cleaners-refresh"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+            </div>
+          </div>
+
+          <!-- Status filter chips -->
+          <div class="cleaner-status-chips" role="tablist" aria-label="Filter cleaner's jobs by status">
+            <button class="cleaner-status-chip is-active" data-filter="all" type="button">All <span id="cleaner-count-all">0</span></button>
+            <button class="cleaner-status-chip" data-filter="ASSIGNED" type="button">Assigned</button>
+            <button class="cleaner-status-chip" data-filter="ON_THE_WAY" type="button">On the way</button>
+            <button class="cleaner-status-chip" data-filter="IN_PROGRESS" type="button">In progress</button>
+            <button class="cleaner-status-chip" data-filter="COMPLETED" type="button">Completed</button>
+          </div>
+
+          <div id="cleaners-ops-list">
+            <div class="empty-state"><i class="fa-solid fa-circle-notch fa-spin"></i><p>Loading cleaner operations…</p></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 9. Payment Review Section (M0-006) -->
       <section id="section-payments-review" class="dashboard-section">
         <div class="payments-review-container">
           <div class="m1-section-header">
