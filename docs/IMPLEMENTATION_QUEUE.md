@@ -1,7 +1,7 @@
 # Implementation Queue
 
-Status: M0 readiness audit complete. Do not implement until human approval.
-Current: M0-004A landed (landing form real wiring).
+Status: M0 readiness audit complete.
+Current: M0-004 PASSED & MERGED (Opus 4.8 final re-review PASS). M0-005 = NEXT.
 
 ## M0 Queue
 
@@ -33,13 +33,13 @@ Security notes: Public route remains rate limited; public input cannot create `V
 Status: DONE - `/api/public/bookings` now writes `customers`, optional `vehicles`, `bookings_v2`, `booking_status_history`, `payments`, `payment_events`, and optional conversation/message/action records. Legacy `bookings` table is preserved and not dual-written.
 
 |M0-004:
-|Title: Landing booking form real wiring
-|Goal: Remove fake success and post the landing form to `/api/public/bookings` using configurable API base URL.
-|Files likely affected: `landing-page/src/features/booking-form.js`, `landing-page/src/i18n/*.json`, `landing-page/vite.config.*`
-|Acceptance criteria: Backend-down case shows an error, not success; success displays real `public_ref`; EN/AR/DE behavior covered; no hardcoded `localhost:5000`.
-|Tests required: Frontend/unit or Playwright smoke for successful and failed submission.
+|Title: Landing booking form real wiring + renderer integration + i18n bridge
+|Goal: Remove fake success and post the landing form to `/api/public/bookings` using configurable API base URL. Integrate MiniMax's result renderer via `window.renderBookingState` with inline fallback. Add runtime i18n bridge (`window.BOOKING_I18N`). Gate InstaPay on backend `paymentInstructions`.
+|Files affected: `landing-page/src/features/booking-form.js`, `landing-page/src/features/booking-result.js`, `landing-page/src/features/booking-api.js`, `landing-page/src/features/config.js`, `landing-page/src/features/vite-plugins/i18n.js`, `landing-page/src/i18n/*.json`, `landing-page/index.{en,ar,de}.html`, `landing-page/src/shared/styles.css`, `landing-page/src/main.js`, `docs/M0_004A_QA_CHECKLIST.md`
+|Acceptance criteria: Backend-down case shows an error, not success; success displays real `public_ref`; EN/AR/DE behavior covered; no hardcoded `localhost:5000`; InstaPay appears only when backend returns `paymentInstructions`; payment address from backend where available; no fake success; no `VERIFIED` claim; modal opens only on QUOTED; form resets only on QUOTED.
+|Tests required: Frontend/unit or Playwright smoke for successful and failed submission; manual QA checklist (12 sections).
 |Security notes: Do not expose secrets in Vite env; keep public config only.
-|Status: DONE — M0-004A landed. `landing-page/src/features/booking-form.js` now posts to `${VITE_API_BASE_URL}/api/public/bookings` with a per-attempt `idempotencyKey`. `landing-page/src/features/config.js` resolves `VITE_API_BASE_URL` / `VITE_WHATSAPP_FALLBACK_URL` / `VITE_BOOKING_SOURCE`; the only `localhost:5000` in the client bundle is the documented local-dev fallback constant. `landing-page/src/features/booking-api.js` returns a discriminated `SubmitResult` with explicit states `idle | loading | quoted | collecting_info | needs_human | duplicate | backend_error | network_error`. Fake success path removed. Submit button is `disabled` + `aria-busy` during the request. Form is reset only on real `QUOTED` success. `landing-page/.env.example` documents the new env vars. Manual QA checklist added at `docs/M0_004A_QA_CHECKLIST.md` (12 sections, 0–12). EN/AR/DE HTML status region is identical across builds. No service-agent files touched. No new dev-deps. Root + landing `npm audit --audit-level=high` = 0.
+|Status: DONE — M0-004C Final Fix merged. `landing-page/src/features/booking-form.js` now posts to `${VITE_API_BASE_URL}/api/public/bookings` with per-attempt `idempotencyKey`. Real submit path calls `window.renderBookingState(form, result, { copy: window.BOOKING_I18N, whatsappUrl: result.whatsappUrl || WHATSAPP_FALLBACK_URL })` when renderer present; inline fallback preserved. `window.BOOKING_I18N` injected by `vite-plugins/i18n.js` with `{lang, dir, bookingStates}`. `booking-result.js` reads `paymentInstructions` from `bookingStates.paymentInstructions`. InstaPay gated on backend `paymentInstructions` (0 `values.payment` hits). AR/DE/EN payment copy localized. All build/audit gates pass (0 vulnerabilities). No service-agent files touched. No new dev-deps. M0-004 COMPLETE.
 |
 M0-005:
 Title: Dashboard calendar reads booking read model

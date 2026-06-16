@@ -1,6 +1,6 @@
 # M0 Status
 
-Status: M0-000 safe baseline complete; M0-001 schema foundation implemented; M0-002b config/audit gate complete; M0-003 public booking API v2 implemented; M0-003b payment/slot preconditions implemented; M0-004A landing form real wiring landed; M0-004B UI polish (MiniMax) landed on `feature/m0-004b-ui-polish`; M0-004C-A renderer integration landed.
+Status: M0-000 safe baseline complete; M0-001 schema foundation implemented; M0-002b config/audit gate complete; M0-003 public booking API v2 implemented; M0-003b payment/slot preconditions implemented; M0-004A landing form real wiring landed; M0-004B UI polish landed; M0-004C-B runtime i18n bridge landed; M0-004C-Final fix merged; M0-004 COMPLETE.
 
 M0 target: customer creates booking, booking appears in dashboard calendar,
 owner assigns cleaner, payment is tracked and verified, and customer receives
@@ -249,3 +249,43 @@ M0-004: wire the landing booking form to `/api/public/bookings` and remove fake 
 - **Security:** the bridge payload contains only `{ lang, dir, bookingStates }`. No secrets, no API keys, no full i18n bundle. Hero, packages, services, faq, contact, footer copy never reaches the renderer.
 - **Verification:** `landing-page npm ci` / `npm run build:all` / `npm audit --audit-level=high` = 0/0/0. Bridge payload sizes: EN 4169 bytes, AR 5418 bytes, DE 4425 bytes. All 8 state keys present in every bridge (`loading`, `quoted`, `collecting_info`, `needs_human`, `duplicate`, `backend_error`, `network_error`, `paymentInstructions`). AR uses Egyptian colloquial; DE is neutral. No "VERIFIED" string in any bridge.
 - **Next:** M0-005 (MiniMax + Claude Code) — dashboard reads from `bookings_v2`, calendar uses real booking data, slot-overlap refinement, malformed-date guard.
+
+## M0-004C Final Fix (2026-06-16) — Opus 4.8 blocker fix
+
+- **Status:** PASSED & MERGED (commit `46a9a67 fix: correct booking payment instruction copy lookup`).
+- **Owner:** Hermes Coding (verification/fix agent).
+- **Scope:** single 2-line fix in `landing-page/src/features/booking-result.js:237-238`. The bug: `pickCopy(copy, 'paymentInstructions')` returned the whole `bookingStates` object because `pickCopy` ignores its second argument. Result: `ipCopy.title` and `ipCopy.instructions` were `undefined`, causing literal "undefined" to render in the InstaPay block for `QUOTED + paymentInstructions` bookings.
+- **Fix:** Two-line change exactly as Opus specified:
+  ```js
+  const states = pickCopy(copy);
+  const ipCopy = states && states.paymentInstructions;
+  ```
+- **Files changed:** `landing-page/src/features/booking-result.js` (only).
+- **Files NOT changed:** `booking-form.js`, `booking-api.js`, `config.js`, `i18n.js`, HTML, CSS, i18n JSONs, any backend file, schema, migration, payment trigger.
+- **AR/DE localization check:** `paymentInstructions.title` / `paymentInstructions.instructions` now render correctly in all 3 languages (AR: "ادفع فوراً عن طريق إنستاباي", DE: "Sofort per InstaPay bezahlen", EN: "Pay instantly via InstaPay").
+- **Verification:**
+  - Unit lookup test: 5/5 cases pass (no copy / no bookingStates / no paymentInstructions / EN / AR).
+  - All build/audit gates pass: landing-page npm ci / build:all / audit = 0/0/0; root npm ci / build / audit = 0/0/0.
+  - `values.payment` gate fully removed (0 hits in dist).
+  - No `local_`, no fake success, no VERIFIED in code.
+- **Opus 4.8 final re-review:** PASS_READY_TO_MERGE_M0_004.
+- **Merge:** fast-forward merge of `feature/m0-004b-ui-polish` into `master` (commit `46a9a67`); worktree and branch removed.
+- **M0-004 STATUS: COMPLETE.**
+
+---
+
+## M0-005 (Next)
+
+**Title:** Dashboard reads real booking data (M0-005a)
+
+**Goal:** Dashboard reads from `bookings_v2` instead of legacy `bookings`. Calendar uses real booking data. Slot-overlap query replaces equality check. Malformed-date guard added.
+
+**Owner:** MiniMax (UI) + Claude Code (backend/API).
+
+**Scope:**
+- `service-agent/routes/admin.js` new read model.
+- `service-agent/public/app.js` dashboard reads from new API.
+- `service-agent/services/public-bookings.js` refine `checkSlotConflict` to window-overlap.
+- Malformed-date guard: `scheduledStart` parse failure returns COLLECTING_INFO.
+
+**Do not start yet.** M0-005 will be kicked off after this merge is confirmed.

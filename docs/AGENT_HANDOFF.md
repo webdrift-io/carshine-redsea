@@ -1,6 +1,6 @@
 # Agent Handoff
 
-Status: M0-000 complete; M0-001 implemented and verified; M0-002b complete; M0-003 implemented and verified by Hermes; M0-003b implemented; M0-004A landed; M0-004B (UI design layer) implemented; M0-004C-A (renderer integration) landed.
+Status: M0-000 complete; M0-001 implemented and verified; M0-002b complete; M0-003 implemented and verified by Hermes; M0-003b implemented; M0-004A landed; M0-004B (UI design layer) implemented; M0-004C-B (i18n bridge) shipped; M0-004C-Final fix merged; **M0-004 COMPLETE & MERGED**.
 
 ## Current Controller Notes
 
@@ -37,8 +37,14 @@ Status: M0-000 complete; M0-001 implemented and verified; M0-002b complete; M0-0
 - M0-004B: booking form restructured (2-col grid on tablet, single-col on mobile, hint + error on every field, ARIA wired, privacy block). All visible text routes through the i18n bundle in EN/AR/DE. No `booking-form.js` logic touched (Hermes-owned); the new field UX is structural-only.
 - M0-004B: new `landing-page/src/features/booking-result.js` renderer composes with M0-004A's `SubmitResult` discriminated union (snake_case states: `loading | quoted | collecting_info | needs_human | duplicate | backend_error | network_error`). Renders into the existing `#bookingFormStatus` region with per-state copy in EN/AR/DE, per-state color tone, an icon, an optional InstaPay address block (for `quoted + paymentInstructions`), and a missing-fields pill list (for `collecting_info`). No localhost, no fake success, no `VERIFIED` in the UI. Exposes `window.renderBookingState(form, submitResult, { copy, onRetry, onEdit })` and `window.clearBookingStatus(form)` for Hermes' submit handler to opt into.
 - M0-004B: dashboard design-only preview at `service-agent/public/m0-004b-design/dashboard-preview.html` shows the 7 sections (Today's bookings, Live inbox, Calendar, Payment review, Cleaner assignment, AI autopilot, Human takeover) with empty / loading / error states. All data lives in `DESIGN_ONLY_MOCKS.js` (single file, clearly marked). The shipping dashboard is untouched.
-- M0-004B: docs/design/M0_UI_DESIGN_NOTES.md captures the full design contract (state map, file ownership, accessibility, what Hermes must connect, what Opus should review).
 - M0-004C-A: live submit path now calls `window.renderBookingState(form, result, { copy: window.BOOKING_I18N, whatsappUrl: result.whatsappUrl || WHATSAPP_FALLBACK_URL })` when MiniMax's renderer is present. The M0-004A switch is extracted into `renderInlineStatus(form, result)` and kept as a fallback so the form keeps working in dev/test contexts that don't load the result module. The renderer call is wrapped in `try/catch`; on throw, log + fall through to the inline renderer (no fake success, never silent). Success modal opens only on `result.state === 'quoted'`, and the modal's InstaPay block is gated on `result.data?.paymentInstructions` (backend truth) — no longer on `values.payment === 'InstaPay'`. `form.reset()` runs only on `quoted`. Loading state, `disabled` submit button, `aria-busy`, and idempotency behavior are preserved.
+- M0-004C-B: MiniMax shipped the runtime i18n bridge (`vite-plugins/i18n.js` injects `window.BOOKING_I18N` with `{lang, dir, bookingStates}`; `booking-result.js` resolves copy from `options.copy || window.BOOKING_I18N`). AR/DE/EN result states localized. `booking-result.js` prefers backend `paymentInstructions.receivingNumber`, falls back to `APP_CONFIG.instapayMobile`. Never says VERIFIED.
+- M0-004C-Final: Hermes fixed the last blocker (`46a9a67 fix: correct booking payment instruction copy lookup`). Bug: `pickCopy(copy, 'paymentInstructions')` returned the whole `bookingStates` object, causing `ipCopy.title`/`instructions` to be `undefined`. Fixed with two lines:
+  ```js
+  const states = pickCopy(copy);
+  const ipCopy = states && states.paymentInstructions;
+  ```
+  AR/DE/EN `paymentInstructions.title` / `instructions` now render correctly. `values.payment` gate fully removed (0 hits). All build/audit gates green. **M0-004 COMPLETE & MERGED** (Opus 4.8 PASS_READY_TO_MERGE_M0_004).
 
 ## Verification Snapshot
 
