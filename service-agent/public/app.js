@@ -164,11 +164,13 @@ document.addEventListener('DOMContentLoaded', () => {
   setupSocialMedia();
   setupTraces();
   setupPaymentReview();
-  
+  setupHeroCarFallback();
+  setupSectionTransitions();
+
   // Start system clock
   updateClock();
   setInterval(updateClock, 60000);
-  
+
   // Initial data fetch
   fetchData();
   
@@ -585,6 +587,9 @@ function updateKPIs() {
   const v2Badge = document.getElementById('badge-v2-needs-human');
   v2Badge.textContent = v2NeedsHuman;
   v2Badge.style.display = v2NeedsHuman > 0 ? 'inline' : 'none';
+
+  // M1: hero live stats
+  if (typeof updateHeroStats === 'function') updateHeroStats();
 
   // Badges update
   const approvalsBadge = document.getElementById('badge-approval-count');
@@ -2044,25 +2049,32 @@ function renderPaymentReview(payments) {
         ? '<span style="color:var(--text-secondary);font-size:0.78rem;">Screenshot (invalid URL)</span>'
         : '<span style="color:var(--text-secondary);font-size:0.78rem;">No screenshot</span>';
 
-    return `<div class="card-glass" style="padding:18px 20px;display:flex;flex-direction:column;gap:10px;">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">
-        <div>
-          <strong style="font-size:1rem;">${escapeHtml(p.publicRef || p.bookingId)}</strong>
-          <span style="margin-left:10px;">${paymentStatusPill(p.status)}</span>
+    return `<div class="m1-payment-card" data-status="${escapeHtml(p.status)}">
+      <div class="m1-payment-proof">
+        ${isSafeScreenshotUrl
+          ? `<a href="${escapeHtml(screenshotUrl)}" target="_blank" rel="noopener" aria-label="View payment proof screenshot"><i class="fa-solid fa-image"></i></a>`
+          : `<i class="fa-solid fa-image"></i>`}
+      </div>
+      <div class="m1-payment-body">
+        <div class="m1-payment-head">
+          <span class="m1-payment-customer">${escapeHtml(p.customer && p.customer.name || '—')}</span>
+          ${paymentStatusPill(p.status)}
+          <span style="color:${ageColor};font-size:0.78rem;font-weight:600;margin-left:auto;">${ageLabel}</span>
         </div>
-        <span style="color:${ageColor};font-size:0.82rem;font-weight:600;">${ageLabel}</span>
+        <div class="m1-payment-meta">
+          <span><i class="fa-solid fa-receipt"></i> ${escapeHtml(p.publicRef || p.bookingId)}</span>
+          <span><i class="fa-solid fa-phone"></i> ${escapeHtml(p.customer && p.customer.phone || '—')}</span>
+          <span><i class="fa-solid fa-car"></i> ${escapeHtml(p.service && p.service.name || '—')}</span>
+          <span class="m1-payment-amount"><i class="fa-solid fa-money-bill" style="margin-right:4px;color:var(--accent-blue-light);opacity:0.7;"></i>${((p.amountPiasters || 0) / 100).toFixed(2)} ${escapeHtml(p.currency || 'EGP')}</span>
+        </div>
+        ${p.reference ? `<div style="font-size:0.8rem;color:var(--text-secondary);margin-top:4px;"><strong>Ref:</strong> ${escapeHtml(p.reference)}</div>` : ''}
+        ${p.rejectionReason ? `<div style="font-size:0.8rem;color:var(--accent-red);margin-top:4px;"><i class="fa-solid fa-circle-exclamation"></i> Rejected: ${escapeHtml(p.rejectionReason)}</div>` : ''}
+        ${isSafeScreenshotUrl
+          ? `<a class="m1-payment-link" href="${escapeHtml(screenshotUrl)}" target="_blank" rel="noopener"><i class="fa-solid fa-up-right-from-square"></i> View proof screenshot</a>`
+          : ''}
       </div>
-      <div style="display:flex;gap:24px;flex-wrap:wrap;font-size:0.85rem;color:var(--text-secondary);">
-        <span><i class="fa-solid fa-user" style="margin-right:4px;"></i>${escapeHtml(p.customer && p.customer.name || '—')}</span>
-        <span><i class="fa-solid fa-phone" style="margin-right:4px;"></i>${escapeHtml(p.customer && p.customer.phone || '—')}</span>
-        <span><i class="fa-solid fa-car" style="margin-right:4px;"></i>${escapeHtml(p.service && p.service.name || '—')}</span>
-        <span><i class="fa-solid fa-money-bill" style="margin-right:4px;"></i>${((p.amountPiasters || 0) / 100).toFixed(2)} ${escapeHtml(p.currency || 'EGP')}</span>
-      </div>
-      ${p.reference ? `<div style="font-size:0.82rem;"><strong>Ref:</strong> ${escapeHtml(p.reference)}</div>` : ''}
-      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-        ${screenshotLink}
+      <div class="m1-payment-actions">
         ${verifyBtn}${rejectBtn}
-        ${p.rejectionReason ? `<span style="font-size:0.8rem;color:var(--accent-red,#c0392b);">Rejected: ${escapeHtml(p.rejectionReason)}</span>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -2132,6 +2144,86 @@ function setupPaymentReview() {
   if (refreshBtn) refreshBtn.addEventListener('click', refreshPaymentReview);
   const filter = document.getElementById('payments-status-filter');
   if (filter) filter.addEventListener('change', refreshPaymentReview);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// M1: Hero car-image fallback
+// If the generated asset fails to load (e.g. served from disk without
+// the assets/ tree), show the car-wash icon fallback instead of a broken image.
+// ─────────────────────────────────────────────────────────────────────────────
+function setupHeroCarFallback() {
+  const img = document.querySelector('.m1-hero-car-image img');
+  if (!img) return;
+  img.addEventListener('error', () => {
+    const picture = img.closest('.m1-hero-car-image');
+    if (picture) picture.style.display = 'none';
+    const fb = document.querySelector('.m1-hero-car-fallback');
+    if (fb) fb.style.display = 'flex';
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// M1: Section transitions
+// Restrained: when the user switches sections, we briefly clear the
+// animation so the CSS keyframe restarts. Honors prefers-reduced-motion
+// via the CSS itself.
+// ─────────────────────────────────────────────────────────────────────────────
+function setupSectionTransitions() {
+  // One-time observation of dynamic content arrivals (e.g. payment cards
+  // rendered into the list) gives a subtle staggered enter. The CSS
+  // handles the animation; we just trigger it on each new child.
+  const targets = ['payments-review-list', 'approvals-list-container', 'v2-bookings-list-container'];
+  const observer = new MutationObserver(muts => {
+    for (const m of muts) {
+      m.addedNodes.forEach(node => {
+        if (node.nodeType !== 1) return;
+        if (node.classList && (node.classList.contains('m1-payment-card') || node.classList.contains('approval-card'))) {
+          // restart animation
+          node.style.animation = 'none';
+          // force reflow
+          // eslint-disable-next-line no-unused-expressions
+          node.offsetHeight;
+          node.style.animation = '';
+        }
+      });
+    }
+  });
+  targets.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) observer.observe(el, { childList: true });
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// M1: Hero live stats
+// Wire the three hero stat values from the same live data the KPI
+// cards use. No new endpoints; same sources as the overview.
+// ─────────────────────────────────────────────────────────────────────────────
+function updateHeroStats() {
+  const totalEl = document.getElementById('hero-stat-total');
+  const pendingEl = document.getElementById('hero-stat-pending');
+  const completedEl = document.getElementById('hero-stat-completed');
+  if (!totalEl) return;
+
+  // Total bookings = legacy + v2
+  const total = (bookingsList.length || 0) + (bookingsV2List.length || 0);
+  totalEl.textContent = total;
+
+  // Pending review = legacy pending + v2 NEEDS_HUMAN + payment review queue
+  const pending =
+    bookingsList.filter(b => b.status === 'pending').length +
+    bookingsV2List.filter(b => b.status === 'NEEDS_HUMAN').length +
+    paymentReviewList.filter(p => p.status === 'PAYMENT_PENDING_REVIEW').length;
+  pendingEl.textContent = pending;
+
+  // Completed today = legacy confirmed (we don't have a per-day breakdown
+  // pre-M1; surface a sensible real read from bookingsList) + v2 COMPLETED.
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+  const completedToday =
+    bookingsList.filter(b => b.status === 'confirmed' && b.createdAt && new Date(b.createdAt) >= startOfDay).length +
+    bookingsV2List.filter(b => b.status === 'COMPLETED' && b.scheduledStart && new Date(b.scheduledStart) >= startOfDay).length;
+  completedEl.textContent = completedToday;
 }
 
 function escapeHtml(s) {

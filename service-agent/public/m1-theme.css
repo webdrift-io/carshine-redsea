@@ -421,7 +421,8 @@ body.light-mode {
     #060f20 100%);
   border: 1px solid rgba(37,99,235,0.22);
   box-shadow: 0 4px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) auto minmax(220px, 1fr);
   align-items: center;
   justify-content: space-between;
   gap: 24px;
@@ -1555,7 +1556,7 @@ body.light-mode .m1-hero-eyebrow { color: rgba(255,255,255,0.85); }
 /* ─────────────────────────────────────────────────────────────
    23. RESPONSIVE
 ───────────────────────────────────────────────────────────── */
-@media (max-width: 1200px) {
+@media (max-width: 1400px) {
   .sidebar { width: 56px; }
   .sidebar .logo-text,
   .sidebar .nav-item span,
@@ -1569,13 +1570,35 @@ body.light-mode .m1-hero-eyebrow { color: rgba(255,255,255,0.85); }
   .sidebar .user-profile { justify-content: center; }
   .sidebar .nav-menu { gap: 4px; }
 
-  .m1-hero-right { display: none; }
-  .m1-hero-stats { display: none; }
-  .m1-hero-title { font-size: 22px; }
+  .m1-hero-banner {
+    grid-template-columns: 1.4fr 1fr;
+    grid-template-areas:
+      "left stats"
+      "left right";
+    align-items: stretch;
+  }
+  .m1-hero-left   { grid-area: left; }
+  .m1-hero-stats  { grid-area: stats; border-left: none; padding-left: 0; padding-top: 0; flex-direction: column; gap: 10px; align-items: flex-end; text-align: right; }
+  .m1-hero-right  { grid-area: right; min-width: 0; align-items: center; }
+  .m1-hero-car-image { max-width: 280px; }
 
   .kpi-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+}
+
+@media (max-width: 1200px) {
+  /* Stacked hero: image moves below the text */
+  .m1-hero-banner {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "left"
+      "stats"
+      "right";
+  }
+  .m1-hero-stats { flex-direction: row; align-items: stretch; text-align: left; border-top: 1px solid rgba(255,255,255,0.08); border-left: none; padding-top: 14px; padding-left: 0; gap: 18px; }
+  .m1-hero-right { min-width: 0; }
+  .m1-hero-car-image { max-width: 420px; margin: 0 auto; }
 }
 
 @media (max-width: 900px) {
@@ -1648,4 +1671,429 @@ body.light-mode .m1-hero-eyebrow { color: rgba(255,255,255,0.85); }
 .m1-dot.orange { background: #f59e0b; }
 .m1-dot.red    { background: #f43f5e; }
 .m1-dot.blue   { background: #3b82f6; }
+
+/* ─────────────────────────────────────────────────────────────
+   25. HERO CAR IMAGE
+   Real photo replaces the icon-only right panel.
+   Lazy-loaded, with a glow + fallback icon.
+───────────────────────────────────────────────────────────── */
+.m1-hero-right {
+  position: relative;
+  min-width: 220px;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.m1-hero-car-image {
+  display: block;
+  position: relative;
+  z-index: 2;
+  max-width: 100%;
+  width: 320px;
+  height: auto;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow:
+    0 24px 60px rgba(0,0,0,0.55),
+    0 0 0 1px rgba(255,255,255,0.04),
+    0 0 40px rgba(37,99,235,0.18);
+  transform: translateZ(0);
+  animation: m1-car-enter 700ms var(--ease-out-expo) both;
+  animation-delay: 200ms;
+  opacity: 0;
+}
+
+.m1-hero-car-image img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  aspect-ratio: 16 / 9;
+}
+
+@keyframes m1-car-enter {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.m1-hero-glow {
+  position: absolute;
+  inset: -30px;
+  z-index: 1;
+  background: radial-gradient(ellipse at center,
+    rgba(37,99,235,0.35) 0%,
+    rgba(6,182,212,0.12) 35%,
+    transparent 70%);
+  filter: blur(20px);
+  animation: m1-glow-pulse 6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes m1-glow-pulse {
+  0%, 100% { opacity: 0.8; transform: scale(1); }
+  50%      { opacity: 1;   transform: scale(1.04); }
+}
+
+.m1-hero-car-fallback {
+  display: none;
+  position: absolute;
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-blue-light);
+  font-size: 64px;
+  opacity: 0.4;
+}
+
+/* If the picture image fails to load, JS toggles .m1-hero-car-fallback to flex.
+   CSS-only fallback: if <img> has errored, the picture will be visually empty
+   and the .m1-hero-car-icon will not be present anymore, so we keep the
+   fallback DOM element but it's hidden unless a JS class is added. */
+
+/* ─────────────────────────────────────────────────────────────
+   26. CLEANER STATUS PILLS
+   Used in booking detail modal and cleaner workflow surfaces.
+───────────────────────────────────────────────────────────── */
+.m1-status-pill.assigned {
+  background: rgba(8,145,178,0.12);
+  border: 1px solid rgba(8,145,178,0.28);
+  color: #67e8f9;
+}
+
+.m1-status-pill.on-the-way {
+  background: rgba(8,145,178,0.15);
+  border: 1px solid rgba(8,145,178,0.32);
+  color: #67e8f9;
+}
+
+.m1-status-pill.in-progress {
+  background: rgba(37,99,235,0.15);
+  border: 1px solid rgba(37,99,235,0.32);
+  color: #93c5fd;
+}
+
+.m1-status-pill.completed {
+  background: rgba(5,150,105,0.15);
+  border: 1px solid rgba(5,150,105,0.3);
+  color: #34d399;
+}
+
+.m1-status-pill.cancelled,
+.m1-status-pill.rejected {
+  background: rgba(225,29,72,0.12);
+  border: 1px solid rgba(225,29,72,0.25);
+  color: #fb7185;
+}
+
+.m1-status-pill.quoted,
+.m1-status-pill.collecting-info,
+.m1-status-pill.needs-human {
+  background: rgba(217,119,6,0.12);
+  border: 1px solid rgba(217,119,6,0.25);
+  color: #fbbf24;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   27. PAYMENT PROOF CARD
+   The detailed card that lives inside the payment review list.
+   Renders proof screenshot + status + verify/reject actions.
+───────────────────────────────────────────────────────────── */
+.m1-payment-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  margin-bottom: 14px;
+  display: grid;
+  grid-template-columns: 92px 1fr auto;
+  gap: 18px;
+  align-items: center;
+  box-shadow: var(--shadow-card);
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+  animation: m1-card-enter 380ms var(--ease-out-expo) both;
+}
+
+.m1-payment-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--glass-border-hover);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.4);
+}
+
+.m1-payment-card[data-status="PAYMENT_PENDING_REVIEW"] { border-left: 3px solid var(--accent-orange); }
+.m1-payment-card[data-status="VERIFIED"]              { border-left: 3px solid var(--accent-green); }
+.m1-payment-card[data-status="REJECTED"]              { border-left: 3px solid var(--accent-red); }
+
+.m1-payment-proof {
+  width: 92px;
+  height: 92px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, rgba(37,99,235,0.12), rgba(8,145,178,0.08));
+  border: 1px solid var(--glass-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-blue-light);
+  font-size: 26px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.m1-payment-proof img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.m1-payment-body { min-width: 0; }
+
+.m1-payment-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.m1-payment-customer {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.m1-payment-meta {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  margin-top: 4px;
+}
+
+.m1-payment-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.m1-payment-meta i { color: var(--accent-blue-light); opacity: 0.7; }
+
+.m1-payment-amount {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.m1-payment-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: stretch;
+  flex-shrink: 0;
+}
+
+.m1-payment-actions .btn {
+  min-width: 110px;
+  justify-content: center;
+}
+
+.m1-payment-link {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.m1-payment-link:hover { color: var(--accent-blue-light); }
+
+@keyframes m1-card-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   28. CLEANER WORKFLOW SURFACE
+   Compact cards showing the active cleaner's queue, status, and progress.
+───────────────────────────────────────────────────────────── */
+.m1-cleaner-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+  margin-bottom: 12px;
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  gap: 14px;
+  align-items: center;
+  transition: border-color 180ms ease, background 180ms ease;
+}
+
+.m1-cleaner-card:hover {
+  border-color: var(--glass-border-hover);
+  background: var(--glass-bg-hover);
+}
+
+.m1-cleaner-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #1e3a5f, #0f2441);
+  border: 1px solid rgba(37,99,235,0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-blue-light);
+  font-weight: 600;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.m1-cleaner-info { min-width: 0; }
+
+.m1-cleaner-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.m1-cleaner-meta {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.m1-cleaner-queue {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.m1-cleaner-queue-count {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.m1-cleaner-queue-label {
+  font-size: 10.5px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   29. SECTION TRANSITIONS
+   Restrained motion for section switches + new content arrival.
+───────────────────────────────────────────────────────────── */
+.dashboard-section {
+  animation: m1-section-enter 320ms var(--ease-out-expo) both;
+}
+
+@keyframes m1-section-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.dashboard-section:not(.active) {
+  display: none;
+}
+
+/* Stagger hero children on first paint */
+.m1-hero-banner .m1-hero-eyebrow,
+.m1-hero-banner .m1-hero-title,
+.m1-hero-banner .m1-hero-sub,
+.m1-hero-banner .m1-hero-tags,
+.m1-hero-banner .m1-hero-stats,
+.m1-hero-banner .m1-hero-right {
+  animation: m1-hero-child 600ms var(--ease-out-expo) both;
+}
+
+.m1-hero-banner .m1-hero-eyebrow { animation-delay: 60ms; }
+.m1-hero-banner .m1-hero-title   { animation-delay: 120ms; }
+.m1-hero-banner .m1-hero-sub     { animation-delay: 180ms; }
+.m1-hero-banner .m1-hero-tags    { animation-delay: 240ms; }
+.m1-hero-banner .m1-hero-stats   { animation-delay: 300ms; }
+.m1-hero-banner .m1-hero-right   { animation-delay: 380ms; }
+
+@keyframes m1-hero-child {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   30. REDUCED MOTION
+   Honor the user's OS-level preference. All non-essential
+   animations are suppressed; transitions stay instant.
+───────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .m1-hero-car-image,
+  .m1-hero-banner .m1-hero-eyebrow,
+  .m1-hero-banner .m1-hero-title,
+  .m1-hero-banner .m1-hero-sub,
+  .m1-hero-banner .m1-hero-tags,
+  .m1-hero-banner .m1-hero-stats,
+  .m1-hero-banner .m1-hero-right,
+  .dashboard-section,
+  .m1-payment-card {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   31. RESPONSIVE REFINEMENTS
+   Hero / payment card / cleaner card / sidebar on small screens.
+───────────────────────────────────────────────────────────── */
+@media (max-width: 1100px) {
+  /* No-op: hero is already responsive via 1200/1400 breakpoints. */
+}
+
+@media (max-width: 900px) {
+  .m1-payment-card {
+    grid-template-columns: 64px 1fr;
+    grid-template-areas:
+      "proof body"
+      "actions actions";
+    gap: 14px;
+  }
+  .m1-payment-proof { grid-area: proof; width: 64px; height: 64px; font-size: 20px; }
+  .m1-payment-body  { grid-area: body; }
+  .m1-payment-actions {
+    grid-area: actions;
+    flex-direction: row;
+  }
+  .m1-payment-actions .btn { flex: 1; }
+}
+
+@media (max-width: 600px) {
+  .m1-cleaner-card {
+    grid-template-columns: 36px 1fr;
+    grid-template-areas:
+      "avatar info"
+      "queue queue";
+  }
+  .m1-cleaner-avatar { grid-area: avatar; width: 36px; height: 36px; font-size: 12px; }
+  .m1-cleaner-info   { grid-area: info; }
+  .m1-cleaner-queue  { grid-area: queue; flex-direction: row; align-items: center; gap: 8px; }
+}
 .m1-dot.cyan   { background: #22d3ee; }

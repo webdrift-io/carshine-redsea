@@ -155,7 +155,12 @@
             </div>
           </div>
           <div class="m1-hero-right">
-            <div class="m1-hero-car-icon">
+            <picture class="m1-hero-car-image" aria-hidden="true">
+              <source media="(max-width: 600px)" srcset="assets/hero/car-hero-mobile.jpg">
+              <img src="assets/hero/car-hero-960.jpg" alt="" loading="lazy" decoding="async" width="960" height="540">
+            </picture>
+            <div class="m1-hero-glow" aria-hidden="true"></div>
+            <div class="m1-hero-car-fallback" aria-hidden="true">
               <i class="fa-solid fa-car-wash"></i>
             </div>
           </div>
