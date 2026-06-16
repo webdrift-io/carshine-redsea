@@ -12,6 +12,8 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <!-- Custom Styles -->
   <link rel="stylesheet" href="style.css">
+  <!-- M1 Premium Theme -->
+  <link rel="stylesheet" href="m1-theme.css">
 </head>
 <body class="dark-mode">
   <div class="app-container">
@@ -29,49 +31,54 @@
       </div>
       
       <nav class="nav-menu">
+        <div class="nav-group-label">Operations</div>
         <a href="#" class="nav-item active" data-section="overview">
           <i class="fa-solid fa-chart-line"></i>
           <span>Overview</span>
-        </a>
-        <a href="#" class="nav-item" data-section="chat-simulator">
-          <i class="fa-solid fa-comments"></i>
-          <span>Chatbot Inbox</span>
-          <span class="badge badge-waiting" id="badge-chat-count" style="display:none;">0</span>
-        </a>
-        <a href="#" class="nav-item" data-section="approvals">
-          <i class="fa-solid fa-clipboard-check"></i>
-          <span>Approvals</span>
-          <span class="badge badge-pending" id="badge-approval-count">0</span>
         </a>
         <a href="#" class="nav-item" data-section="bookings-v2">
           <i class="fa-solid fa-globe"></i>
           <span>Web Bookings</span>
           <span class="badge badge-pending" id="badge-v2-needs-human" style="display:none;">0</span>
         </a>
-        <a href="#" class="nav-item" data-section="calendar">
-          <i class="fa-solid fa-calendar-days"></i>
-          <span>Calendar</span>
-        </a>
-        <a href="#" class="nav-item" data-section="socials">
-          <i class="fa-solid fa-share-nodes"></i>
-          <span>Social Media</span>
-        </a>
-        <a href="#" class="nav-item" data-section="settings">
-          <i class="fa-solid fa-sliders"></i>
-          <span>Autopilot Settings</span>
-        </a>
-        <a href="#" class="nav-item" data-section="agents">
-          <i class="fa-solid fa-robot"></i>
-          <span>AI Agents (10)</span>
+        <a href="#" class="nav-item" data-section="approvals">
+          <i class="fa-solid fa-clipboard-check"></i>
+          <span>Approvals</span>
+          <span class="badge badge-pending" id="badge-approval-count">0</span>
         </a>
         <a href="#" class="nav-item" data-section="payments-review">
           <i class="fa-solid fa-receipt"></i>
           <span>Payment Review</span>
           <span class="badge badge-pending" id="badge-payments-pending" style="display:none;">0</span>
         </a>
+        <a href="#" class="nav-item" data-section="calendar">
+          <i class="fa-solid fa-calendar-days"></i>
+          <span>Calendar</span>
+        </a>
+
+        <div class="nav-group-label">Communication</div>
+        <a href="#" class="nav-item" data-section="chat-simulator">
+          <i class="fa-solid fa-comments"></i>
+          <span>Chatbot Inbox</span>
+          <span class="badge badge-waiting" id="badge-chat-count" style="display:none;">0</span>
+        </a>
+        <a href="#" class="nav-item" data-section="socials">
+          <i class="fa-solid fa-share-nodes"></i>
+          <span>Social Media</span>
+        </a>
+
+        <div class="nav-group-label">System</div>
+        <a href="#" class="nav-item" data-section="agents">
+          <i class="fa-solid fa-robot"></i>
+          <span>AI Agents (10)</span>
+        </a>
         <a href="#" class="nav-item" data-section="traces">
           <i class="fa-solid fa-wave-square"></i>
           <span>Traces</span>
+        </a>
+        <a href="#" class="nav-item" data-section="settings">
+          <i class="fa-solid fa-sliders"></i>
+          <span>Settings</span>
         </a>
       </nav>
       
@@ -120,6 +127,40 @@
       
       <!-- 1. Overview Section -->
       <section id="section-overview" class="dashboard-section active">
+
+        <!-- M1 Hero Banner -->
+        <div class="m1-hero-banner">
+          <div class="m1-hero-left">
+            <div class="m1-hero-eyebrow">CarShine Red Sea · Operations</div>
+            <div class="m1-hero-title">Your <span>mobile car wash</span><br>command center</div>
+            <div class="m1-hero-sub">Real-time bookings, payment review, and cleaner dispatch — all in one place. Red Sea territory.</div>
+            <div class="m1-hero-tags">
+              <span class="m1-tag blue"><i class="fa-solid fa-circle-check"></i> Live Data</span>
+              <span class="m1-tag green"><i class="fa-solid fa-shield-halved"></i> Payment Safe</span>
+              <span class="m1-tag amber"><i class="fa-solid fa-location-dot"></i> El Gouna · Hurghada · Sahl Hasheesh</span>
+            </div>
+          </div>
+          <div class="m1-hero-stats">
+            <div class="m1-hero-stat">
+              <div class="m1-hero-stat-value" id="hero-stat-total">—</div>
+              <div class="m1-hero-stat-label">Total bookings</div>
+            </div>
+            <div class="m1-hero-stat">
+              <div class="m1-hero-stat-value" id="hero-stat-pending">—</div>
+              <div class="m1-hero-stat-label">Pending review</div>
+            </div>
+            <div class="m1-hero-stat">
+              <div class="m1-hero-stat-value" id="hero-stat-completed">—</div>
+              <div class="m1-hero-stat-label">Completed today</div>
+            </div>
+          </div>
+          <div class="m1-hero-right">
+            <div class="m1-hero-car-icon">
+              <i class="fa-solid fa-car-wash"></i>
+            </div>
+          </div>
+        </div>
+
         <!-- KPI Grid -->
         <div class="kpi-grid">
           <div class="kpi-card card-glass">
@@ -729,24 +770,28 @@
 
       <!-- 8. Payment Review Section (M0-006) -->
       <section id="section-payments-review" class="dashboard-section">
-        <div class="payments-review-container" style="display: flex; flex-direction: column; gap: 20px; padding-bottom: 24px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--glass-border); padding-bottom: 14px; margin-bottom: 10px;">
-            <div>
-              <h2 style="font-size: 1.4rem; font-weight: 600; color: var(--text-primary);">Payment Review</h2>
-              <p style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 2px;">Manual InstaPay proof review. Owner verifies or rejects. DISPATCHER can submit proof only.</p>
+        <div class="payments-review-container">
+          <div class="m1-section-header">
+            <div class="m1-section-header-left">
+              <div class="m1-section-title">
+                <i class="fa-solid fa-receipt"></i>
+                Payment Review
+                <span class="m1-chip manual-review"><i class="fa-solid fa-hand"></i> Manual Review</span>
+              </div>
+              <div class="m1-section-sub">Owner-only verification of InstaPay proofs. DISPATCHER submits proof, OWNER verifies or rejects. AI cannot verify payments.</div>
             </div>
-            <div style="display: flex; gap: 8px; align-items: center;">
-              <select id="payments-status-filter" style="background: var(--glass-bg); border: 1px solid var(--glass-border); color: var(--text-primary); padding: 6px 12px; border-radius: 8px; font-size: 0.82rem;">
+            <div class="m1-section-header-right">
+              <select id="payments-status-filter">
                 <option value="PAYMENT_PENDING_REVIEW">Pending Review</option>
                 <option value="VERIFIED">Verified</option>
                 <option value="REJECTED">Rejected</option>
-                <option value="">All</option>
+                <option value="">All Payments</option>
               </select>
-              <button class="btn btn-primary btn-sm" id="btn-payments-refresh"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+              <button class="btn btn-secondary btn-sm" id="btn-payments-refresh"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
             </div>
           </div>
           <div id="payments-review-list">
-            <p style="color: var(--text-secondary); padding: 20px 0;">Loading payment reviews…</p>
+            <div class="empty-state"><i class="fa-solid fa-circle-notch fa-spin"></i><p>Loading payment reviews…</p></div>
           </div>
         </div>
       </section>
