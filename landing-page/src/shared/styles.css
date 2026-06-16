@@ -906,6 +906,8 @@ button { border: 0; color: inherit; font: inherit; cursor: pointer; }
 #bookingFormStatus[data-tone="success"] { border-color: rgba(27, 191, 137, 0.45); background: rgba(27, 191, 137, 0.10); color: #c9f3e2; }
 #bookingFormStatus[data-tone="warning"] { border-color: rgba(245, 178, 70, 0.45); background: rgba(245, 178, 70, 0.10); color: #fde2b6; }
 #bookingFormStatus[data-tone="error"]   { border-color: rgba(231, 95, 95, 0.55); background: rgba(231, 95, 95, 0.10); color: #fbd1d1; }
+#bookingFormStatus[data-tone="human"]   { border-color: rgba(139, 92, 246, 0.45); background: rgba(139, 92, 246, 0.10); color: #ddd6fe; }
+#bookingFormStatus[data-tone="loading"] { border-color: rgba(148, 163, 184, 0.32); background: rgba(148, 163, 184, 0.08); color: rgba(255, 255, 255, 0.78); }
 #bookingFormStatus .booking-status-detail {
   font-size: 0.78rem;
   opacity: 0.85;
@@ -926,4 +928,390 @@ button { border: 0; color: inherit; font: inherit; cursor: pointer; }
     display: none !important;
   }
   body { background: #fff; color: #000; }
+}
+
+/* ============================================================================
+   M0-004B — Booking Result (inline status region)
+   Composes with M0-004A's #bookingFormStatus (tone colors, .booking-status-main,
+   .booking-status-detail). Adds the icon, missing-fields pills, payment-
+   instructions block, and primary/secondary action buttons.
+   ============================================================================ */
+#bookingFormStatus .booking-result-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: 99px;
+  margin-block: 1px;
+  align-self: flex-start;
+}
+#bookingFormStatus .booking-result-icon svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+#bookingFormStatus .booking-result-icon.is-spinner {
+  position: relative;
+  background: transparent;
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  border-top-color: #fff;
+  animation: bookingResultSpin 0.85s linear infinite;
+}
+#bookingFormStatus .booking-result-icon.is-spinner::before { content: ""; }
+#bookingFormStatus[data-tone="info"] .booking-result-icon { color: #93c5fd; }
+#bookingFormStatus[data-tone="success"] .booking-result-icon { color: #6ee7b7; }
+#bookingFormStatus[data-tone="warning"] .booking-result-icon { color: #fcd34d; }
+#bookingFormStatus[data-tone="error"] .booking-result-icon { color: #fca5a5; }
+#bookingFormStatus[data-tone="human"] .booking-result-icon { color: #c4b5fd; }
+#bookingFormStatus[data-tone="loading"] .booking-result-icon { color: rgba(255, 255, 255, 0.7); }
+@keyframes bookingResultSpin {
+  to { transform: rotate(360deg); }
+}
+
+#bookingFormStatus .booking-status-main {
+  font-weight: 700;
+  display: block;
+  margin-bottom: 2px;
+}
+#bookingFormStatus .booking-status-detail {
+  display: block;
+}
+#bookingFormStatus .booking-status-main[hidden],
+#bookingFormStatus .booking-status-detail[hidden] { display: none; }
+
+#bookingFormStatus .booking-result-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+#bookingFormStatus .booking-result-pills[hidden] { display: none; }
+#bookingFormStatus .booking-result-pill-label {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+  margin-inline-end: 4px;
+}
+#bookingFormStatus .booking-result-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.14);
+  border: 1px solid rgba(59, 130, 246, 0.32);
+  color: #93c5fd;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+#bookingFormStatus .booking-result-instapay {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(27, 191, 137, 0.08);
+  border: 1px solid rgba(27, 191, 137, 0.32);
+}
+#bookingFormStatus .booking-result-instapay[hidden] { display: none; }
+#bookingFormStatus .booking-result-instapay h4 {
+  margin: 0;
+  color: #1BBF89;
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+#bookingFormStatus .booking-result-instapay p {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.78);
+}
+#bookingFormStatus .booking-result-instapay small {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+#bookingFormStatus .booking-result-instapay-address {
+  align-self: flex-start;
+  padding: 7px 12px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.32);
+  border: 1px dashed rgba(255, 255, 255, 0.22);
+  color: #fff;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  user-select: all;
+  transition: background 0.18s ease, transform 0.18s ease;
+}
+#bookingFormStatus .booking-result-instapay-address:hover {
+  background: rgba(0, 0, 0, 0.44);
+  transform: translateY(-1px);
+}
+#bookingFormStatus .booking-result-instapay-address.is-copied {
+  background: rgba(27, 191, 137, 0.18);
+  border-color: #1BBF89;
+  color: #1BBF89;
+}
+
+#bookingFormStatus .booking-result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+#bookingFormStatus .booking-result-actions:empty { display: none; }
+#bookingFormStatus .booking-result-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+#bookingFormStatus .booking-result-btn-primary {
+  background: rgba(255, 255, 255, 0.92);
+  color: #07101e;
+  border: 1px solid transparent;
+}
+#bookingFormStatus .booking-result-btn-primary:hover { background: #fff; transform: translateY(-1px); }
+#bookingFormStatus .booking-result-btn-secondary {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+#bookingFormStatus .booking-result-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.32);
+}
+#bookingFormStatus[data-tone="loading"] .booking-result-btn { display: none; }
+
+/* ============================================================================
+   M0-004B — Booking Form (layout & field UX)
+   The existing form keeps its Hermes-owned submit logic. We add helper
+   elements, error displays, and responsive grid improvements only.
+   ============================================================================ */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.btn-location {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: rgba(27, 191, 137, 0.1);
+  border: 1px solid rgba(27, 191, 137, 0.3);
+  color: #1BBF89;
+  font-weight: 700;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+.btn-location:hover {
+  background: rgba(27, 191, 137, 0.18);
+  border-color: rgba(27, 191, 137, 0.48);
+}
+.btn-location svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.mini-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+}
+.mini-form > .form-wide,
+.mini-form > .mini-submit,
+.mini-form > .booking-field-wide,
+.mini-form > .booking-form-error,
+.mini-form > .booking-form-privacy {
+  grid-column: 1 / -1;
+}
+.mini-form input,
+.mini-form select,
+.mini-form textarea {
+  min-height: 50px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  font: inherit;
+  font-size: 0.92rem;
+  transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.mini-form select {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round'><path d='M6 9l6 6 6-6'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 16px;
+  padding-inline-end: 38px;
+}
+.mini-form textarea {
+  min-height: 84px;
+  resize: vertical;
+  font-family: inherit;
+}
+.mini-form input::placeholder,
+.mini-form textarea::placeholder {
+  color: rgba(255, 255, 255, 0.42);
+}
+.mini-form input:hover,
+.mini-form select:hover,
+.mini-form textarea:hover {
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.07);
+}
+.mini-form input:focus,
+.mini-form select:focus,
+.mini-form textarea:focus {
+  outline: none;
+  border-color: #1BBF89;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 4px rgba(27, 191, 137, 0.18);
+}
+.mini-form input[aria-invalid="true"],
+.mini-form select[aria-invalid="true"],
+.mini-form textarea[aria-invalid="true"] {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.18);
+}
+.mini-form input[aria-invalid="true"]:focus,
+.mini-form select[aria-invalid="true"]:focus,
+.mini-form textarea[aria-invalid="true"]:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.28);
+}
+.booking-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0; /* allow input shrink inside grid */
+}
+.booking-field-hint {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.74rem;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.5);
+}
+.booking-field-error {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #fca5a5;
+  min-height: 0;
+}
+.booking-field-error:empty { display: none; }
+.booking-field input[aria-invalid="true"] + .booking-field-hint { color: #fca5a5; }
+.booking-form-error {
+  display: none;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.34);
+  color: #fecaca;
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+.booking-form-error[data-visible="1"] { display: flex; }
+.booking-form-error svg {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+}
+.booking-form-privacy {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.74rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.6);
+}
+.booking-form-privacy svg {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  color: #1BBF89;
+}
+.mini-submit {
+  min-height: 54px;
+  font-size: 0.95rem;
+}
+.mini-submit[disabled] {
+  opacity: 0.7;
+  cursor: progress;
+}
+.mini-submit .mini-inline-icon { width: 16px; height: 16px; margin-inline-start: 8px; }
+
+@media (max-width: 720px) {
+  .mini-form {
+    grid-template-columns: 1fr;
+    gap: 11px;
+  }
+  .mini-form > .form-wide,
+  .mini-form > .mini-submit,
+  .mini-form > .booking-field-wide,
+  .mini-form > .booking-form-error,
+  .mini-form > .booking-form-privacy {
+    grid-column: 1 / -1;
+  }
+  .mini-form input,
+  .mini-form select,
+  .mini-form textarea {
+    font-size: 16px; /* iOS: stops auto-zoom on focus */
+  }
+}
+@media (max-width: 420px) {
+  .booking-result .web-modal-card {
+    padding: 28px 18px 22px;
+  }
+  .booking-result-title { font-size: 1.16rem; }
+  .booking-result-desc { font-size: 0.86rem; }
 }

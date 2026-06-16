@@ -108,5 +108,119 @@
   },
   "footer": {
     "description": "Carshine Redsea is launching from the Red Sea with a mission to make car care cleaner, easier and more accessible across Egypt. Service availability, timing and add-ons are confirmed on WhatsApp before arrival."
+  },
+  "bookingStates": {
+    "submitting": {
+      "label": "Submitting your booking",
+      "detail": "Sending your request to our system. This usually takes a few seconds."
+    },
+    "loading": {
+      "label": "Submitting your booking…",
+      "detail": ""
+    },
+    "quoted": {
+      "title": "Booking received",
+      "desc": "Thank you. Your booking request has been sent to our system. Our team will contact you on WhatsApp shortly to confirm the appointment and share the payment details.",
+      "primaryCta": "Open WhatsApp",
+      "primaryAction": "whatsapp",
+      "secondaryCta": "Close",
+      "secondaryAction": "close"
+    },
+    "paymentInstructions": {
+      "title": "Pay instantly via InstaPay",
+      "instructions": "Send the amount to the InstaPay address below, then send us the receipt screenshot on WhatsApp.",
+      "copyHint": "Click the address to copy it.",
+      "copied": "InstaPay address copied to clipboard"
+    },
+    "collecting_info": {
+      "title": "We need a few more details",
+      "desc": "We saved what you sent. To finish your booking, please reply on WhatsApp with the missing details below.",
+      "missingLabel": "Missing",
+      "primaryCta": "Continue on WhatsApp",
+      "primaryAction": "whatsapp",
+      "secondaryCta": "Edit my details",
+      "secondaryAction": "edit"
+    },
+    "needs_human": {
+      "title": "We'll confirm with you personally",
+      "desc": "Your request needs a quick review by our team. We'll contact you on WhatsApp within a few minutes to confirm the time and arrange the wash.",
+      "primaryCta": "Message us on WhatsApp",
+      "primaryAction": "whatsapp",
+      "secondaryCta": "Close",
+      "secondaryAction": "close"
+    },
+    "duplicate": {
+      "title": "We already have your booking",
+      "desc": "This booking was already received. Our team is reviewing it. We'll contact you on WhatsApp shortly to confirm the time.",
+      "primaryCta": "Open WhatsApp",
+      "primaryAction": "whatsapp",
+      "secondaryCta": "Close",
+      "secondaryAction": "close"
+    },
+    "backend_error": {
+      "title": "We couldn't save your booking",
+      "desc": "Our system had a temporary problem. Your details are safe. Please try again in a moment, or message us on WhatsApp so we can help you directly.",
+      "primaryCta": "Message us on WhatsApp",
+      "primaryAction": "whatsapp",
+      "secondaryCta": "Try again",
+      "secondaryAction": "retry"
+    },
+    "network_error": {
+      "title": "No connection right now",
+      "desc": "We couldn't reach our booking system. Check your connection and try again. You can also message us on WhatsApp — we answer fast.",
+      "primaryCta": "Message us on WhatsApp",
+      "primaryAction": "whatsapp",
+      "secondaryCta": "Try again",
+      "secondaryAction": "retry"
+    },
+    "formError": {
+      "missingFields": "Please fill in your full name, WhatsApp number, area, package, date, time and payment method.",
+      "invalidPhone": "Please enter a valid WhatsApp number (digits only, with country code).",
+      "noDate": "Please choose a date for the wash.",
+      "noTime": "Please choose a time for the wash."
+    },
+    "fieldHints": {
+      "name": "Your full name as it appears on your ID",
+      "phone": "Include the country code, for example +20 100 123 4567",
+      "car": "Make and model, for example Toyota Corolla 2021",
+      "address": "Drop a Google Maps pin or write a clear address",
+      "notes": "Anything we should know: plate, color, parking floor, gate code, hotel room",
+      "date": "Pick the day we should come",
+      "time": "9:00 to 17:00, late hours by request"
+    },
+    "fieldLabels": {
+      "name": "Full Name",
+      "phone": "WhatsApp Number",
+      "area": "Area",
+      "areaOther": "Other / Coming soon",
+      "car": "Car Type",
+      "package": "Package",
+      "locationType": "Location Type",
+      "date": "Date",
+      "time": "Time",
+      "condition": "Car condition",
+      "payment": "Payment method",
+      "address": "Google Maps Location or Address",
+      "notes": "Notes: write exactly what you want washed, for example body, inside, wheels, motor bay, seats, wax, perfume, parking instructions, car color, plate hint, hotel room number, fleet count, or best WhatsApp time",
+      "useGps": "Use Live Location (GPS)",
+      "submit": "Confirm My Booking",
+      "fleet": "Hotel / Fleet Partnership"
+    },
+    "locationTypes": {
+      "home": "Home / Villa",
+      "hotel": "Hotel / Resort",
+      "office": "Office",
+      "marina": "Marina",
+      "compound": "Compound parking",
+      "fleet": "Rental fleet"
+    },
+    "conditions": {
+      "normal": "Normal dust",
+      "heavy": "Heavy dust",
+      "sand": "Sand / beach day",
+      "interior": "Interior needs extra care",
+      "unsure": "Not sure, please advise"
+    },
+    "privacy": "Your details are sent securely to Carshine Redsea. Payment is verified manually by our team — we will never mark it confirmed from this form."
   }
 }

@@ -442,27 +442,108 @@
           <h2 class="mini-title">Book your wash in less than one minute.</h2>
           <p class="mini-copy">Send your details and our team will confirm your booking on WhatsApp shortly.</p>
         </div>
-        <form class="mini-form" id="bookingForm">
-          <input name="name" placeholder="Full Name" required>
-          <input name="phone" placeholder="WhatsApp Number" required>
-          <select name="area"><option>El Gouna</option><option>Hurghada</option><option>Sahl Hasheesh</option><option>Other / Coming soon</option></select>
-          <input name="car" placeholder="Car Type">
-          <select name="package"><option>Trial Wash - launch 150 EGP</option><option>Smart Plan - launch 300 EGP / month</option><option>Premium Plan - launch 500 EGP / month</option><option>Hotel / Fleet Partnership</option></select>
-          <select name="locationType"><option>Home / Villa</option><option>Hotel / Resort</option><option>Office</option><option>Marina</option><option>Compound parking</option><option>Rental fleet</option></select>
-          <input name="date" type="date">
-          <input name="time" type="time">
-          <select name="condition"><option>Normal dust</option><option>Heavy dust</option><option>Sand / beach day</option><option>Interior needs extra care</option><option>Not sure, please advise</option></select>
-          <select name="payment"><option>Cash</option><option>InstaPay</option><option>Vodafone Cash</option><option>Orange Cash</option><option>Fawry</option><option>Bank Transfer</option></select>
-          <div class="form-wide" style="display: flex; flex-direction: column; gap: 8px;">
-            <textarea name="address" placeholder="Google Maps Location or Address" style="width: 100%; min-height: 80px;"></textarea>
-            <button type="button" class="btn-location" style="align-self: flex-start; display: flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 10px; background: rgba(27, 191, 137, 0.1); border: 1px solid rgba(27, 191, 137, 0.3); color: #1BBF89; font-weight: 700; font-size: 0.78rem; transition: background 0.2s ease;" onclick="getLiveLocation(this)">
-              <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round;"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
-              Use Live Location (GPS)
+        <form class="mini-form" id="bookingForm" novalidate aria-describedby="bookingFormError">
+          <div class="booking-field">
+            <label class="visually-hidden" for="bf-name"><%= bookingStates.fieldLabels.name %></label>
+            <input id="bf-name" name="name" type="text" autocomplete="name" placeholder="<%= bookingStates.fieldLabels.name %>" required aria-required="true" aria-describedby="bf-name-hint">
+            <small class="booking-field-hint" id="bf-name-hint"><%= bookingStates.fieldHints.name %></small>
+            <small class="booking-field-error" id="bf-name-error" role="alert"></small>
+          </div>
+          <div class="booking-field">
+            <label class="visually-hidden" for="bf-phone"><%= bookingStates.fieldLabels.phone %></label>
+            <input id="bf-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="<%= bookingStates.fieldLabels.phone %>" required aria-required="true" aria-describedby="bf-phone-hint">
+            <small class="booking-field-hint" id="bf-phone-hint"><%= bookingStates.fieldHints.phone %></small>
+            <small class="booking-field-error" id="bf-phone-error" role="alert"></small>
+          </div>
+          <div class="booking-field">
+            <label class="visually-hidden" for="bf-area"><%= bookingStates.fieldLabels.area %></label>
+            <select id="bf-area" name="area" required aria-required="true">
+              <option value="El Gouna"><%= locations.0.name %></option>
+              <option value="Hurghada"><%= locations.1.name %></option>
+              <option value="Sahl Hasheesh"><%= locations.2.name %></option>
+              <option value="Other"><%= bookingStates.fieldLabels.areaOther %></option>
+            </select>
+          </div>
+          <div class="booking-field">
+            <label class="visually-hidden" for="bf-car"><%= bookingStates.fieldLabels.car %></label>
+            <input id="bf-car" name="car" type="text" autocomplete="off" placeholder="<%= bookingStates.fieldLabels.car %>" aria-describedby="bf-car-hint">
+            <small class="booking-field-hint" id="bf-car-hint"><%= bookingStates.fieldHints.car %></small>
+          </div>
+          <div class="booking-field">
+            <label class="visually-hidden" for="bf-package"><%= bookingStates.fieldLabels.package %></label>
+            <select id="bf-package" name="package" required aria-required="true">
+              <option value="trial"><%= packages.0.name %> - launch <%= packages.0.price %></option>
+              <option value="smart"><%= packages.1.name %> - launch <%= packages.1.price %> / month</option>
+              <option value="premium"><%= packages.2.name %> - launch <%= packages.2.price %> / month</option>
+              <option value="fleet"><%= bookingStates.fieldLabels.fleet %></option>
+            </select>
+          </div>
+          <div class="booking-field">
+            <label class="visually-hidden" for="bf-locationType"><%= bookingStates.fieldLabels.locationType %></label>
+            <select id="bf-locationType" name="locationType">
+              <option value="home"><%= bookingStates.locationTypes.home %></option>
+              <option value="hotel"><%= bookingStates.locationTypes.hotel %></option>
+              <option value="office"><%= bookingStates.locationTypes.office %></option>
+              <option value="marina"><%= bookingStates.locationTypes.marina %></option>
+              <option value="compound"><%= bookingStates.locationTypes.compound %></option>
+              <option value="fleet"><%= bookingStates.locationTypes.fleet %></option>
+            </select>
+          </div>
+          <div class="booking-field">
+            <label class="visually-hidden" for="bf-date"><%= bookingStates.fieldLabels.date %></label>
+            <input id="bf-date" name="date" type="date" required aria-required="true" aria-describedby="bf-date-hint">
+            <small class="booking-field-hint" id="bf-date-hint"><%= bookingStates.fieldHints.date %></small>
+          </div>
+          <div class="booking-field">
+            <label class="visually-hidden" for="bf-time"><%= bookingStates.fieldLabels.time %></label>
+            <input id="bf-time" name="time" type="time" required aria-required="true" aria-describedby="bf-time-hint">
+            <small class="booking-field-hint" id="bf-time-hint"><%= bookingStates.fieldHints.time %></small>
+          </div>
+          <div class="booking-field">
+            <label class="visually-hidden" for="bf-condition"><%= bookingStates.fieldLabels.condition %></label>
+            <select id="bf-condition" name="condition">
+              <option value="normal"><%= bookingStates.conditions.normal %></option>
+              <option value="heavy"><%= bookingStates.conditions.heavy %></option>
+              <option value="sand"><%= bookingStates.conditions.sand %></option>
+              <option value="interior"><%= bookingStates.conditions.interior %></option>
+              <option value="unsure"><%= bookingStates.conditions.unsure %></option>
+            </select>
+          </div>
+          <div class="booking-field">
+            <label class="visually-hidden" for="bf-payment"><%= bookingStates.fieldLabels.payment %></label>
+            <select id="bf-payment" name="payment" required aria-required="true">
+              <option value="Cash">Cash</option>
+              <option value="InstaPay">InstaPay</option>
+              <option value="Vodafone Cash">Vodafone Cash</option>
+              <option value="Orange Cash">Orange Cash</option>
+              <option value="Fawry">Fawry</option>
+              <option value="Bank Transfer">Bank Transfer</option>
+            </select>
+          </div>
+          <div class="booking-field booking-field-wide">
+            <label class="visually-hidden" for="bf-address"><%= bookingStates.fieldLabels.address %></label>
+            <textarea id="bf-address" name="address" placeholder="<%= bookingStates.fieldLabels.address %>" aria-describedby="bf-address-hint"></textarea>
+            <small class="booking-field-hint" id="bf-address-hint"><%= bookingStates.fieldHints.address %></small>
+            <button type="button" class="btn-location" onclick="getLiveLocation(this)">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
+              <%= bookingStates.fieldLabels.useGps %>
             </button>
           </div>
-          <textarea class="form-wide" name="notes" placeholder="Notes: write exactly what you want washed, for example body, inside, wheels, motor bay, seats, wax, perfume, parking instructions, car color, plate hint, hotel room number, fleet count, or best WhatsApp time"></textarea>
+          <div class="booking-field booking-field-wide">
+            <label class="visually-hidden" for="bf-notes"><%= bookingStates.fieldLabels.notes %></label>
+            <textarea id="bf-notes" class="form-wide" name="notes" placeholder="<%= bookingStates.fieldLabels.notes %>" aria-describedby="bf-notes-hint"></textarea>
+            <small class="booking-field-hint" id="bf-notes-hint"><%= bookingStates.fieldHints.notes %></small>
+          </div>
+          <div class="booking-form-error" id="bookingFormError" role="alert" data-visible="0">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M12 8v5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M12 16.5v.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+            <span id="bookingFormErrorText"><%= bookingStates.formError.missingFields %></span>
+          </div>
+          <div class="booking-form-privacy">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+            <span><%= bookingStates.privacy %></span>
+          </div>
           <div id="bookingFormStatus" class="form-wide" role="status" aria-live="polite" hidden></div>
-          <button class="mini-submit" type="submit">Confirm My Booking <svg class="mini-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4Z"/></svg></button>
+          <button class="mini-submit" type="submit" id="bookingFormSubmit"><%= bookingStates.fieldLabels.submit %> <svg class="mini-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4Z"/></svg></button>
         </form>
       </div>
     </section>

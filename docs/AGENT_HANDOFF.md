@@ -1,15 +1,17 @@
 # Agent Handoff
 
-Status: M0-000 complete; M0-001 implemented and verified; M0-002b complete; M0-003 implemented and verified by Hermes; M0-003b implemented; M0-004A landed.
+Status: M0-000 complete; M0-001 implemented and verified; M0-002b complete; M0-003 implemented and verified by Hermes; M0-003b implemented; M0-004A landed; M0-004B (UI design layer) implemented.
 
 ## Current Controller Notes
 
 - Required `docs/rebuild/*.md` roadmap files are present.
-- Control docs were created during this audit: `docs/IMPLEMENTATION_QUEUE.md`, `docs/AGENT_HANDOFF.md`, `docs/M0_STATUS.md`.
+- Control docs were created during this audit: `docs/IMPLEMENTATION_QUEUE.md`, `docs/AGENT_HANDOFF.md`, `docs/M0_STATUS.md`, `docs/design/M0_UI_DESIGN_NOTES.md`.
 - Current repo has legacy real SQLite persistence, not the planned normalized M0 schema.
 - Service baseline is blocked by a locked/missing `better-sqlite3` install after `npm ci` failed with EPERM on the native module.
 - The lock was resolved by stopping the project-like `node server.js` process. MCP/Open Design/Xcode Node processes were left alone.
-- Recommended next PRs: Codex M0-003b (slot_check + COLLECTING_INFO payment skip) and MiniMax M0-004 (landing form real wiring). They are independent and ship in parallel.
+- Recommended next PRs: MiniMax / Claude Code M0-005 (dashboard reads from `bookings_v2`, calendar UI, slot overlap refinement), Claude Code M0-006 (payment review queue, owner-only verify), Claude Code M0-007 (cleaner assignment).
+- M0-004A: Hermes Coding shipped landing form real wiring in parallel — the form now posts to the live `/api/public/bookings` endpoint with a discriminated `SubmitResult` (states `idle | loading | quoted | collecting_info | needs_human | duplicate | backend_error | network_error`) and a per-attempt idempotency key. See `docs/M0_004A_QA_CHECKLIST.md` for the 12-section QA checklist.
+- M0-004B: shipped alongside M0-004A by MiniMax. UI design layer for the form's result states (rich icon, tone, missing-fields pills, payment-instructions block, primary/secondary CTAs), the form field UX (2-col grid, hint + error per field, ARIA, privacy block, i18n in EN/AR/DE), and a design-only dashboard preview at `service-agent/public/m0-004b-design/`. Composes with M0-004A — `booking-result.js` exposes `window.renderBookingState(form, submitResult, { copy })` and Hermes' submit handler can swap it in for her current `renderStatus()` helper.
 
 ## Completed Work
 
@@ -32,6 +34,10 @@ Status: M0-000 complete; M0-001 implemented and verified; M0-002b complete; M0-0
 - M0-003b: `payments` and `payment_events` rows are only created for `QUOTED` bookings. `COLLECTING_INFO` and `NEEDS_HUMAN` bookings store no payment rows; API returns `paymentStatus: null`.
 - M0-003b: slot/past-time precondition: past `scheduledStart` or conflicting active slot blocks `QUOTED` creation and returns a non-success response without writing any booking rows.
 - M0-004A: landing form real wiring. `landing-page/src/features/booking-form.js` now posts to `${VITE_API_BASE_URL}/api/public/bookings` with a per-attempt `idempotencyKey`. `landing-page/src/features/config.js` resolves `VITE_API_BASE_URL` / `VITE_WHATSAPP_FALLBACK_URL` / `VITE_BOOKING_SOURCE`; the only `localhost:5000` in the client bundle is the documented local-dev fallback constant. `landing-page/src/features/booking-api.js` returns a discriminated `SubmitResult` with explicit states `idle | loading | quoted | collecting_info | needs_human | duplicate | backend_error | network_error`. Fake success path removed. Submit button is `disabled` + `aria-busy` during the request. Form is reset only on real `QUOTED` success. `landing-page/.env.example` documents the new env vars. Manual QA checklist added at `docs/M0_004A_QA_CHECKLIST.md` (12 sections). EN/AR/DE HTML status region is identical across builds. No service-agent files touched. No new dev-deps. Root + landing `npm audit --audit-level=high` = 0.
+- M0-004B: booking form restructured (2-col grid on tablet, single-col on mobile, hint + error on every field, ARIA wired, privacy block). All visible text routes through the i18n bundle in EN/AR/DE. No `booking-form.js` logic touched (Hermes-owned); the new field UX is structural-only.
+- M0-004B: new `landing-page/src/features/booking-result.js` renderer composes with M0-004A's `SubmitResult` discriminated union (snake_case states: `loading | quoted | collecting_info | needs_human | duplicate | backend_error | network_error`). Renders into the existing `#bookingFormStatus` region with per-state copy in EN/AR/DE, per-state color tone, an icon, an optional InstaPay address block (for `quoted + paymentInstructions`), and a missing-fields pill list (for `collecting_info`). No localhost, no fake success, no `VERIFIED` in the UI. Exposes `window.renderBookingState(form, submitResult, { copy, onRetry, onEdit })` and `window.clearBookingStatus(form)` for Hermes' submit handler to opt into.
+- M0-004B: dashboard design-only preview at `service-agent/public/m0-004b-design/dashboard-preview.html` shows the 7 sections (Today's bookings, Live inbox, Calendar, Payment review, Cleaner assignment, AI autopilot, Human takeover) with empty / loading / error states. All data lives in `DESIGN_ONLY_MOCKS.js` (single file, clearly marked). The shipping dashboard is untouched.
+- M0-004B: docs/design/M0_UI_DESIGN_NOTES.md captures the full design contract (state map, file ownership, accessibility, what Hermes must connect, what Opus should review).
 
 ## Verification Snapshot
 

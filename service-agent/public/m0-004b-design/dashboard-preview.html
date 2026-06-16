@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carshine Red Sea — M0-004B Dashboard Design Preview</title>
+  <meta name="description" content="Design-only preview of the owner dashboard sections for M0. Not connected to the live backend. Data is fake.">
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="dashboard-preview.css">
+</head>
+<body class="dashboard-preview">
+  <div class="design-banner" role="note" aria-label="Design preview banner">
+    <span class="design-banner-dot" aria-hidden="true"></span>
+    <span id="designBannerText">DESIGN PREVIEW — data here is fake. Not connected to the live backend.</span>
+  </div>
+
+  <div class="preview-shell">
+    <header class="preview-header">
+      <div class="preview-header-left">
+        <span class="preview-brand">Carshine <span>Red Sea</span></span>
+        <span class="preview-tag">M0-004B Design Preview</span>
+      </div>
+      <div class="preview-header-right">
+        <span class="preview-section-jump">
+          Jump to:
+          <a href="#today">Today</a>
+          <a href="#inbox">Inbox</a>
+          <a href="#calendar">Calendar</a>
+          <a href="#payments">Payments</a>
+          <a href="#cleaners">Cleaners</a>
+          <a href="#autopilot">Autopilot</a>
+          <a href="#takeover">Takeover</a>
+        </span>
+      </div>
+    </header>
+
+    <main class="preview-main">
+      <!-- ============================================================
+           Section 1: Today's Bookings
+           ============================================================ -->
+      <section class="preview-section" id="today" aria-labelledby="todayTitle">
+        <div class="preview-section-head">
+          <h2 id="todayTitle">Today's bookings</h2>
+          <p>Bookings scheduled for the current day. Tapping a row opens the booking detail panel (owned by M0-005).</p>
+        </div>
+        <div class="preview-card" data-state="ready" id="todayCard">
+          <div class="preview-card-toolbar">
+            <div class="preview-filters" role="tablist" aria-label="Booking filters">
+              <button class="preview-chip is-active" data-filter="all" type="button">All <span class="preview-chip-count" data-count="all">0</span></button>
+              <button class="preview-chip" data-filter="QUOTED" type="button">Quoted</button>
+              <button class="preview-chip" data-filter="COLLECTING_INFO" type="button">Collecting info</button>
+              <button class="preview-chip" data-filter="IN_PROGRESS" type="button">In progress</button>
+            </div>
+            <div class="preview-toolbar-actions">
+              <button class="preview-btn-secondary" type="button">Export</button>
+              <button class="preview-btn-primary" type="button">+ New booking</button>
+            </div>
+          </div>
+          <div class="preview-list" id="todayList" role="list">
+            <!-- populated by dashboard-preview.js -->
+          </div>
+          <div class="preview-state preview-state-empty" data-state="empty" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/><path d="m8 15 2 2 5-5"/></svg>
+            <h3>No bookings for today yet</h3>
+            <p>New web-form and WhatsApp bookings will appear here as they arrive.</p>
+          </div>
+          <div class="preview-state preview-state-loading" data-state="loading" hidden>
+            <div class="preview-spinner" aria-hidden="true"></div>
+            <p>Loading the latest data…</p>
+          </div>
+          <div class="preview-state preview-state-error" data-state="error" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M12 8v5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M12 16.5v.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+            <h3>We couldn't load this section</h3>
+            <p>Try refreshing in a moment. If the problem continues, check the live server logs.</p>
+            <button class="preview-btn-secondary" type="button">Retry</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           Section 2: Live Inbox (preview)
+           ============================================================ -->
+      <section class="preview-section" id="inbox" aria-labelledby="inboxTitle">
+        <div class="preview-section-head">
+          <h2 id="inboxTitle">Live inbox</h2>
+          <p>Most recent conversations across WhatsApp, chatbot, and email. Full inbox view is owned by the chatbot team.</p>
+        </div>
+        <div class="preview-card preview-card-tight" data-state="ready" id="inboxCard">
+          <ul class="preview-inbox-list" id="inboxList" role="list">
+            <!-- populated by dashboard-preview.js -->
+          </ul>
+          <div class="preview-state preview-state-empty" data-state="empty" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H7l-4 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg>
+            <h3>Inbox is clear</h3>
+            <p>You answered every conversation. Nice work.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           Section 3: Calendar / booking board
+           ============================================================ -->
+      <section class="preview-section" id="calendar" aria-labelledby="calendarTitle">
+        <div class="preview-section-head">
+          <h2 id="calendarTitle">Calendar &amp; booking board</h2>
+          <p>One day at a time. Drag-to-reschedule is owned by M0-005.</p>
+        </div>
+        <div class="preview-card" data-state="ready" id="calendarCard">
+          <div class="preview-card-toolbar">
+            <div class="preview-date-control">
+              <button class="preview-icon-btn" type="button" aria-label="Previous day">‹</button>
+              <span class="preview-date-label" id="calendarDate">Tue, 16 Jun 2026</span>
+              <button class="preview-icon-btn" type="button" aria-label="Next day">›</button>
+            </div>
+            <div class="preview-toolbar-actions">
+              <button class="preview-btn-ghost" type="button" data-view="day" aria-pressed="true">Day</button>
+              <button class="preview-btn-ghost" type="button" data-view="week" aria-pressed="false">Week</button>
+              <button class="preview-btn-ghost" type="button" data-view="month" aria-pressed="false">Month</button>
+            </div>
+          </div>
+          <div class="preview-calendar" id="calendarBoard" role="grid" aria-label="Booking slots for the selected day">
+            <!-- populated by dashboard-preview.js -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           Section 4: Payment review
+           ============================================================ -->
+      <section class="preview-section" id="payments" aria-labelledby="paymentsTitle">
+        <div class="preview-section-head">
+          <h2 id="paymentsTitle">Payment review</h2>
+          <p>Payments waiting for owner verification. <strong>Only the owner can mark a payment as verified.</strong> Nothing here is approved yet.</p>
+        </div>
+        <div class="preview-card" data-state="ready" id="paymentsCard">
+          <ul class="preview-payment-list" id="paymentsList" role="list">
+            <!-- populated by dashboard-preview.js -->
+          </ul>
+          <div class="preview-state preview-state-empty" data-state="empty" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 15 5-5 4 4 2-2 7 7"/></svg>
+            <h3>No payments waiting for review</h3>
+            <p>Verified and rejected payments move to the audit log.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           Section 5: Cleaner assignment
+           ============================================================ -->
+      <section class="preview-section" id="cleaners" aria-labelledby="cleanersTitle">
+        <div class="preview-section-head">
+          <h2 id="cleanersTitle">Cleaner assignment</h2>
+          <p>Drag a booking row from "Today's bookings" onto a cleaner card to assign. M0-007 owns the assignment schema.</p>
+        </div>
+        <div class="preview-cleaners-grid" id="cleanersGrid">
+          <!-- populated by dashboard-preview.js -->
+        </div>
+      </section>
+
+      <!-- ============================================================
+           Section 6: AI autopilot control
+           ============================================================ -->
+      <section class="preview-section" id="autopilot" aria-labelledby="autopilotTitle">
+        <div class="preview-section-head">
+          <h2 id="autopilotTitle">AI autopilot</h2>
+          <p>Owner-controlled switch. When OFF, every incoming message is routed to the human inbox. Stats below are for the last 7 days.</p>
+        </div>
+        <div class="preview-card preview-card-split" data-state="ready" id="autopilotCard">
+          <div class="preview-autopilot-main">
+            <div class="preview-autopilot-status">
+              <span class="preview-status-pill" id="autopilotPill" data-on="true">Autopilot on</span>
+              <span class="preview-autopilot-since">Active since 1 Jun 2026</span>
+            </div>
+            <label class="preview-switch">
+              <input type="checkbox" id="autopilotToggle" checked>
+              <span class="preview-switch-slider" aria-hidden="true"></span>
+              <span class="preview-switch-label">Let AI handle web-form and WhatsApp intake</span>
+            </label>
+            <div class="preview-stats">
+              <div class="preview-stat">
+                <span class="preview-stat-value" id="autopilotHandled">0</span>
+                <span class="preview-stat-label">Handled by AI (7d)</span>
+              </div>
+              <div class="preview-stat">
+                <span class="preview-stat-value" id="autopilotEscalated">0</span>
+                <span class="preview-stat-label">Escalated to human (7d)</span>
+              </div>
+            </div>
+            <div class="preview-warning" role="note">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4 2 21h20L12 4Z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path d="M12 11v4" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M12 18v.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
+              <span>Disabling autopilot is non-destructive. Existing bookings keep their current status.</span>
+            </div>
+          </div>
+          <aside class="preview-autopilot-side">
+            <h3>Model chain</h3>
+            <ol class="preview-model-list" id="modelList">
+              <!-- populated by dashboard-preview.js -->
+            </ol>
+            <h3>Channel routing</h3>
+            <ul class="preview-channel-list" id="channelList">
+              <!-- populated by dashboard-preview.js -->
+            </ul>
+          </aside>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           Section 7: Human takeover
+           ============================================================ -->
+      <section class="preview-section" id="takeover" aria-labelledby="takeoverTitle">
+        <div class="preview-section-head">
+          <h2 id="takeoverTitle">Human takeover</h2>
+          <p>Active threads where a human is responding instead of the AI. Use this to step in on sensitive or complex requests.</p>
+        </div>
+        <div class="preview-card" data-state="ready" id="takeoverCard">
+          <ul class="preview-takeover-list" id="takeoverList" role="list">
+            <!-- populated by dashboard-preview.js -->
+          </ul>
+          <div class="preview-state preview-state-empty" data-state="empty" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            <h3>No active takeovers</h3>
+            <p>Every thread is currently being handled by the AI.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="preview-footer">
+      <p>M0-004B — design layer only. This page does not connect to the live backend. See <code>DESIGN_ONLY_MOCKS.js</code> for the mock data and the <code>docs/design/M0_UI_DESIGN_NOTES.md</code> doc for the handoff contract.</p>
+    </footer>
+  </div>
+
+  <script type="module" src="dashboard-preview.js"></script>
+</body>
+</html>

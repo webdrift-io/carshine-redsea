@@ -199,3 +199,26 @@ M0-004: wire the landing booking form to `/api/public/bookings` and remove fake 
 - **MiniMax/frontend:** M0-004 PR. Form contract documented in `docs/M0_REVIEW_000_003b.md` §9.
 - **Claude Code (parallel, optional):** M0-002c to unblock the audit gate.
 - **Hermes:** review M0-004 when it lands. Do not expand scope.
+
+---
+
+## M0-004A Results (2026-06-15) — landed in parallel
+
+- **Owner:** Hermes Coding (in parallel with M0-004B). Live form wiring.
+- **Scope:** replace hardcoded `localhost:5000` fake-success fallback with real `POST /api/public/bookings` wiring, idempotency key, and explicit UI states. No fake success. Submit button is `disabled` + `aria-busy` during the request. Form is reset only on real `QUOTED` success.
+- **Files:** `landing-page/src/features/booking-api.js` (new, 312 lines — discriminated `SubmitResult` with states `idle | loading | quoted | collecting_info | needs_human | duplicate | backend_error | network_error`), `landing-page/src/features/booking-form.js` (rewired), `landing-page/src/features/config.js` (new, `VITE_*` env plumbing), `landing-page/.env.example` (new), `landing-page/index.{en,ar,de}.html` (one-line addition of `<div id="bookingFormStatus" role="status" aria-live="polite" hidden>`), `landing-page/src/shared/styles.css` (minimal status-region block), `docs/M0_004A_QA_CHECKLIST.md` (new, 12-section manual QA).
+- **Verification:** `landing-page npm ci` / `npm run build:all` / `npm audit --audit-level=high` = 0/0/0. Root builds clean.
+- **Out of scope:** service-agent files, schema, migrations, payment code, dashboard, calendar, cleaner UI, social/marketing, new runtime deps.
+
+## M0-004B Results (2026-06-16) — UI design layer
+
+- **Owner:** MiniMax (Senior Engineer B / UI design builder). Frontend-only, design layer.
+- **Scope:** UI polish for the landing booking form (field UX, mobile responsiveness, ARIA, i18n interpolation, privacy block); a richer result-state renderer that composes with M0-004A's `SubmitResult`; a design-only dashboard preview for the 7 sections.
+- **Files added:** `landing-page/src/features/booking-result.js` (~250 lines, opt-in renderer for `#bookingFormStatus` region), `service-agent/public/m0-004b-design/{dashboard-preview.html, dashboard-preview.css, dashboard-preview.js, DESIGN_ONLY_MOCKS.js}` (4 files, design-only dashboard preview), `docs/design/M0_UI_DESIGN_NOTES.md` (full design contract).
+- **Files changed:** `landing-page/src/i18n/{en,ar,de}.json` (added `bookingStates` keys — result copy, field hints, field labels, location types, conditions, privacy, error copy), `landing-page/src/shared/styles.css` (result-region sub-element styles, `human` and `loading` tone variants, form layout / field UX / mobile responsive), `landing-page/src/main.js` (mount result renderer), `landing-page/index.{en,ar,de}.html` (form restructured with field UX, ARIA, i18n interpolation, privacy block; `#bookingFormStatus` div preserved per M0-004A), `docs/AGENT_HANDOFF.md` (M0-004B entry under Completed Work + Current Controller Notes).
+- **Files NOT changed:** `landing-page/src/features/booking-form.js` (Hermes-owned), `landing-page/src/features/booking-api.js` (Hermes-owned), `landing-page/src/features/config.js` (Hermes-owned), `service-agent/public/{index.html,app.js,style.css}` (live dashboard), any backend file, schema, migration, or payment trigger.
+- **Composes with M0-004A:** the result renderer consumes the discriminated `SubmitResult` from `booking-api.js`. State names match exactly: `idle | loading | quoted | collecting_info | needs_human | duplicate | backend_error | network_error`. The renderer extends the existing `#bookingFormStatus` div (added by M0-004A) with sub-elements (icon, missing-fields pills, InstaPay block, primary/secondary CTAs) but does not replace M0-004A's `renderStatus()` helper. Hermes' submit handler can opt into the richer renderer by calling `window.renderBookingState(formElement, submitResult, { copy })` in place of her current `renderStatus()` call.
+- **No fake success. No localhost. No `VERIFIED` in the UI.** The "AI never marks payment VERIFIED" decision is reflected in the customer-facing privacy block.
+- **Dashboard preview is design-only.** All data lives in `DESIGN_ONLY_MOCKS.js`. The shipping dashboard is untouched. Reviewers can preview the 7 sections at `service-agent/public/m0-004b-design/dashboard-preview.html`.
+- **Verification (in worktree):** `landing-page npm ci` / `npm run build:all` (3 langs) / `npm audit --audit-level=high` = 0/0/0. Root `npm ci` / `npm run build` / `npm audit --audit-level=high` = 0/0/0. 0 service-agent files touched.
+- **Next:** M0-005 (MiniMax + Claude Code) — dashboard reads from `bookings_v2` instead of legacy `bookings`, calendar uses real booking data, replace `checkSlotConflict` equality check with window-overlap query, add malformed-date guard.

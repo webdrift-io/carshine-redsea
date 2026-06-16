@@ -10,6 +10,7 @@ import { initBooking } from './features/booking-form.js';
 import { initModals } from './ui/modals.js';
 import { initOffer } from './features/offer-popup.js';
 import { initLocation } from './features/location.js';
+import { initBookingResult } from './features/booking-result.js';
 
 // Get language from HTML attribute
 const LANG = document.documentElement.lang || 'en';
@@ -19,6 +20,7 @@ const DIR = document.documentElement.dir || 'ltr';
 document.addEventListener('DOMContentLoaded', () => {
   initUI({ lang: LANG, dir: DIR });
   initModals();
+  initBookingResult(); // Mounts the booking-result renderer into #bookingFormStatus (added by M0-004A) and exposes window.renderBookingState for the Hermes-owned submit handler.
   initBooking({ lang: LANG });
   initOffer({ lang: LANG });
   initLocation({ lang: LANG });
