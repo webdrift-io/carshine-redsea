@@ -234,7 +234,8 @@ function renderPaymentInstructions(regions, paymentInstructions, copy) {
     regions.instapay.innerHTML = '';
     return;
   }
-  const ipCopy = pickCopy(copy, 'paymentInstructions');
+  const states = pickCopy(copy);
+  const ipCopy = states && states.paymentInstructions;
   if (!ipCopy) {
     regions.instapay.hidden = true;
     return;
