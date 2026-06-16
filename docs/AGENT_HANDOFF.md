@@ -1,6 +1,16 @@
 # Agent Handoff
 
-Status: M0-000 complete; M0-001 implemented and verified; M0-002b complete; M0-003 implemented and verified by Hermes; M0-003b implemented; M0-004A landed; M0-004B (UI design layer) implemented; M0-004C-B (i18n bridge) shipped; M0-004C-Final fix merged; **M0-004 COMPLETE & MERGED**; **M0-005a IN PROGRESS** (Claude Code, backend read model + slot-overlap refinement).
+Status: M0-000 through M0-008 implemented. M0-005 DONE. M0-008 E2E DONE. **M0-006 (payment review) NOT_STARTED. M0-007 cleaner status lifecycle NOT_STARTED. M0 is not complete.**
+
+## M0-008 Completed (2026-06-16, Sonnet)
+- Playwright E2E harness added: `service-agent/playwright.config.js`, `service-agent/e2e/` (booking-api, admin-auth, payment-safety, cleaner-assignment specs).
+- 21 E2E tests pass; 1 skipped (M0-007 lifecycle, NOT_STARTED with explicit reason).
+- Change-password endpoint gap closed: `requireAuth` now skips the dev bypass when an explicit `Bearer` token is present — M0 users testable on localhost. 6 auth endpoint tests in `e2e/admin-auth.spec.js`.
+- Payment safety confirmed at E2E level (no VERIFIED path, no verify endpoint, health DB ok).
+- Cleaner assign/release + WRONG_STATUS rejection confirmed.
+- Cosmetic: redundant `updateUserPassword` import removed; migration 091 comment mislabel fixed.
+- 184 vitest + 21 playwright (0 failures). Lint 0 errors. Typecheck clean. Audit 0 high/critical.
+- **M0-006 NOT_STARTED. M0-007 lifecycle NOT_STARTED. M0 not complete.**
 
 ## Current Controller Notes
 

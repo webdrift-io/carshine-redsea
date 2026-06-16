@@ -22,7 +22,6 @@ const { findOverlappingBookings } = require('./services/slot-overlap');
 const { requireRole } = require('./middleware/require-role');
 const usersService = require('./services/users');
 const { assignCleaner, releaseAssignment } = require('./services/assignments');
-const { updatePassword: updateUserPassword } = require('./services/users');
 
 // Feature flag: USE_MASTRA_AGENT (default: true). When false, the legacy
 // monolith in ./minimax-agent.js is used. The legacy file is kept around as a
@@ -186,7 +185,10 @@ function requireAuth(req, res, next) {
 
   const remoteAddress = req.ip || req.socket?.remoteAddress || '';
   const isLocalRequest = ['127.0.0.1', '::1'].includes(remoteAddress) || remoteAddress.endsWith('127.0.0.1');
-  if (!isProduction && isLocalRequest) {
+  // Allow an explicit Bearer token to bypass the dev shortcut so M0 users can be
+  // tested on localhost with their real JWTs (e.g. Playwright E2E).
+  const hasExplicitBearer = req.headers.authorization && req.headers.authorization.startsWith('Bearer ');
+  if (!isProduction && isLocalRequest && !hasExplicitBearer) {
     req.user = {
       sub: 'local-dev',
       email: ADMIN_EMAIL,
@@ -795,7 +797,7 @@ app.post('/api/auth/change-password', requireAuth, async (req, res) => {
       return res.status(401).json({ error: 'Current password incorrect' });
     }
     const newHash = await hashPassword(newPassword);
-    updateUserPassword(m0User.id, newHash);
+    usersService.updatePassword(m0User.id, newHash);
     return res.json({ success: true, message: 'Password changed.' });
   }
 

@@ -343,3 +343,30 @@ M0-004: wire the landing booking form to `/api/public/bookings` and remove fake 
 ### Full plan
 - `docs/M0_REVIEW_PLAN_000_005.md` (planning report, 12 sections).
 - The exact M0-005a prompt is in §11 of that file.
+
+---
+
+## M0 post-007 Opus review (2026-06-16)
+- c29f0b8 verified live: missing_fields column (091), dispatcher dev seed (092), per-user change-password, overview NEEDS_HUMAN merge. 184 tests green, lint/typecheck clean, audit high-gate clean.
+- Opus fix 88f37d5: escaped untrusted customer names in overview pending list (stored XSS).
+- Payment-safety: 5 triggers intact; no verify endpoint added.
+
+### Truth table (as of 2026-06-16)
+| Milestone | Status |
+|---|---|
+| M0-005 dashboard read model | DONE (live-verified) |
+| M0-006 manual InstaPay payment review | NOT_STARTED |
+| M0-007 cleaner assignment | PARTIAL (assign/release done; status lifecycle missing) |
+| M0-008 E2E/live QA | DONE |
+
+## M0-008 Results (2026-06-16, Sonnet)
+- Playwright E2E harness: `service-agent/playwright.config.js`, `service-agent/e2e/` (4 spec files + teardown).
+- 21 E2E tests pass; 1 intentionally skipped (M0-007 lifecycle — NOT_STARTED).
+- Change-password endpoint gap closed: `requireAuth` now honors explicit `Bearer` tokens on localhost; 6 endpoint-level auth tests in `e2e/admin-auth.spec.js`.
+- Payment safety E2E: 5 tests confirm no VERIFIED path via public or AI routes.
+- Cleaner assignment E2E: full assign/release + WRONG_STATUS rejection tested.
+- Cosmetic fixes: redundant `updateUserPassword` import removed; migration 091 comment mislabel fixed.
+- Run results: 184 vitest + 21 playwright (0 failures), lint 0 errors, typecheck clean, audit 0 high/critical.
+- M0-006 payment review: NOT_STARTED.
+- M0-007 cleaner status lifecycle: NOT_STARTED.
+- M0 is not complete until M0-006 and M0-007 remaining scope are done.
