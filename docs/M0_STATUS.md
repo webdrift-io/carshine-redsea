@@ -274,18 +274,72 @@ M0-004: wire the landing booking form to `/api/public/bookings` and remove fake 
 
 ---
 
-## M0-005 (Next)
+## M0-005 (2026-06-16, Hermes) — IN PROGRESS (M0-005a only)
 
-**Title:** Dashboard reads real booking data (M0-005a)
+**Status:** M0-004 merged. M0-005a activated. M0-005b and M0-005c **not started**.
 
-**Goal:** Dashboard reads from `bookings_v2` instead of legacy `bookings`. Calendar uses real booking data. Slot-overlap query replaces equality check. Malformed-date guard added.
+### What is happening now
+- **M0-005a (Claude Code, ~2 days):** backend read model. New endpoints
+  `/api/admin/bookings-v2`, `/api/admin/bookings-v2/:id`,
+  `/api/admin/calendar-v2`, `POST /api/admin/bookings-v2/:id/reschedule`.
+  Window-overlap slot check + malformed-date guard (closes M0-003b N2/N3).
+  **No schema changes.** 13 new tests, total 140 → 153.
 
-**Owner:** MiniMax (UI) + Claude Code (backend/API).
+### What is NOT happening now
+- **M0-005b (MiniMax, ~3 days):** dashboard SPA reads from the new
+  endpoints. Today, Bookings, Calendar sections swap. No fake success.
+  RTL must work. i18n strings in EN/AR/DE. M0-005 QA checklist with
+  12 manual sections. **Waits for M0-005a merge.**
+- **M0-005c (Hermes, after M0-005b):** update `DASHBOARD_PLAN.md` to
+  reflect the actual M0 status machine; mark the legacy routes for
+  deprecation; flip M0-005 to DONE in the queue. **Waits for M0-005b.**
 
-**Scope:**
-- `service-agent/routes/admin.js` new read model.
-- `service-agent/public/app.js` dashboard reads from new API.
-- `service-agent/services/public-bookings.js` refine `checkSlotConflict` to window-overlap.
-- Malformed-date guard: `scheduledStart` parse failure returns COLLECTING_INFO.
+### Standing decisions reaffirmed
+- M0-005 is **read-only** on the schema. No new tables, no new
+  columns, no new triggers, no new indexes via this PR.
+- Legacy `/api/bookings`, `/api/calendar`, and approve/reject routes
+  **stay alive** in M0-005. Deprecation is M0-005b+ (separate ticket).
+- M0-005 does **not** add the M0-007 state-machine states
+  (ASSIGNED, EN_ROUTE, ON_SITE, IN_PROGRESS, COMPLETED, NO_SHOW).
+  Render only the M0 schema's actual statuses.
+- Owner JWT scope: `requireRole(['OWNER', 'DISPATCHER'])` for reads,
+  `requireRole(['OWNER'])` for reschedule.
+- Africa/Cairo timezone is the only render timezone.
 
-**Do not start yet.** M0-005 will be kicked off after this merge is confirmed.
+### Out of scope (M0-005)
+- Payment approval UI (M0-006).
+- Cleaner assignment UI (M0-007).
+- Drag-to-reschedule / drag-to-assign (M0-005b polish at earliest).
+- New Socket.io events (M0-007).
+- shadcn/ui migration (future refactor).
+- Multi-tenant / multi-business (Phase 2).
+- Social media / marketing (Phase 2).
+- Real InstaPay API (out of scope, manual only).
+- The landing page (`landing-page/**`).
+- The M0-001 schema, migrations, or payment-safety triggers.
+
+### Open risks tracked
+- R3: M0-003's notes-based `missingFields` parsing. M0-005b adds a
+  dedicated `missing_fields TEXT` column.
+- R4: `requireRole` middleware existence — verify in M0-005a.
+- R5: `service-agent` audit gate red (6 pre-existing highs in
+  `socket.io` chain). M0-002c is the ticket, not M0-005.
+- R7: The dashboard's "Right now" and "Up next" blocks will be empty
+  in M0-005. This is correct; M0-007 fills them in.
+- R8: Reschedule race conditions. Transaction serialization + 409.
+- R9: Timezone correctness in the dashboard. Every `toLocaleString`
+  needs `timeZone: 'Africa/Cairo'`.
+- R10: AR (RTL) regressions. The M0-005 QA checklist has a dedicated
+  RTL walkthrough.
+
+### Next action
+- **Hermes Coding:** execute the M0-005a prompt in
+  `docs/M0_REVIEW_PLAN_000_005.md` §11. Backend read model + slot
+  refinement only. Do not touch the dashboard, the landing page, the
+  M0-001 schema, or the payment-safety triggers.
+- **Hermes PM:** review M0-005a when it lands. Do not expand scope.
+- **MiniMax:** on standby for M0-005b (no work yet).
+
+### Full plan
+- `docs/M0_REVIEW_PLAN_000_005.md` (planning report, 12 sections).
+- The exact M0-005a prompt is in §11 of that file.

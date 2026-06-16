@@ -1,6 +1,6 @@
 # Agent Handoff
 
-Status: M0-000 complete; M0-001 implemented and verified; M0-002b complete; M0-003 implemented and verified by Hermes; M0-003b implemented; M0-004A landed; M0-004B (UI design layer) implemented; M0-004C-B (i18n bridge) shipped; M0-004C-Final fix merged; **M0-004 COMPLETE & MERGED**.
+Status: M0-000 complete; M0-001 implemented and verified; M0-002b complete; M0-003 implemented and verified by Hermes; M0-003b implemented; M0-004A landed; M0-004B (UI design layer) implemented; M0-004C-B (i18n bridge) shipped; M0-004C-Final fix merged; **M0-004 COMPLETE & MERGED**; **M0-005a IN PROGRESS** (Claude Code, backend read model + slot-overlap refinement).
 
 ## Current Controller Notes
 
@@ -9,7 +9,7 @@ Status: M0-000 complete; M0-001 implemented and verified; M0-002b complete; M0-0
 - Current repo has legacy real SQLite persistence, not the planned normalized M0 schema.
 - Service baseline is blocked by a locked/missing `better-sqlite3` install after `npm ci` failed with EPERM on the native module.
 - The lock was resolved by stopping the project-like `node server.js` process. MCP/Open Design/Xcode Node processes were left alone.
-- Recommended next PRs: MiniMax / Claude Code M0-005 (dashboard reads from `bookings_v2`, calendar UI, slot overlap refinement), Claude Code M0-006 (payment review queue, owner-only verify), Claude Code M0-007 (cleaner assignment).
+- Recommended next PRs: Claude Code M0-005a (backend read model + slot-overlap refinement, in progress), MiniMax M0-005b (dashboard SPA swap, on standby, no work yet), Claude Code M0-006 (payment review queue, owner-only verify), Claude Code M0-007 (cleaner assignment).
 - M0-004A: Hermes Coding shipped landing form real wiring in parallel — the form now posts to the live `/api/public/bookings` endpoint with a discriminated `SubmitResult` (states `idle | loading | quoted | collecting_info | needs_human | duplicate | backend_error | network_error`) and a per-attempt idempotency key. See `docs/M0_004A_QA_CHECKLIST.md` for the 12-section QA checklist.
 - M0-004B: shipped alongside M0-004A by MiniMax. UI design layer for the form's result states (rich icon, tone, missing-fields pills, payment-instructions block, primary/secondary CTAs), the form field UX (2-col grid, hint + error per field, ARIA, privacy block, i18n in EN/AR/DE), and a design-only dashboard preview at `service-agent/public/m0-004b-design/`. Composes with M0-004A — `booking-result.js` exposes `window.renderBookingState(form, submitResult, { copy })` and Hermes' submit handler can swap it in for her current `renderStatus()` helper.
 
@@ -89,3 +89,39 @@ Status: M0-000 complete; M0-001 implemented and verified; M0-002b complete; M0-0
 - **What M0-004C-B delivered:** the Vite i18n plugin now injects `<script id="i18n-bridge" type="application/json">{lang, dir, bookingStates}</script>` before `</head>`, plus a tiny inline parser that sets `window.BOOKING_I18N` and dispatches `booking-i18n:ready`. The JSON is escaped against `</script>`, `<!--`, U+2028, U+2029, and only the `bookingStates` subset is exposed (no full bundle, no secrets, no payment credentials). `booking-result.js` gained a `resolveCopy()` helper (`options.copy || window.BOOKING_I18N || null`) used by `renderBookingState()`. `renderPaymentInstructions()` now prefers `paymentInstructions.receivingNumber` and falls back to `APP_CONFIG.instapayMobile` only when missing, and never says VERIFIED.
 - **What Hermes must connect:** nothing required. The bridge is auto-injected at build time and auto-read by the renderer. If Hermes wants to override the copy, she can still pass `options.copy` to `renderBookingState()`.
 - **What Opus should review:** bridge JSON shape, escape rules, no full bundle leak, no `VERIFIED` in any state, payment-instructions prefer-backend-then-fallback contract.
+
+## M0-005a Activated (2026-06-16, Hermes PM)
+
+- **Status:** M0-005a is IN PROGRESS. Owned by Hermes Coding (Claude Code) under the M0-005 plan.
+- **M0-005b and M0-005c are NOT started.** MiniMax is on standby for M0-005b; Hermes PM owns M0-005c.
+- **Scope of M0-005a (this PR):**
+  - `service-agent/services/admin-bookings-read.js` (new) — read-only query layer.
+  - `service-agent/services/slot-overlap.js` (new) — window-overlap query + malformed-date guard. Replaces M0-003b's `checkSlotConflict` in `public-bookings.js` (same return shape, no caller-visible change).
+  - `service-agent/routes/admin.js` — 4 new endpoints: `GET /api/admin/bookings-v2`, `GET /api/admin/bookings-v2/:id`, `GET /api/admin/calendar-v2`, `POST /api/admin/bookings-v2/:id/reschedule`.
+  - `service-agent/server.js` — mount the new routes; do NOT touch legacy routes.
+  - `service-agent/database.js` — add prepared-statement helpers only. **No schema changes.**
+  - 3 new test files: `admin-bookings-read.test.js` (7 tests), `slot-overlap.test.js` (6 tests), extend `public-bookings-m0.test.js` with 1 overlap test. Total 140 → 153.
+- **M0-005a does NOT touch:**
+  - The M0-001 schema, migrations, or the 5 payment-safety triggers.
+  - The landing page (`landing-page/**`).
+  - The dashboard (`service-agent/public/app.js`, `service-agent/public/index.html`, `service-agent/public/cleaner.*`).
+  - The AI orchestrator or the chat/email integrations.
+  - Legacy `/api/bookings`, `/api/calendar`, `/api/bookings/:id/approve`, `/api/bookings/:id/reject` (M0-005b deprecation).
+- **Verification on completion:**
+  - `service-agent npm test` → 153 passed.
+  - Lint clean, typecheck clean.
+  - Legacy routes still work (additive, not a swap).
+  - Live exercise on a temp DB confirms: list/detail/calendar shape, reschedule rejects past + conflict + malformed, RBAC blocks CLEANER JWT.
+- **Full plan:** `docs/M0_REVIEW_PLAN_000_005.md` §11 has the paste-ready prompt.
+
+### Recommended next PRs (in order)
+1. **M0-005a (in progress, Hermes Coding):** backend read model + slot-overlap refinement.
+2. **M0-005b (after M0-005a, MiniMax, on standby):** dashboard SPA swap + i18n + QA checklist.
+3. **M0-005c (after M0-005b, Hermes PM):** docs + legacy-route deprecation prep.
+4. **M0-002c (Claude Code, parallel with 2–3):** resolve the pre-existing `service-agent` audit gate failure.
+5. **M0-006 (Claude Code):** payment review queue.
+6. **M0-007 (Claude Code + MiniMax):** cleaner assignment + status flow.
+7. **M0-008 (QA + MiniMax):** Playwright E2E in EN/AR/DE.
+
+### Date sanity check
+- All M0-004C and M0-005 dates in this file and `M0_STATUS.md` are **June 16, 2026** (not January 2026). Verified by full-text search. No corrections needed.

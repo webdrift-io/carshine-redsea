@@ -1,7 +1,7 @@
 # Implementation Queue
 
 Status: M0 readiness audit complete.
-Current: M0-004 PASSED & MERGED (Opus 4.8 final re-review PASS). M0-005 = NEXT.
+Current: M0-004 PASSED & MERGED (Opus 4.8 final re-review PASS). **M0-005a IN PROGRESS** (Hermes Coding / Claude Code: backend read model + slot-overlap refinement). M0-005b on standby.
 
 ## M0 Queue
 
@@ -41,14 +41,34 @@ Status: DONE - `/api/public/bookings` now writes `customers`, optional `vehicles
 |Security notes: Do not expose secrets in Vite env; keep public config only.
 |Status: DONE — M0-004C Final Fix merged. `landing-page/src/features/booking-form.js` now posts to `${VITE_API_BASE_URL}/api/public/bookings` with per-attempt `idempotencyKey`. Real submit path calls `window.renderBookingState(form, result, { copy: window.BOOKING_I18N, whatsappUrl: result.whatsappUrl || WHATSAPP_FALLBACK_URL })` when renderer present; inline fallback preserved. `window.BOOKING_I18N` injected by `vite-plugins/i18n.js` with `{lang, dir, bookingStates}`. `booking-result.js` reads `paymentInstructions` from `bookingStates.paymentInstructions`. InstaPay gated on backend `paymentInstructions` (0 `values.payment` hits). AR/DE/EN payment copy localized. All build/audit gates pass (0 vulnerabilities). No service-agent files touched. No new dev-deps. M0-004 COMPLETE.
 |
-M0-005:
+M0-005 (split into M0-005a, M0-005b, M0-005c):
 Title: Dashboard calendar reads booking read model
-Goal: Replace legacy `calendar_events` dependency with a calendar read model over real bookings, assignments, and users.
-Files likely affected: `service-agent/routes/admin.js`, `service-agent/public/app.js`, `service-agent/database.js`
-Acceptance criteria: New booking appears in Today and Calendar without manual calendar insert; assigned cleaner appears when set; no hardcoded agent/list data in M0-critical views.
-Tests required: API integration test and dashboard smoke test.
-Security notes: Owner/dispatcher auth required for admin calendar APIs.
-Status: TODO
+Goal: Replace legacy `bookings` / `calendar_events` reads in the owner dashboard with a real read model over `bookings_v2`, `customers`, `vehicles`, `service_packages`, `payments`, and `bookings_v2.payment_status`. Closes M0-003b N2 (window-overlap slot check) and N3 (malformed-date guard).
+
+M0-005a (IN PROGRESS, Hermes Coding / Claude Code, ~2 days, backend only):
+Goal: Build the read-only API surface the dashboard will consume. Refine the slot check to window-overlap. **No schema changes, no frontend changes.**
+Files: `service-agent/services/admin-bookings-read.js` (new), `service-agent/services/slot-overlap.js` (new), `service-agent/routes/admin.js` (4 new endpoints), `service-agent/server.js` (mount), `service-agent/database.js` (helpers only, no schema), `service-agent/services/public-bookings.js` (replace `checkSlotConflict` with the new helper; same return shape), `service-agent/tests/admin-bookings-read.test.js` (new, 7 tests), `service-agent/tests/slot-overlap.test.js` (new, 6 tests), `service-agent/tests/public-bookings-m0.test.js` (extend, 1 overlap test).
+Acceptance: All 140 existing tests pass; 13 new tests pass (total 140 → 153). 4 new endpoints work: `GET /api/admin/bookings-v2` (filterable, paginated), `GET /api/admin/bookings-v2/:id` (with history), `GET /api/admin/calendar-v2` (narrow projection), `POST /api/admin/bookings-v2/:id/reschedule` (owner-only, calls the new overlap helper, returns 409 on conflict). RBAC: `requireRole(['OWNER','DISPATCHER'])` for reads, `requireRole(['OWNER'])` for reschedule. CLEANER JWT must get 403. Legacy routes still work. Live exercise on a temp DB confirms the shape, the filters, the pagination, and the 3 reschedule failure modes (past, conflict, malformed).
+Tests required: 13 new (see above); live exercise output pasted in the PR.
+Security notes: All 4 routes are auth-gated; CLEANER is forbidden; reschedule is owner-only. No raw SQL string interpolation. No new dependencies. No schema changes. No payment-trigger changes.
+
+M0-005b (NOT STARTED, MiniMax, ~3 days, frontend only, after M0-005a):
+Goal: Dashboard SPA swaps data sources in Today, Bookings, Calendar sections. No fake success. RTL must work. i18n strings in EN/AR/DE. New `docs/M0_005_QA_CHECKLIST.md` with 12 manual sections.
+Files: `service-agent/public/app.js` (3 data-source swaps), `service-agent/public/i18n/{en,ar,de}.json` (status badges + empty/loading/error strings), `service-agent/public/index.html` (only if new DOM hooks needed; no layout redesign), `docs/M0_005_QA_CHECKLIST.md` (new).
+Acceptance: New bookings appear in dashboard within 2s of landing-form submit (Socket.io). Status badges render in EN/AR/DE. Empty/loading/error states are explicit. Africa/Cairo timezone everywhere. RTL walkthrough in the QA checklist passes.
+Tests required: 12-section manual QA checklist, 0–12.
+Security notes: No hardcoded data, no fake success, no new UI framework. Shadcn/ui migration is a future refactor, not M0-005b.
+
+M0-005c (NOT STARTED, Hermes PM, after M0-005b):
+Goal: Update `docs/rebuild/DASHBOARD_PLAN.md` to reflect the actual M0 status machine (not the aspirational one). Mark legacy routes for deprecation. Flip M0-005 to DONE in the queue.
+Files: `docs/rebuild/DASHBOARD_PLAN.md`, `docs/IMPLEMENTATION_QUEUE.md`, `docs/M0_STATUS.md`, `docs/AGENT_HANDOFF.md`.
+Acceptance: `DASHBOARD_PLAN.md` matches what the dashboard actually renders; legacy route deprecation ticket exists in the queue.
+Tests required: none.
+Security notes: none.
+
+Status: M0-005a IN PROGRESS. M0-005b and M0-005c NOT STARTED.
+
+Out of scope for all of M0-005: payment approval UI (M0-006); cleaner assignment UI (M0-007); drag-to-reschedule / drag-to-assign (M0-005b polish at earliest); new Socket.io events (M0-007); shadcn/ui migration (future refactor); multi-tenant (Phase 2); social media / marketing / Postiz / TikTok (Phase 2); real InstaPay API (out of scope, manual only); the landing page; the M0-001 schema, migrations, or the 5 payment-safety triggers.
 
 M0-006:
 Title: Owner payment review
