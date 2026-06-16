@@ -2,13 +2,21 @@
 // CarShine Red Sea - Booking Form Module
 // ----------------------------------------------------------------------------
 // M0-004A: Real API wiring to POST /api/public/bookings.
+// M0-004C-A: Delegate rendering to MiniMax's `window.renderBookingState`
+//            (booking-result.js) when it is registered. The inline renderer
+//            is kept as a fallback so the form keeps working in dev/test
+//            contexts that don't load the result module.
 // - No fake success fallback.
 // - No hardcoded API URL (VITE_API_BASE_URL with documented localhost fallback).
 // - Explicit UI states: idle / loading / quoted / collecting_info /
 //   needs_human / duplicate / backend_error / network_error.
 // - Submit button disabled while loading.
 // - Per-attempt idempotency key.
-// - Form only resets on real success.
+// - Form only resets on real QUOTED success.
+// - Success modal opens only on real QUOTED success.
+// - InstaPay instructions in the modal are gated on
+//   `result.data.paymentInstructions` (backend truth), NOT on the user's
+//   selected payment method.
 // ============================================================================
 
 import { showSuccessModal } from '../ui/modals.js';
@@ -29,7 +37,6 @@ const SELECTORS = {
 const SUBMIT_LABEL_DEFAULT =
   'Confirm My Booking <svg class="mini-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4Z"/></svg>';
 const SUBMIT_LABEL_LOADING = 'Submitting booking…';
-const SUBMIT_LABEL_DISABLED = 'Please wait…';
 
 /**
  * @returns {{ getValue: (name: string) => string }}
@@ -44,37 +51,133 @@ function makeFormReader(form) {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Inline fallback renderer
+// ---------------------------------------------------------------------------
+// Used only when `window.renderBookingState` is missing (e.g. unit tests,
+// pre-renderer dev mode, or a regression that drops the result module).
+// All tones must stay aligned with the CSS rules for #bookingFormStatus.
+//
+// M0-004C-A: the live path prefers `window.renderBookingState`; this helper
+// is preserved purely as a safety net so the form never silently breaks.
+// ---------------------------------------------------------------------------
+
 /**
- * Render an inline status message above the submit button. Replaces the
- * previous behaviour of opening a success modal on every response.
+ * Render the discriminated SubmitResult into the inline status region
+ * without using MiniMax's renderer.
  *
  * @param {HTMLFormElement} form
- * @param {{ tone: 'idle' | 'info' | 'success' | 'warning' | 'error', message: string, detail?: string }} status
+ * @param {object} result   A SubmitResult from booking-api.js.
  */
-function renderStatus(form, status) {
+function renderInlineStatus(form, result) {
   const region = form.querySelector(SELECTORS.statusRegion);
   if (!region) return;
-  region.dataset.tone = status.tone;
+  const state = (result && result.state) || 'idle';
+  const tone = INLINE_TONE[state] || 'idle';
+  region.dataset.tone = tone;
   region.textContent = '';
-  if (!status.message) {
+  if (state === 'idle') {
     region.hidden = true;
     return;
   }
+  const { message, detail } = buildInlineCopy(result);
   const main = document.createElement('div');
   main.className = 'booking-status-main';
-  main.textContent = status.message;
+  main.textContent = message;
   region.appendChild(main);
-  if (status.detail) {
-    const detail = document.createElement('div');
-    detail.className = 'booking-status-detail';
-    detail.textContent = status.detail;
-    region.appendChild(detail);
+  if (detail) {
+    const detailEl = document.createElement('div');
+    detailEl.className = 'booking-status-detail';
+    detailEl.textContent = detail;
+    region.appendChild(detailEl);
   }
   region.hidden = false;
 }
 
-function clearStatus(form) {
-  renderStatus(form, { tone: 'idle', message: '' });
+const INLINE_TONE = {
+  loading: 'info',
+  quoted: 'success',
+  collecting_info: 'warning',
+  needs_human: 'warning',
+  duplicate: 'info',
+  backend_error: 'error',
+  network_error: 'error'
+};
+
+/**
+ * Build the inline message + detail pair for a given result.
+ * Extracted so it can be unit-tested without touching the DOM.
+ *
+ * @param {object} result
+ * @returns {{ message: string, detail: string }}
+ */
+function buildInlineCopy(result) {
+  const state = (result && result.state) || 'idle';
+  const data = (result && result.data) || {};
+  const wa = (result && result.whatsappUrl) || WHATSAPP_FALLBACK_URL;
+  const ref = (result && result.bookingRef) || (data && data.id) || '';
+  const message = (result && result.message) || '';
+
+  switch (state) {
+    case 'loading':
+      return { message: 'Sending your booking request…', detail: '' };
+    case 'quoted':
+      return {
+        message: `Booking accepted. Reference: ${ref || '(pending)'}.`,
+        detail: 'Please complete payment to confirm. Our team will also reach out on WhatsApp.'
+      };
+    case 'collecting_info': {
+      const missingFields = (data.missingFields || []).slice();
+      return {
+        message,
+        detail: missingFields.length
+          ? `We still need: ${missingFields.join(', ')}.`
+          : 'Please reply to our WhatsApp follow-up with the missing details.'
+      };
+    }
+    case 'needs_human':
+      return { message, detail: `We saved your request. A human will reach out on WhatsApp: ${wa}` };
+    case 'duplicate':
+      return {
+        message,
+        detail: ref ? `Existing reference: ${ref}.` : 'No need to resubmit.'
+      };
+    case 'backend_error':
+    case 'network_error':
+    default:
+      return { message, detail: `Fallback: contact us on WhatsApp — ${wa}` };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Renderer dispatch (MiniMax's booking-result.js takes priority)
+// ---------------------------------------------------------------------------
+
+/**
+ * Render a SubmitResult using MiniMax's renderer if available, otherwise
+ * fall back to the inline renderer. Never throws.
+ *
+ * @param {HTMLFormElement} form
+ * @param {object} result
+ */
+function renderResult(form, result) {
+  const renderer = (typeof window !== 'undefined' && window.renderBookingState)
+    || null;
+  const state = (result && result.state) || 'idle';
+  if (renderer) {
+    try {
+      renderer(form, result, {
+        copy: (typeof window !== 'undefined' && window.BOOKING_I18N) || undefined,
+        whatsappUrl: (result && result.whatsappUrl) || WHATSAPP_FALLBACK_URL
+      });
+      return;
+    } catch (err) {
+      // If the renderer throws (e.g. a regression), do NOT fake success.
+      // Fall through to the inline renderer so the user still sees the state.
+      console.error('[booking-form] renderBookingState threw, falling back:', err);
+    }
+  }
+  renderInlineStatus(form, result);
 }
 
 /**
@@ -89,6 +192,10 @@ function detectLanguage() {
   if (raw.startsWith('de')) return 'de';
   return 'en';
 }
+
+// ---------------------------------------------------------------------------
+// Init + submit handler
+// ---------------------------------------------------------------------------
 
 export function initBooking() {
   const form = document.querySelector(SELECTORS.form);
@@ -140,10 +247,12 @@ async function handleSubmit(event) {
   const required = ['name', 'phone', 'area', 'package', 'date', 'time', 'payment'];
   const missing = required.filter((f) => !values[f]);
   if (missing.length > 0) {
-    renderStatus(form, {
-      tone: 'warning',
+    renderResult(form, {
+      state: 'collecting_info',
+      data: { missingFields: missing },
       message: 'Please fill in all required fields before submitting.',
-      detail: `Missing: ${missing.join(', ')}`
+      detail: `Missing: ${missing.join(', ')}`,
+      whatsappUrl: WHATSAPP_FALLBACK_URL
     });
     return;
   }
@@ -155,7 +264,12 @@ async function handleSubmit(event) {
   submitBtn.disabled = true;
   submitBtn.setAttribute('aria-busy', 'true');
   submitBtn.innerHTML = SUBMIT_LABEL_LOADING;
-  renderStatus(form, { tone: 'info', message: 'Sending your booking request…' });
+  renderResult(form, {
+    state: 'loading',
+    message: 'Sending your booking request…',
+    data: null,
+    whatsappUrl: WHATSAPP_FALLBACK_URL
+  });
 
   let result;
   try {
@@ -171,70 +285,27 @@ async function handleSubmit(event) {
     };
   }
 
-  // ---- Render by state ----
-  switch (result.state) {
-    case 'quoted': {
-      renderStatus(form, {
-        tone: 'success',
-        message: `Booking accepted. Reference: ${result.bookingRef || '(pending)'}.`,
-        detail: 'Please complete payment to confirm. Our team will also reach out on WhatsApp.'
-      });
-      // Keep the existing success modal for the happy path so payment
-      // instructions render in a focused surface. Backend may return null
-      // payment instructions when InstaPay env is not configured.
-      const isInstaPay = values.payment === 'InstaPay';
-      showSuccessModal(
-        'Booking Registered!',
-        result.message || 'Thank you. Your booking request has been accepted.',
-        'Great, Thanks!',
-        isInstaPay ? 'InstaPay' : ''
-      );
-      form.reset();
-      break;
-    }
-    case 'collecting_info': {
-      const missingFields = (result.data && result.data.missingFields) || [];
-      renderStatus(form, {
-        tone: 'warning',
-        message: result.message,
-        detail: missingFields.length
-          ? `We still need: ${missingFields.join(', ')}.`
-          : 'Please reply to our WhatsApp follow-up with the missing details.'
-      });
-      break;
-    }
-    case 'needs_human': {
-      const wa = result.whatsappUrl || WHATSAPP_FALLBACK_URL;
-      renderStatus(form, {
-        tone: 'warning',
-        message: result.message,
-        detail: `We saved your request. A human will reach out on WhatsApp: ${wa}`
-      });
-      break;
-    }
-    case 'duplicate': {
-      renderStatus(form, {
-        tone: 'info',
-        message: result.message,
-        detail: result.bookingRef
-          ? `Existing reference: ${result.bookingRef}.`
-          : 'No need to resubmit.'
-      });
-      // Do NOT reset the form on duplicate — the user may want to edit.
-      break;
-    }
-    case 'backend_error':
-    case 'network_error':
-    default: {
-      const wa = result.whatsappUrl || WHATSAPP_FALLBACK_URL;
-      renderStatus(form, {
-        tone: 'error',
-        message: result.message,
-        detail: `Fallback: contact us on WhatsApp — ${wa}`
-      });
-      // Do NOT reset the form on failure — preserve user input.
-      break;
-    }
+  // Backfill the WhatsApp fallback so downstream renderers don't have to
+  // reach into config.js themselves.
+  if (!result.whatsappUrl) result.whatsappUrl = WHATSAPP_FALLBACK_URL;
+
+  // ---- Render by state (MiniMax renderer preferred) ----
+  renderResult(form, result);
+
+  // ---- Modal: only on real QUOTED success ----
+  if (result.state === 'quoted') {
+    // InstaPay instructions in the modal are gated on backend truth:
+    // paymentInstructions are only attached when the backend actually set up
+    // payment (PAYMENT_INSTRUCTIONS_SENT). The user's selected payment method
+    // is intentionally NOT used for this gate.
+    const paymentInstructions = result.data && result.data.paymentInstructions;
+    showSuccessModal(
+      'Booking Registered!',
+      result.message || 'Thank you. Your booking request has been accepted.',
+      'Great, Thanks!',
+      paymentInstructions ? 'InstaPay' : ''
+    );
+    form.reset();
   }
 
   // ---- Restore submit button ----
