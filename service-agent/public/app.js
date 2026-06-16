@@ -5,6 +5,7 @@ let autopilotActive = true;
 let bookingsList = [];
 let calendarEvents = [];
 let bookingsV2List = [];
+let cleanersList = [];
 let chatSessions = [];
 let socialsPosts = [];
 let integrationsStatus = null;
@@ -321,12 +322,18 @@ async function fetchData() {
     // 2. Fetch bookings (legacy)
     bookingsList = await fetchJsonOrAuth('/api/bookings', 'Bookings');
 
-    // 2b. Fetch V2 bookings (normalized bookings_v2) — non-fatal if empty
+    // 2b. Fetch V2 bookings + cleaners list — non-fatal if empty
     try {
       const v2Result = await fetchJsonOrAuth('/api/admin/bookings-v2?limit=200', 'BookingsV2');
       bookingsV2List = (v2Result && v2Result.bookings) || [];
     } catch (e) {
       if (!String(e.message).startsWith('AUTH_REQUIRED:')) bookingsV2List = [];
+    }
+    try {
+      const cleanersResult = await fetchJsonOrAuth('/api/admin/users/cleaners', 'Cleaners');
+      cleanersList = (cleanersResult && cleanersResult.cleaners) || [];
+    } catch (e) {
+      if (!String(e.message).startsWith('AUTH_REQUIRED:')) cleanersList = [];
     }
 
     // 3. Fetch calendar (legacy)
@@ -1372,6 +1379,7 @@ function openBookingModalV2(b) {
 
   const fmtDate = iso => iso ? new Date(iso).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
   const fmtPrice = p => p != null ? `EGP ${(p / 100).toFixed(2)}` : '—';
+  const asgn = b.assignment;
 
   body.innerHTML = `
     <div class="modal-row">
@@ -1410,6 +1418,13 @@ function openBookingModalV2(b) {
       <span class="modal-label">Source:</span>
       <span class="modal-val">${escapeHtml(b.source || '—')} / ${escapeHtml(b.language || '—')}</span>
     </div>
+    <div class="modal-row">
+      <span class="modal-label">Assigned To:</span>
+      <span class="modal-val">${asgn
+        ? `<strong>${escapeHtml(asgn.cleaner.displayName)}</strong>${asgn.cleaner.phone ? ` · ${escapeHtml(asgn.cleaner.phone)}` : ''} <em style="color:var(--text-secondary)">since ${fmtDate(asgn.assignedAt)}</em>`
+        : '<span style="color:var(--text-secondary)">— Unassigned</span>'
+      }</span>
+    </div>
     ${b.missingFields && b.missingFields.length ? `
     <div class="modal-row">
       <span class="modal-label">Missing Fields:</span>
@@ -1421,8 +1436,76 @@ function openBookingModalV2(b) {
       <span class="modal-val">${escapeHtml(b.notes)}</span>
     </div>` : ''}
   `;
-  footer.innerHTML = `<button class="btn btn-primary" onclick="document.getElementById('booking-modal').classList.remove('active')">Close</button>`;
+
+  const canAssign = ['QUOTED', 'CONFIRMED', 'IN_PROGRESS'].includes(b.status);
+  const closebtn = `<button class="btn btn-primary" onclick="document.getElementById('booking-modal').classList.remove('active')">Close</button>`;
+
+  if (asgn) {
+    footer.innerHTML = `
+      <button class="btn btn-reject" onclick="doReleaseCleaner('${escapeHtml(b.bookingV2Id)}')">
+        <i class="fa-solid fa-user-minus"></i> Release Cleaner
+      </button>
+      ${closebtn}`;
+  } else if (canAssign && cleanersList.length) {
+    const options = cleanersList.map(c =>
+      `<option value="${escapeHtml(c.id)}">${escapeHtml(c.display_name)}</option>`
+    ).join('');
+    footer.innerHTML = `
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <select id="modal-cleaner-select" class="btn" style="min-width:160px;">${options}</select>
+        <button class="btn btn-approve" onclick="doAssignCleaner('${escapeHtml(b.bookingV2Id)}')">
+          <i class="fa-solid fa-user-plus"></i> Assign
+        </button>
+        ${closebtn}
+      </div>`;
+  } else {
+    footer.innerHTML = closebtn;
+  }
+
   modal.classList.add('active');
+}
+
+async function doAssignCleaner(bookingId) {
+  const sel = document.getElementById('modal-cleaner-select');
+  if (!sel) return;
+  const cleanerId = sel.value;
+  try {
+    const res = await fetch(`/api/admin/bookings-v2/${encodeURIComponent(bookingId)}/assign`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cleanerId })
+    });
+    const data = await res.json();
+    if (data.success) {
+      addLog(`Cleaner assigned to booking ${bookingId.slice(-8)}.`, 'action');
+      document.getElementById('booking-modal').classList.remove('active');
+      fetchData();
+    } else {
+      addLog(`Assign failed: ${data.error || data.code}`, 'system');
+    }
+  } catch (err) {
+    addLog(`Assign error: ${err.message}`, 'system');
+  }
+}
+
+async function doReleaseCleaner(bookingId) {
+  try {
+    const res = await fetch(`/api/admin/bookings-v2/${encodeURIComponent(bookingId)}/release`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ releaseReason: 'MANUAL_RELEASE' })
+    });
+    const data = await res.json();
+    if (data.success) {
+      addLog(`Cleaner released from booking ${bookingId.slice(-8)}.`, 'action');
+      document.getElementById('booking-modal').classList.remove('active');
+      fetchData();
+    } else {
+      addLog(`Release failed: ${data.error || data.code}`, 'system');
+    }
+  } catch (err) {
+    addLog(`Release error: ${err.message}`, 'system');
+  }
 }
 
 // --- V2 CALENDAR ADAPTER ---

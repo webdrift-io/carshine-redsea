@@ -30,12 +30,17 @@ const LIST_SQL = `
     sp.duration_minutes, sp.price_amount, sp.price_currency,
     p.id AS payment_id, p.status AS payment_row_status, p.method AS payment_method,
     p.amount AS payment_amount, p.currency AS payment_currency,
-    p.submitted_at AS payment_submitted_at, p.verified_at AS payment_verified_at
+    p.submitted_at AS payment_submitted_at, p.verified_at AS payment_verified_at,
+    asgn.id AS asgn_id, asgn.assigned_at AS asgn_assigned_at,
+    asgn_u.id AS asgn_cleaner_id, asgn_u.display_name AS asgn_cleaner_name,
+    asgn_u.phone AS asgn_cleaner_phone
   FROM bookings_v2 b
   JOIN customers c ON c.id = b.customer_id
   LEFT JOIN vehicles v ON v.id = b.vehicle_id
   JOIN service_packages sp ON sp.id = b.service_package_id
   LEFT JOIN payments p ON p.booking_id = b.id
+  LEFT JOIN assignments asgn ON asgn.booking_id = b.id AND asgn.released_at IS NULL
+  LEFT JOIN users asgn_u ON asgn_u.id = asgn.cleaner_id
   WHERE b.deleted_at IS NULL
     AND (? IS NULL OR b.scheduled_start >= ?)
     AND (? IS NULL OR b.scheduled_start <  ?)
@@ -177,12 +182,17 @@ function getBookingDetailForAdmin(bookingV2Id) {
       sp.duration_minutes, sp.price_amount, sp.price_currency,
       p.id AS payment_id, p.status AS payment_row_status, p.method AS payment_method,
       p.amount AS payment_amount, p.currency AS payment_currency,
-      p.submitted_at AS payment_submitted_at, p.verified_at AS payment_verified_at
+      p.submitted_at AS payment_submitted_at, p.verified_at AS payment_verified_at,
+      asgn.id AS asgn_id, asgn.assigned_at AS asgn_assigned_at,
+      asgn_u.id AS asgn_cleaner_id, asgn_u.display_name AS asgn_cleaner_name,
+      asgn_u.phone AS asgn_cleaner_phone
     FROM bookings_v2 b
     JOIN customers c ON c.id = b.customer_id
     LEFT JOIN vehicles v ON v.id = b.vehicle_id
     JOIN service_packages sp ON sp.id = b.service_package_id
     LEFT JOIN payments p ON p.booking_id = b.id
+    LEFT JOIN assignments asgn ON asgn.booking_id = b.id AND asgn.released_at IS NULL
+    LEFT JOIN users asgn_u ON asgn_u.id = asgn.cleaner_id
     WHERE b.deleted_at IS NULL AND b.id = ?
     LIMIT 1
   `).all(bookingV2Id);
@@ -277,7 +287,15 @@ function formatBookingForAdmin(row) {
       submittedAt: row.payment_submitted_at,
       verifiedAt: row.payment_verified_at
     } : null,
-    assignment: null,
+    assignment: row.asgn_id ? {
+      id: row.asgn_id,
+      assignedAt: row.asgn_assigned_at,
+      cleaner: {
+        id: row.asgn_cleaner_id,
+        displayName: row.asgn_cleaner_name,
+        phone: row.asgn_cleaner_phone
+      }
+    } : null,
     missingFields,
     needsHuman,
     createdAt: row.created_at,

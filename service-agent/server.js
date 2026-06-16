@@ -20,6 +20,8 @@ const { createPublicBooking } = require('./services/public-bookings');
 const adminRead = require('./services/admin-bookings-read');
 const { findOverlappingBookings } = require('./services/slot-overlap');
 const { requireRole } = require('./middleware/require-role');
+const usersService = require('./services/users');
+const { assignCleaner, releaseAssignment } = require('./services/assignments');
 
 // Feature flag: USE_MASTRA_AGENT (default: true). When false, the legacy
 // monolith in ./minimax-agent.js is used. The legacy file is kept around as a
@@ -697,16 +699,41 @@ process.on('SIGINT', () => {
 
 app.post('/api/auth/login', authLimiter, async (req, res) => {
   const { email, password } = req.body;
-  
+
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password required' });
   }
-  
+
+  // M0-006: check normalized users table first (OWNER/DISPATCHER/CLEANER)
+  const m0User = usersService.getUserByEmail(email);
+  if (m0User) {
+    const valid = await verifyPassword(password, m0User.password_hash);
+    if (!valid) {
+      await new Promise(r => setTimeout(r, 100));
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    usersService.updateLastLogin(m0User.id);
+    const token = generateToken({
+      sub: m0User.id,
+      email: m0User.email,
+      role: m0User.role,
+      displayName: m0User.display_name,
+      iat: Math.floor(Date.now() / 1000)
+    });
+    return res.json({
+      success: true,
+      token,
+      expiresIn: JWT_EXPIRES_IN,
+      user: { id: m0User.id, email: m0User.email, role: m0User.role, displayName: m0User.display_name }
+    });
+  }
+
+  // Legacy fallback: single admin_credentials record
   if (email !== ADMIN_EMAIL) {
     await new Promise(r => setTimeout(r, 100));
     return res.status(401).json({ error: 'Invalid credentials' });
   }
-  
+
   let admin = db.getAdmin(email);
   if (!admin) {
     const initialPassword = process.env.ADMIN_INITIAL_PASSWORD || 'ChangeMe123!';
@@ -715,23 +742,23 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
     admin = db.getAdmin(email);
     console.warn('[Auth] No admin found, created initial admin. Set ADMIN_PASSWORD_HASH in .env!');
   }
-  
+
   const valid = await verifyPassword(password, admin.passwordHash);
-  
   if (!valid) {
+    await new Promise(r => setTimeout(r, 100));
     return res.status(401).json({ error: 'Invalid credentials' });
   }
-  
-  const token = generateToken({ 
-    sub: 'admin', 
-    email, 
+
+  const token = generateToken({
+    sub: 'admin',
+    email,
     role: 'admin',
     iat: Math.floor(Date.now() / 1000)
   });
-  
-  res.json({ 
-    success: true, 
-    token, 
+
+  res.json({
+    success: true,
+    token,
     expiresIn: JWT_EXPIRES_IN,
     user: { email, role: 'admin' }
   });
@@ -1374,6 +1401,34 @@ app.get('/api/admin/calendar-v2', requireAuth, requireRole(['OWNER', 'DISPATCHER
     dateTo: req.query.dateTo || null
   });
   if (!result.success) return res.status(400).json(result);
+  res.json(result);
+});
+
+// M0-007: cleaner list, assign, release
+app.get('/api/admin/users/cleaners', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (req, res) => {
+  res.json({ success: true, cleaners: usersService.listActiveCleaners() });
+});
+
+app.post('/api/admin/bookings-v2/:id/assign', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (req, res) => {
+  const { cleanerId } = req.body;
+  if (!cleanerId) {
+    return res.status(400).json({ success: false, code: 'MISSING_CLEANER_ID', error: 'cleanerId is required' });
+  }
+  const assignedById = req.user && req.user.sub !== 'admin' ? req.user.sub : null;
+  const result = assignCleaner({ bookingId: req.params.id, cleanerId, assignedById });
+  if (!result.success) {
+    const statusMap = { BOOKING_NOT_FOUND: 404, CLEANER_NOT_FOUND: 404, WRONG_STATUS: 409, NOT_A_CLEANER: 400, CLEANER_INACTIVE: 400 };
+    return res.status(statusMap[result.code] || 400).json(result);
+  }
+  res.json(result);
+});
+
+app.post('/api/admin/bookings-v2/:id/release', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (req, res) => {
+  const { releaseReason } = req.body || {};
+  const result = releaseAssignment({ bookingId: req.params.id, releaseReason: releaseReason || 'RELEASED' });
+  if (!result.success) {
+    return res.status(result.code === 'NO_ACTIVE_ASSIGNMENT' ? 404 : 400).json(result);
+  }
   res.json(result);
 });
 
