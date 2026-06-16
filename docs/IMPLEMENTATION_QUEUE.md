@@ -1,7 +1,7 @@
 # Implementation Queue
 
-Status: M0 readiness audit complete.
-Current: M0-004 PASSED & MERGED (Opus 4.8 final re-review PASS). **M0-005a IN PROGRESS** (Hermes Coding / Claude Code: backend read model + slot-overlap refinement). M0-005b on standby.
+Status: **M0 COMPLETE — Opus final accepted (2026-06-16).** All M0 milestones (M0-001 through M0-008) DONE. Final full-system acceptance audit passed: fresh-DB live chain verified end-to-end, 5 payment-safety triggers firing, 209 vitest + 44 E2E (1 skip) green, lint/typecheck clean, audit 0 HIGH. Next phase: M1.
+Deferred post-M0 (non-blocking): dashboard socket.io client (40s polling accepted for M0); LOW cleaner-lifecycle hardening (reorder ownership check before payment/status validation); UI/UX polish; production deployment/secrets hardening before real launch.
 
 ## M0 Queue
 

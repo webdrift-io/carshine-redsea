@@ -1,6 +1,6 @@
 # Agent Handoff
 
-Status: M0-000 through M0-008 implemented. M0-005 DONE. M0-006 DONE. M0-007 DONE. M0-008 DONE. **M0 is complete. Final Opus acceptance is next.**
+Status: **M0 COMPLETE — Opus final accepted (2026-06-16).** M0-005/006/007/008 all DONE and Opus-accepted. Final full-system acceptance audit passed on a fresh DB: full chain (customer booking → dashboard read model → payment review → OWNER manual verify → cleaner assignment → cleaner lifecycle ON_THE_WAY/IN_PROGRESS/COMPLETED → read model COMPLETED) verified live over HTTP; 5 payment-safety triggers confirmed firing; 209 vitest + 44 E2E (1 skip) green; lint/typecheck clean; audit 0 HIGH. Next: M1. Deferred post-M0: dashboard socket.io client (polling accepted), LOW cleaner-lifecycle ownership-check reorder, UI/UX polish, prod secrets hardening.
 
 ## M0-007 Cleaner Lifecycle Completed (2026-06-16, Sonnet)
 - Service: `service-agent/services/cleaner-lifecycle.js` (new).

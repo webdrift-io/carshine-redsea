@@ -1,5 +1,28 @@
 # M0 Status
 
+## ✅ M0 COMPLETE — Opus final accepted (2026-06-16)
+
+All M0 milestones DONE and Opus-accepted. Final full-system acceptance audit passed:
+clean `npm ci` (root + service), root build PASS, 209/209 vitest, 44 E2E pass / 1 skip
+(deterministic ×2), lint 0 errors, typecheck clean, audit 0 HIGH (root 0 vulns).
+Fresh-DB live acceptance verified the full chain end-to-end over HTTP:
+customer booking → admin read model → payment proof → **OWNER manual verify** →
+DISPATCHER/CLEANER verify 403 → public verify 404 → assign cleaner → cleaner login →
+sees own booking → ON_THE_WAY → IN_PROGRESS → COMPLETED → read model shows COMPLETED
+with 3 `booking_status_history` lifecycle rows. Payment-not-verified start blocked (409).
+All 5 payment-safety triggers verified firing on the fresh DB (append-only UPDATE/DELETE
+blocked, AI VERIFIED blocked, VERIFIED-without-owner blocked). No fake success, no auto
+InstaPay verification, AI cannot mark VERIFIED.
+
+**Truth table:** M0-005 DONE · M0-006 DONE · M0-007 DONE · M0-008 DONE.
+
+**Deferred (post-M0, non-blocking):** dashboard socket.io client (40s polling accepted for
+M0); LOW cleaner-lifecycle hardening (reorder ownership check before payment/status
+validation to reduce minor info disclosure); future UI/UX polish; production
+deployment/secrets hardening before real launch.
+
+---
+
 Status: M0-000 safe baseline complete; M0-001 schema foundation implemented; M0-002b config/audit gate complete; M0-003 public booking API v2 implemented; M0-003b payment/slot preconditions implemented; M0-004A landing form real wiring landed; M0-004B UI polish landed; M0-004C-B runtime i18n bridge landed; M0-004C-Final fix merged; M0-004 COMPLETE.
 
 M0 target: customer creates booking, booking appears in dashboard calendar,
