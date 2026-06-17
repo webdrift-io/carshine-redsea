@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Allow: /ar/
+Allow: /de/
+
+# Private / authenticated areas — keep out of the index
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /login
+Disallow: /api/
+
+Sitemap: https://carshineredsea.com/sitemap.xml

@@ -84,7 +84,7 @@ function package_() {
   copyFiles(path.join(ROOT, 'index.html'), path.join(landingDest, 'index.html'));
   copyFiles(path.join(ROOT, 'ar'), path.join(landingDest, 'ar'));
   copyFiles(path.join(ROOT, 'de'), path.join(landingDest, 'de'));
-  for (const f of ['favicon.png', 'favicon.ico']) {
+  for (const f of ['favicon.png', 'favicon.ico', 'robots.txt', 'sitemap.xml']) {
     const src = path.join(ROOT, f);
     if (fs.existsSync(src)) copyFiles(src, path.join(landingDest, f));
   }

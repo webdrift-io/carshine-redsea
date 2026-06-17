@@ -46,24 +46,25 @@ if (fs.existsSync(saNodeModules)) {
   console.log('   ⚠️  Dependencies not installed');
 }
 
-// 4. Check landing-page deps
-console.log('\n4. Checking landing-page dependencies...');
-const lpNodeModules = path.join(ROOT, 'landing-page', 'node_modules');
-if (fs.existsSync(lpNodeModules)) {
+// 4. Check root (landing build) deps
+console.log('\n4. Checking root dependencies...');
+const rootNodeModules = path.join(ROOT, 'node_modules');
+if (fs.existsSync(rootNodeModules)) {
   console.log('   ✅ Dependencies installed');
 } else {
-  warnings.push('landing-page/node_modules missing - run npm install');
+  warnings.push('node_modules missing - run npm install');
   console.log('   ⚠️  Dependencies not installed');
 }
 
-// 5. Check build output
-console.log('\n5. Checking build output...');
-const distEn = path.join(ROOT, 'landing-page', 'dist', 'en', 'index.en.html');
-if (fs.existsSync(distEn)) {
-  console.log('   ✅ Landing page built');
+// 5. Check canonical landing pages (raw, self-contained — these are deployed as-is)
+console.log('\n5. Checking canonical landing pages...');
+const canonicalPages = ['index.html', 'ar/index.html', 'de/index.html'];
+const missingPages = canonicalPages.filter(p => !fs.existsSync(path.join(ROOT, p)));
+if (missingPages.length === 0) {
+  console.log('   ✅ Canonical pages present (index.html, ar/, de/)');
 } else {
-  warnings.push('Landing page not built - run node build-landing.cjs');
-  console.log('   ⚠️  Landing page not built');
+  warnings.push(`Canonical landing pages missing: ${missingPages.join(', ')}`);
+  console.log(`   ⚠️  Missing: ${missingPages.join(', ')}`);
 }
 
 // 6. Check tests
