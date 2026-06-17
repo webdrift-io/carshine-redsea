@@ -327,7 +327,48 @@ app.use(compression());
 
 app.set('trust proxy', 1);
 
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5000,http://localhost:4173,http://127.0.0.1:5000,http://127.0.0.1:4173,http://localhost:5173,http://127.0.0.1:5173,https://carshineredsea.com,https://www.carshineredsea.com,https://api.carshineredsea.com')
+// ---------------------------------------------------------------------------
+// CORS allowlist
+// ---------------------------------------------------------------------------
+// Explicit, safe origins. NEVER use `*` here — this service sets
+// `credentials: true`, and `Access-Control-Allow-Origin: *` is forbidden
+// by the spec when credentials are involved (browsers will block the
+// response).
+//
+// Override the entire list with the ALLOWED_ORIGINS env var (comma-
+// separated). When unset, the following defaults apply:
+//
+//   - Dev landing on the project preview server:        4173
+//   - Dev landing on the Vite dev server:               5173
+//   - Dashboard served from the same Express host:      5000
+//   - Common ad-hoc dev ports:                          3000, 4567, 8000
+//   - Production CarShine domain (site + api):          carshineredsea.com
+//
+// To add a new dev port, add it here. To add a new production origin,
+// add it here AND to the CORS section of docs/rebuild/SECURITY_PLAN.md
+// so the choice is reviewable in the security plan.
+// ---------------------------------------------------------------------------
+const DEFAULT_ALLOWED_ORIGINS = [
+  // Local dev — explicit ports only
+  'http://localhost:5000',     // service-agent (admin dashboard + API)
+  'http://127.0.0.1:5000',
+  'http://localhost:4173',     // preview-server.cjs (default landing)
+  'http://127.0.0.1:4173',
+  'http://localhost:5173',     // Vite dev server
+  'http://127.0.0.1:5173',
+  'http://localhost:3000',     // common ad-hoc (create-react-app, next dev)
+  'http://127.0.0.1:3000',
+  'http://localhost:4567',     // python -m http.server / ad-hoc
+  'http://127.0.0.1:4567',
+  'http://localhost:8000',     // django / ad-hoc
+  'http://127.0.0.1:8000',
+  // Production
+  'https://carshineredsea.com',
+  'https://www.carshineredsea.com',
+  'https://api.carshineredsea.com'
+];
+
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || DEFAULT_ALLOWED_ORIGINS.join(','))
   .split(',')
   .map(o => o.trim())
   .filter(Boolean);
