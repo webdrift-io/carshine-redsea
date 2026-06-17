@@ -1,0 +1,199 @@
+/* =============================================================================
+   CarShine Red Sea — Black & White admin theme
+   Loaded LAST, after style.css and m1-theme.css. Flips the dark/copper UI to a
+   clean monochrome light theme (shadcn "dashboard" look): white surfaces,
+   near-black text, subtle gray borders. Only payment/booking STATUS keeps a
+   functional tint so states stay readable.
+   ============================================================================= */
+
+:root, :root.dark, html, body {
+  /* shadcn token set → light monochrome */
+  --background: #ffffff;
+  --foreground: #09090b;
+  --card: #ffffff;
+  --card-foreground: #09090b;
+  --popover: #ffffff;
+  --popover-foreground: #09090b;
+  --primary: #18181b;
+  --primary-foreground: #ffffff;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #18181b;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --accent: #f4f4f5;
+  --accent-foreground: #18181b;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #e4e4e7;
+  --input: #e4e4e7;
+  --ring: #18181b;
+
+  /* legacy surface vars */
+  --bg-primary: #f7f7f8;
+  --bg-secondary: #ffffff;
+  --bg-sidebar: #ffffff;
+  --bg-card: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-hover: #f4f4f5;
+  --bg-active: # ececee;
+  --bg-active: #ececee;
+
+  --glass-bg: #ffffff;
+  --glass-bg-hover: #f4f4f5;
+  --glass-border: #e4e4e7;
+  --glass-border-focus: #18181b;
+
+  --text-primary: #09090b;
+  --text-secondary: #52525b;
+  --text-muted: #71717a;
+
+  /* accents → monochrome (chrome stays B&W) */
+  --accent-blue: #18181b;
+  --accent-blue-light: #3f3f46;
+  --accent-blue-glow: rgba(0,0,0,0.08);
+  --accent-copper: #18181b;
+  --accent-copper-light: #3f3f46;
+  --accent-copper-glow: rgba(0,0,0,0.08);
+  --accent-cyan: #18181b;
+  --accent-amber: #3f3f46;
+  --accent-orange: #52525b;
+  --accent-purple: #3f3f46;
+  --accent-on: #ffffff;
+
+  /* functional status colors (kept for readability) */
+  --accent-green: #16a34a;
+  --accent-green-glow: rgba(22,163,74,0.12);
+  --accent-red: #dc2626;
+  --accent-red-glow: rgba(220,38,38,0.12);
+
+  /* light, soft shadows */
+  --shadow-main: 0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06);
+  --shadow-card: 0 1px 2px rgba(0,0,0,0.05), 0 1px 0 rgba(0,0,0,0.02);
+  --shadow-modal: 0 24px 60px rgba(0,0,0,0.18);
+  --shadow-glow: 0 0 0 1px rgba(0,0,0,0.04);
+}
+
+/* Base surfaces */
+html, body {
+  background: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Sidebar + topbar */
+.sidebar, .app-sidebar, nav.sidebar {
+  background: var(--bg-sidebar) !important;
+  border-right: 1px solid var(--border) !important;
+}
+.topbar, header.topbar, .app-header, .top-bar {
+  background: rgba(255,255,255,0.85) !important;
+  backdrop-filter: saturate(180%) blur(8px);
+  border-bottom: 1px solid var(--border) !important;
+}
+
+/* Cards / panels / glass surfaces */
+.card, .glass-card, .panel, .kpi-card, .stat-card, .integration-card,
+.scheduled-post-card, .team-card, .booking-card, .chat-card, .section-card,
+[class*="-card"] {
+  background: var(--card) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--card-foreground);
+  box-shadow: var(--shadow-card) !important;
+}
+
+/* Nav items */
+.nav-item, .nav-link, .menu-item {
+  color: var(--text-secondary) !important;
+}
+.nav-item:hover, .nav-link:hover, .menu-item:hover {
+  background: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
+}
+.nav-item.active, .nav-link.active, .nav-item.is-active, .menu-item.active {
+  background: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+}
+.nav-group-label { color: var(--text-muted) !important; }
+
+/* Buttons */
+.btn-primary, button.primary, .m1-btn-primary, .btn.primary {
+  background: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+  border: 1px solid var(--primary) !important;
+}
+.btn-primary:hover, button.primary:hover { opacity: .9; }
+.btn-secondary, .btn.secondary, button.secondary, .btn-ghost {
+  background: #fff !important;
+  color: var(--foreground) !important;
+  border: 1px solid var(--border) !important;
+}
+.btn-secondary:hover, .btn-ghost:hover { background: var(--bg-hover) !important; }
+
+/* Inputs */
+input, select, textarea {
+  background: #fff !important;
+  color: var(--foreground) !important;
+  border: 1px solid var(--input) !important;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none !important;
+  border-color: var(--ring) !important;
+  box-shadow: 0 0 0 3px rgba(0,0,0,0.08) !important;
+}
+
+/* Tables */
+table { color: var(--foreground); }
+th { color: var(--text-muted) !important; border-bottom: 1px solid var(--border) !important; background: var(--muted) !important; }
+td { border-bottom: 1px solid var(--border) !important; }
+tr:hover td { background: var(--bg-hover) !important; }
+
+/* Hero banner (m1) → light monochrome */
+.m1-hero-banner {
+  background: linear-gradient(135deg, #fafafa 0%, #ffffff 60%, #f4f4f5 100%) !important;
+  border: 1px solid var(--border) !important;
+  border-top: 3px solid var(--primary) !important;
+  color: var(--foreground) !important;
+  box-shadow: var(--shadow-card) !important;
+}
+.m1-hero-title, .m1-hero-stat-value { color: var(--foreground) !important; }
+.m1-hero-title span { color: var(--text-muted) !important; }
+.m1-hero-sub, .m1-hero-eyebrow, .m1-hero-stat-label { color: var(--text-muted) !important; }
+.m1-hero-car-icon { color: var(--foreground) !important; opacity: .9; }
+.m1-hero-banner::before, .m1-hero-banner::after { background: none !important; opacity: .04; }
+
+/* Tags / chips / status pills */
+.m1-tag, .m1-chip, .chip, .badge, .status-pill, .m1-status-pill {
+  background: var(--secondary) !important;
+  color: var(--secondary-foreground) !important;
+  border: 1px solid var(--border) !important;
+}
+.m1-tag.green, .badge.green, .status-pill.success, .badge.success,
+[class*="status"][class*="confirm"], [class*="status"][class*="paid"],
+[class*="status"][class*="verified"], [class*="status"][class*="completed"] {
+  background: rgba(22,163,74,0.10) !important;
+  color: #15803d !important;
+  border: 1px solid rgba(22,163,74,0.30) !important;
+}
+.badge.red, .status-pill.danger, .badge.danger,
+[class*="status"][class*="reject"], [class*="status"][class*="cancel"],
+[class*="status"][class*="fail"] {
+  background: rgba(220,38,38,0.08) !important;
+  color: #b91c1c !important;
+  border: 1px solid rgba(220,38,38,0.28) !important;
+}
+[class*="status"][class*="pending"], .badge.amber, .m1-chip.manual-review {
+  background: #fff7ed !important;
+  color: #b45309 !important;
+  border: 1px solid #fed7aa !important;
+}
+
+/* Section headers */
+.m1-section-title, .section-title, h1, h2, h3 { color: var(--foreground) !important; }
+.m1-section-sub, .section-sub, .subtitle { color: var(--text-muted) !important; }
+
+/* Scrollbars */
+::-webkit-scrollbar-thumb { background: #d4d4d8 !important; }
+::-webkit-scrollbar-track { background: #f4f4f5 !important; }
+
+/* Misc dark leftovers */
+.dashboard-auth-gate { background: rgba(255,255,255,0.9) !important; }
+code, pre { background: var(--muted) !important; color: var(--foreground) !important; border: 1px solid var(--border); }

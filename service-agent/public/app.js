@@ -31,58 +31,18 @@ async function parseJsonSafe(res) {
   return res.json().catch(() => ({}));
 }
 
-function showDashboardAuthGate(message = 'Login required to load live dashboard data.') {
-  let gate = document.getElementById('dashboard-auth-gate');
-  if (!gate) {
-    gate = document.createElement('div');
-    gate.id = 'dashboard-auth-gate';
-    gate.className = 'dashboard-auth-gate';
-    gate.innerHTML = `
-      <form class="dashboard-auth-card" id="dashboard-auth-gate-form">
-        <div>
-          <h2>Admin Login Required</h2>
-          <p id="dashboard-auth-gate-message"></p>
-        </div>
-        <label>Email
-          <input type="email" id="dashboard-auth-gate-email" value="admin@carshineredsea.com" autocomplete="username">
-        </label>
-        <label>Password
-          <input type="password" id="dashboard-auth-gate-password" autocomplete="current-password">
-        </label>
-        <button type="submit">Login and Load Dashboard</button>
-      </form>
-    `;
-    document.body.appendChild(gate);
-    gate.querySelector('form').addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const email = document.getElementById('dashboard-auth-gate-email').value.trim();
-      const password = document.getElementById('dashboard-auth-gate-password').value;
-      const msg = document.getElementById('dashboard-auth-gate-message');
-      msg.textContent = 'Logging in...';
-      try {
-        const res = await nativeFetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password })
-        });
-        const data = await parseJsonSafe(res);
-        if (!res.ok || !data.token) {
-          msg.textContent = `Login failed: ${data.error || res.status}`;
-          return;
-        }
-        authToken = data.token;
-        localStorage.setItem('carshine_admin_token', authToken);
-        gate.remove();
-        setupAuthPanel();
-        fetchData();
-      } catch (err) {
-        msg.textContent = `Login error: ${err.message}`;
-      }
-    });
-  }
-  const msg = document.getElementById('dashboard-auth-gate-message');
-  if (msg) msg.textContent = message;
+let _redirectingToLogin = false;
+function showDashboardAuthGate() {
+  // Login now lives on a dedicated, standalone page (/login) — never inside
+  // the dashboard. When the dashboard is opened without a valid session,
+  // send the admin to the login page and come back here afterwards.
+  if (_redirectingToLogin) return;
+  _redirectingToLogin = true;
+  const next = encodeURIComponent(location.pathname + location.search);
+  location.replace(`/login?next=${next}`);
 }
+
+function hideDashboardAuthGateNoop() { /* retained for compatibility */ }
 
 function hideDashboardAuthGate() {
   document.getElementById('dashboard-auth-gate')?.remove();
@@ -234,9 +194,17 @@ function setupAuthPanel() {
   clearBtn?.addEventListener('click', () => {
     authToken = '';
     localStorage.removeItem('carshine_admin_token');
-    setAuthStatus('Token cleared. Local development can still read APIs from 127.0.0.1.', 'info');
+    location.replace('/login');
   });
 }
+
+// Global logout helper (used by the topbar logout control).
+function logout() {
+  authToken = '';
+  localStorage.removeItem('carshine_admin_token');
+  location.replace('/login');
+}
+window.logout = logout;
 
 // Update System Clock
 function updateClock() {

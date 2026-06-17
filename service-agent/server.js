@@ -453,6 +453,11 @@ app.get('/favicon.png', (req, res) => {
   res.sendFile(path.join(PROJECT_ROOT, 'favicon.png'));
 });
 
+// Standalone admin login page (separate from the dashboard for security).
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(DASHBOARD_PUBLIC_DIR, 'login.html'));
+});
+
 app.get('/dashboard', (req, res) => {
   if (req.originalUrl === '/dashboard') {
     return res.redirect(301, '/dashboard/');
