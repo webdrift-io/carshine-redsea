@@ -366,7 +366,10 @@ const DEFAULT_ALLOWED_ORIGINS = [
   // Production
   'https://carshineredsea.com',
   'https://www.carshineredsea.com',
-  'https://api.carshineredsea.com'
+  'https://api.carshineredsea.com',
+  // Hostinger temp domain (live marketing site + backend during launch)
+  'https://slategrey-pig-358843.hostingersite.com',
+  'http://slategrey-pig-358843.hostingersite.com'
 ];
 
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || DEFAULT_ALLOWED_ORIGINS.join(','))
