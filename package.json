@@ -6,13 +6,11 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "node build-landing.cjs",
-    "build:vite": "vite build",
-    "build:sri": "node build-landing.cjs",
+    "build": "vite build && node scripts/add-sri.js",
+    "build:all": "vite build && node scripts/add-sri.js",
     "build:en": "vite build --mode en && node scripts/add-sri.js",
     "build:ar": "vite build --mode ar && node scripts/add-sri.js",
     "build:de": "vite build --mode de && node scripts/add-sri.js",
-    "build:all": "node build-landing.cjs",
     "preview": "vite preview"
   },
   "devDependencies": {

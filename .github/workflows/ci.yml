@@ -45,6 +45,17 @@ jobs:
       - name: Run tests
         working-directory: service-agent
         run: npm test
+
+      - name: Install Playwright browsers
+        working-directory: service-agent
+        run: npx playwright install chromium --with-deps
+
+      - name: Run E2E tests
+        working-directory: service-agent
+        run: npm run test:e2e
+        env:
+          NODE_ENV: test
+          USE_MASTRA_AGENT: 'true'
       
       - name: Generate coverage report
         working-directory: service-agent
@@ -72,48 +83,43 @@ jobs:
     name: Landing Page Build
     runs-on: ubuntu-latest
     needs: test
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: landing-page/package-lock.json
-      
+          cache-dependency-path: package-lock.json
+
       - name: Install dependencies
-        working-directory: landing-page
         run: npm ci
-      
-      - name: Build all languages
+
+      - name: Verify canonical source pages exist
         run: |
-          cd ..
-          node build-landing.cjs
-      
+          for f in index.html ar/index.html de/index.html; do
+            if [ ! -f "$f" ]; then echo "❌ Canonical source missing: $f"; exit 1; fi
+          done
+          echo "✅ Canonical landing sources present (index.html, ar/, de/)"
+
+      - name: Build optimized landing (root vite)
+        run: npm run build:all
+
       - name: Verify build output
         run: |
-          if [ ! -f "landing-page/dist/en/index.en.html" ]; then
-            echo "❌ English build missing"
-            exit 1
-          fi
-          if [ ! -f "landing-page/dist/ar/index.ar.html" ]; then
-            echo "❌ Arabic build missing"
-            exit 1
-          fi
-          if [ ! -f "landing-page/dist/de/index.de.html" ]; then
-            echo "❌ German build missing"
-            exit 1
-          fi
+          for f in dist/index.html dist/ar/index.html dist/de/index.html; do
+            if [ ! -f "$f" ]; then echo "❌ Build output missing: $f"; exit 1; fi
+          done
           echo "✅ All language builds present"
-      
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: landing-page-build
-          path: landing-page/dist/
+          path: dist/
           retention-days: 7
 
   security:
@@ -143,15 +149,7 @@ jobs:
       - name: Audit dependencies (service-agent)
         working-directory: service-agent
         run: npm audit --audit-level=high
-      
-      - name: Install dependencies (landing-page)
-        working-directory: landing-page
-        run: npm ci
-      
-      - name: Audit dependencies (landing-page)
-        working-directory: landing-page
-        run: npm audit --audit-level=high
-      
+
       - name: Check for hardcoded secrets
         run: |
           if grep -rE '(sk-proj-[a-zA-Z0-9]{20,}|sk_[a-zA-Z0-9]{40,}|AKIA[0-9A-Z]{16})' --include='*.js' --include='*.json' --include='*.md' . 2>/dev/null | grep -v node_modules | grep -v 'YOUR_' | grep -v '_KEY=your' | head -5; then
@@ -183,19 +181,20 @@ jobs:
         working-directory: service-agent
         run: npm ci --omit=dev
       
-      - name: Build landing page
-        run: |
-          cd landing-page
-          npm ci
-          cd ..
-          node build-landing.cjs
-      
       - name: Create deployment package
         run: |
           mkdir -p deploy
-          cp -r service-agent/package.json service-agent/server.js service-agent/database.js service-agent/minimax-agent.js service-agent/gemini-chatbot.js service-agent/parsers.js service-agent/logger.js service-agent/openapi.yaml service-agent/routes/ deploy/
-          cp -r service-agent/public deploy/
-          cp -r landing-page/dist deploy/public-landing
+          DEPLOY_FILES="package.json server.js database.js minimax-agent.js gemini-chatbot.js parsers.js logger.js openapi.yaml website-knowledge.js chatbot.js"
+          for f in $DEPLOY_FILES; do cp "service-agent/$f" deploy/ 2>/dev/null || true; done
+          DEPLOY_DIRS="routes public agents services migrations middleware memory observability jobs data"
+          for d in $DEPLOY_DIRS; do cp -r "service-agent/$d" deploy/ 2>/dev/null || true; done
+          # Canonical landing = raw self-contained root pages (verified-working).
+          mkdir -p deploy/public-landing
+          cp index.html deploy/public-landing/index.html
+          cp -r ar deploy/public-landing/ar
+          cp -r de deploy/public-landing/de
+          cp favicon.png deploy/public-landing/ 2>/dev/null || true
+          cp favicon.ico deploy/public-landing/ 2>/dev/null || true
           cp -r tiktok-marketing deploy/
           cd deploy
           echo "node_modules/" > .gitignore

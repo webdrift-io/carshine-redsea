@@ -37,9 +37,11 @@ function copyFiles(src, dest) {
 }
 
 function build() {
-  log('Building landing page...');
-  execSync('node build-landing.cjs', { cwd: ROOT, stdio: 'inherit' });
-  
+  // The canonical landing pages are the self-contained, hand-authored files at
+  // the repo root (index.html, ar/index.html, de/index.html). They ship raw —
+  // inline CSS, CDN JS — so there is no build transformation that can re-break
+  // them. `npm run build` (root vite) remains available for optional optimized
+  // output but is intentionally NOT on the deploy critical path.
   log('Running tests...');
   execSync('cd service-agent && npm test', { cwd: ROOT, stdio: 'inherit' });
 }
@@ -53,21 +55,39 @@ function package_() {
   log('Copying service-agent...');
   const saDir = path.join(DEPLOY_DIR, 'service-agent');
   fs.mkdirSync(saDir, { recursive: true });
-  ['package.json', 'server.js', 'database.js', 'minimax-agent.js', 'gemini-chatbot.js', 
-   'parsers.js', 'logger.js', 'openapi.yaml', 'routes'].forEach(f => {
+  const saFiles = [
+    'package.json', 'package-lock.json', 'server.js', 'database.js', 'minimax-agent.js',
+    'gemini-chatbot.js', 'parsers.js', 'logger.js', 'openapi.yaml', 'website-knowledge.js', 'chatbot.js'
+  ];
+  const saDirs = [
+    'routes', 'public', 'agents', 'services', 'migrations', 'middleware',
+    'memory', 'observability', 'jobs', 'data'
+  ];
+  for (const f of saFiles) {
     const src = path.join(ROOT, 'service-agent', f);
-    if (fs.existsSync(src)) {
-      copyFiles(src, path.join(saDir, f));
-    }
-  });
+    if (fs.existsSync(src)) copyFiles(src, path.join(saDir, f));
+  }
+  for (const d of saDirs) {
+    const src = path.join(ROOT, 'service-agent', d);
+    if (fs.existsSync(src)) copyFiles(src, path.join(saDir, d));
+  }
   
   // Copy public (chatbot widget)
   log('Copying chatbot widget...');
   copyFiles(path.join(ROOT, 'service-agent', 'public'), path.join(saDir, 'public'));
   
-  // Copy landing page build
-  log('Copying landing page...');
-  copyFiles(path.join(ROOT, 'landing-page', 'dist'), path.join(DEPLOY_DIR, 'public-landing'));
+  // Copy canonical landing page (raw, self-contained root files).
+  // These are the verified-working pages served at /, /ar/, /de/.
+  log('Copying canonical landing page (root index.html + ar/ + de/)...');
+  const landingDest = path.join(DEPLOY_DIR, 'public-landing');
+  fs.mkdirSync(landingDest, { recursive: true });
+  copyFiles(path.join(ROOT, 'index.html'), path.join(landingDest, 'index.html'));
+  copyFiles(path.join(ROOT, 'ar'), path.join(landingDest, 'ar'));
+  copyFiles(path.join(ROOT, 'de'), path.join(landingDest, 'de'));
+  for (const f of ['favicon.png', 'favicon.ico']) {
+    const src = path.join(ROOT, f);
+    if (fs.existsSync(src)) copyFiles(src, path.join(landingDest, f));
+  }
   
   // Copy TikTok marketing
   log('Copying TikTok marketing...');
