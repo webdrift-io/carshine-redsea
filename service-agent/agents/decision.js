@@ -504,6 +504,70 @@ function intakeReply(language, missingField, opts = {}) {
 }
 
 // ---------------------------------------------------------------------------
+// Chitchat / smalltalk / off-topic replies
+// ---------------------------------------------------------------------------
+
+const HOWAREYOU_PATTERNS = [
+  /how are you|how'?s it going|how do you do|how have you been/i,
+  /(ازيك|إزيك|عامل ايه|عامل إيه|كيف حالك|أخبارك|اخبارك)/i,
+  /wie geht('?s| es dir| es Ihnen)/i
+];
+
+const QUESTION_LEADIN_PATTERNS = [
+  /(other|another|more) (question|questions)|i have (a )?question|can i ask|i want to ask|just asking/i,
+  /(عندي|عايز اسأل|ممكن سؤال|سؤال تاني|أسئلة)/i,
+  /(noch eine|andere) frage|ich habe eine frage|darf ich fragen/i
+];
+
+const THANKS_PATTERNS = [
+  /thank|thanks|thx|appreciate/i, /شكرا|متشكر|تسلم/i, /danke|vielen dank/i
+];
+
+const HOWAREYOU_REPLIES = {
+  en: "I'm doing great, thanks for asking! 😊 How can I help with your car wash today — pricing, service areas, or booking a wash?",
+  ar: 'الحمد لله تمام، شكراً لسؤالك! 😊 أقدر أساعدك إزاي النهارده — الأسعار، المناطق، ولا تحب نحجزلك غسيل؟',
+  de: 'Mir geht es gut, danke der Nachfrage! 😊 Wie kann ich helfen — Preise, Servicegebiete oder eine Wäsche buchen?'
+};
+
+const QUESTION_LEADIN_REPLIES = {
+  en: 'Of course! Ask me anything about our car wash — packages, prices, service areas, payment, or booking a slot. 🚗',
+  ar: 'بكل سرور! اسألني أي حاجة عن غسيل السيارات — الباقات، الأسعار، المناطق، الدفع، أو حجز موعد. 🚗',
+  de: 'Natürlich! Fragen Sie mich alles zur Autowäsche — Pakete, Preise, Gebiete, Zahlung oder Terminbuchung. 🚗'
+};
+
+const THANKS_REPLIES = {
+  en: "You're welcome! 😊 Want me to book a wash for you or share our packages?",
+  ar: 'العفو! 😊 تحب أحجزلك غسيل ولا أبعتلك الباقات؟',
+  de: 'Gern geschehen! 😊 Soll ich eine Wäsche buchen oder die Pakete zeigen?'
+};
+
+const OFFTOPIC_REFUSAL = {
+  en: 'Sorry, I can only help with CarShine Red Sea car wash services, bookings, packages, payment steps, and WhatsApp handoff. You can WhatsApp our team at +20 155 556 7205.',
+  ar: 'آسف، أقدر أساعدك بس في خدمات كار شاين ريد سي لغسيل السيارات، الحجوزات، الباقات، خطوات الدفع، والتحويل لواتساب. كلّم فريقنا على واتساب: ‎+20 155 556 7205.',
+  de: 'Entschuldigung, ich kann nur bei CarShine Red Sea helfen: Autowäsche, Buchungen, Pakete, Zahlung und WhatsApp-Weiterleitung. WhatsApp-Team: +20 155 556 7205.'
+};
+
+/**
+ * Reply for chitchat/smalltalk turns when no booking is in progress.
+ * Greetings → warm welcome (keeps returning-customer personalization).
+ * "How are you" / thanks / "I have a question" → friendly on-topic reply.
+ * Anything clearly off-topic → a polite, scoped refusal (per AGENTS.md).
+ */
+function chitchatReply(language, message, opts = {}) {
+  const lang = HOWAREYOU_REPLIES[language] ? language : 'en';
+  const text = String(message || '');
+  if (HOWAREYOU_PATTERNS.some((p) => p.test(text))) return HOWAREYOU_REPLIES[lang];
+  if (QUESTION_LEADIN_PATTERNS.some((p) => p.test(text))) return QUESTION_LEADIN_REPLIES[lang];
+  if (THANKS_PATTERNS.some((p) => p.test(text))) return THANKS_REPLIES[lang];
+  // Greeting (or empty first turn) → warm welcome.
+  if (!text.trim() || GREETING_PATTERNS.some((p) => p.test(text))) {
+    return intakeReply(language, null, opts);
+  }
+  // Otherwise the message is off-topic for a car-wash assistant → refuse politely.
+  return OFFTOPIC_REFUSAL[lang];
+}
+
+// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -521,6 +585,7 @@ module.exports = {
   formatHandoffReply,
   // Intake templates
   intakeReply,
+  chitchatReply,
   // Re-exports
   ALL_OPERATING_HOURS,
   REQUIRED_FIELDS

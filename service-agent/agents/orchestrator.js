@@ -62,7 +62,8 @@ const {
   buildPendingBooking,
   urgencyFor,
   formatHandoffReply,
-  intakeReply
+  intakeReply,
+  chitchatReply
 } = require('./decision');
 
 const {
@@ -274,7 +275,7 @@ async function _tryMastraGenerate(agent, message, opts = {}) {
  * Intake handler — used when router/intake agent is selected.
  * Returns { reply, needsHuman, reason, updatedSlots }.
  */
-function _handleIntake(routerOutput, session, customerContext = null) {
+function _handleIntake(routerOutput, session, customerContext = null, message = '') {
   const { language, slots, intent } = routerOutput;
 
   // Merge with previously-collected session details so we don't re-ask.
@@ -285,13 +286,29 @@ function _handleIntake(routerOutput, session, customerContext = null) {
     lastBooking: customerContext?.lastBooking || null
   };
 
-  // Pure greeting / smalltalk with no booking started yet → greet warmly
-  // instead of jumping straight into slot-fill ("What WhatsApp number...").
-  // Once the user actually starts booking (intent='book', or any booking
-  // slot is present) we fall through to the slot-collection logic below.
+  // Info questions (price, packages, areas, hours, payment) → answer directly
+  // from the business knowledge base instead of funnelling into slot-fill.
+  // This is what stops "how much?" from being answered with "Which area...?".
+  if (intent === 'info') {
+    const answer = answerFromWebsiteKnowledge(message, language);
+    if (answer) {
+      return {
+        reply: answer,
+        needsHuman: false,
+        reason: null,
+        nextField: null,
+        mergedSlots: merged
+      };
+    }
+  }
+
+  // Pure greeting / smalltalk / off-topic with no booking started yet →
+  // greet warmly, answer "how are you", invite questions, or politely refuse
+  // off-topic — instead of jumping straight into slot-fill. Once the user
+  // actually starts booking we fall through to the slot-collection logic below.
   if (intent === 'chitchat' && !_hasBookingProgress(merged)) {
     return {
-      reply: intakeReply(language, null, greetingOpts),
+      reply: chitchatReply(language, message, greetingOpts),
       needsHuman: false,
       reason: null,
       nextField: null,
@@ -692,7 +709,7 @@ async function _handleIncomingMessageInner(phone, message, profileName, session)
     outcome = _handleBooking(routerOutput, phone, session);
   } else {
     // intake or router — same surface
-    outcome = _handleIntake(routerOutput, session, customerContext);
+    outcome = _handleIntake(routerOutput, session, customerContext, message);
     session = _persistCollectedSlots(session, outcome.mergedSlots, outcome.nextField, routerOutput.language);
   }
 
