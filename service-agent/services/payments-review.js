@@ -356,10 +356,68 @@ function rejectPayment(paymentId, input, actor) {
   return { success: true, payment: formatPaymentRow(getPaymentByIdRaw(paymentId)) };
 }
 
+function normalizePhoneDigits(phone) {
+  return String(phone || '').replace(/\D/g, '');
+}
+
+/**
+ * Customer sends InstaPay screenshot via WhatsApp — links to latest open payment.
+ */
+function submitCustomerWhatsAppProof(phone, input = {}) {
+  const digits = normalizePhoneDigits(phone);
+  if (!digits) return { success: false, code: 'PHONE_REQUIRED' };
+
+  const row = db.prepare(`
+    SELECT p.id, p.status, p.booking_id
+    FROM payments p
+    JOIN bookings_v2 b ON b.id = p.booking_id
+    JOIN customers c ON c.id = b.customer_id
+    WHERE b.deleted_at IS NULL
+      AND p.status IN ('UNPAID', 'PAYMENT_INSTRUCTIONS_SENT', 'REJECTED')
+      AND (
+        REPLACE(REPLACE(c.phone_e164, '+', ''), ' ', '') LIKE '%' || ?
+        OR REPLACE(REPLACE(c.phone_raw, '+', ''), ' ', '') LIKE '%' || ?
+      )
+    ORDER BY p.created_at DESC
+    LIMIT 1
+  `).get(digits.slice(-10), digits.slice(-10));
+
+  if (!row) return { success: false, code: 'NO_OPEN_PAYMENT' };
+
+  const screenshotUrl = input.screenshotUrl || (input.mediaId ? `whatsapp-media:${input.mediaId}` : null);
+  const ts = nowIso();
+  const evtId = genId('evt');
+
+  db.transaction(() => {
+    db.prepare(`
+      UPDATE payments
+      SET status = 'PAYMENT_PENDING_REVIEW',
+          screenshot_url = COALESCE(?, screenshot_url),
+          submitted_at = ?,
+          updated_at = ?
+      WHERE id = ?
+    `).run(screenshotUrl, ts, ts, row.id);
+
+    db.prepare(`
+      UPDATE bookings_v2
+      SET payment_status = 'PAYMENT_PENDING_REVIEW', updated_at = ?
+      WHERE id = ?
+    `).run(ts, row.booking_id);
+
+    db.prepare(`
+      INSERT INTO payment_events (id, payment_id, event_type, actor_type, actor_id, metadata, created_at)
+      VALUES (?, ?, 'SUBMITTED', 'CUSTOMER', NULL, ?, ?)
+    `).run(evtId, row.id, JSON.stringify({ channel: 'whatsapp', screenshotUrl, notes: input.notes || null }), ts);
+  })();
+
+  return { success: true, paymentId: row.id, bookingId: row.booking_id };
+}
+
 module.exports = {
   listPendingPaymentReviews,
   getPaymentReviewDetail,
   submitPaymentProof,
+  submitCustomerWhatsAppProof,
   verifyPayment,
   rejectPayment
 };

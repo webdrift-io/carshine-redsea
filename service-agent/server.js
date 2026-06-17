@@ -25,6 +25,10 @@ const { assignCleaner, releaseAssignment } = require('./services/assignments');
 const paymentsReview = require('./services/payments-review');
 const cleanerLifecycle = require('./services/cleaner-lifecycle');
 const imageGen = require('./services/image-generation');
+const notifications = require('./services/notifications');
+const { startNotificationScheduler } = require('./jobs/scheduler');
+const publicBookingStatus = require('./services/public-booking-status');
+const revenueOps = require('./services/revenue-ops');
 
 // Feature flag: USE_MASTRA_AGENT (default: true). When false, the legacy
 // monolith in ./minimax-agent.js is used. The legacy file is kept around as a
@@ -51,6 +55,15 @@ const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 5000;
 const isProduction = process.env.NODE_ENV === 'production';
+
+if (isProduction && !process.env.JWT_SECRET) {
+  console.error('[Server] FATAL: JWT_SECRET must be set in production');
+  process.exit(1);
+}
+if (isProduction && !process.env.ADMIN_PASSWORD_HASH && !process.env.ADMIN_INITIAL_PASSWORD) {
+  console.error('[Server] FATAL: ADMIN_PASSWORD_HASH or ADMIN_INITIAL_PASSWORD must be set in production');
+  process.exit(1);
+}
 const PROJECT_ROOT = path.resolve(__dirname, '..');
 const DASHBOARD_PUBLIC_DIR = path.join(__dirname, 'public');
 
@@ -563,6 +576,25 @@ function integrationStatus() {
       automaticChargeSupported: false,
       connected: hasUsableEnv('INSTAPAY_PAYMENT_LINK') || hasUsableEnv('INSTAPAY_QR_IMAGE_URL'),
       note: 'InstaPay Egypt can use mobile/IPA, QR, or payment links. Automatic in-site charging needs an approved payment gateway or merchant API.'
+    },
+    mem0: {
+      connected: hasUsableEnv('MEM0_API_KEY'),
+      mode: hasUsableEnv('MEM0_API_KEY') ? 'live' : 'dry-run',
+      missing: hasUsableEnv('MEM0_API_KEY') ? [] : ['MEM0_API_KEY']
+    },
+    langfuse: {
+      connected: hasUsableEnv('LANGFUSE_PUBLIC_KEY') && hasUsableEnv('LANGFUSE_SECRET_KEY'),
+      mode: hasUsableEnv('LANGFUSE_PUBLIC_KEY') ? 'cloud' : 'jsonl',
+      missing: ['LANGFUSE_PUBLIC_KEY', 'LANGFUSE_SECRET_KEY'].filter((n) => !hasUsableEnv(n))
+    },
+    marketing: {
+      draftQueue: true,
+      autoPublish: false,
+      endpoint: '/api/admin/marketing/drafts'
+    },
+    notifications: {
+      jobsEnabled: process.env.ENABLE_NOTIFICATION_JOBS !== 'false',
+      schedulerIntervalMs: Number(process.env.NOTIFICATION_JOB_INTERVAL_MS || 300000)
     }
   };
 }
@@ -1039,9 +1071,13 @@ app.get('/api/public/chat/:sessionId', publicChatLimiter, (req, res) => {
   });
 });
 
-app.post('/api/public/bookings', publicChatLimiter, (req, res) => {
+app.post('/api/public/bookings', publicChatLimiter, async (req, res) => {
   try {
     const result = createPublicBooking(req.body || {});
+    if (result.success && result.status === 'QUOTED' && result.bookingV2Id) {
+      const row = db.db.prepare('SELECT b.*, c.phone_raw, c.phone_e164, c.language FROM bookings_v2 b JOIN customers c ON c.id = b.customer_id WHERE b.id = ?').get(result.bookingV2Id);
+      if (row) await notifications.notifyBookingConfirmation(row, row).catch(() => {});
+    }
     broadcast('booking:created', {
       booking: result.booking,
       bookingV2Id: result.bookingV2Id,
@@ -1059,6 +1095,15 @@ app.post('/api/public/bookings', publicChatLimiter, (req, res) => {
       message: 'Sorry, we could not save this booking request. Please try again or contact us on WhatsApp.'
     });
   }
+});
+
+app.get('/api/public/bookings/:publicRef/status', publicChatLimiter, (req, res) => {
+  const phoneLast4 = req.query.phoneLast4 || req.query.last4;
+  const status = publicBookingStatus.getPublicBookingStatus(req.params.publicRef, phoneLast4);
+  if (!status.found) {
+    return res.status(404).json({ success: false, error: status.error || 'NOT_FOUND' });
+  }
+  res.json({ success: true, ...status });
 });
 
 // Settings
@@ -1105,6 +1150,7 @@ app.get('/api/bookings', (req, res) => {
 });
 
 app.post('/api/bookings', (req, res) => {
+  res.set('X-Deprecated', 'true; use POST /api/public/bookings or agent createBooking → bookings_v2');
   const required = ['customerName', 'phone', 'area', 'carType', 'package', 'preferredDate', 'preferredTime', 'location', 'paymentMethod'];
   const missing = required.filter(f => !req.body[f]);
   if (missing.length > 0) {
@@ -1366,6 +1412,35 @@ app.post('/api/admin/marketing/images', requireAuth, requireRole(['OWNER', 'DISP
   }
 });
 
+app.get('/api/admin/revenue/summary', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (req, res) => {
+  const days = parseInt(req.query.days, 10) || 7;
+  res.json(revenueOps.getRevenueSummary({ days }));
+});
+
+app.get('/api/admin/dispatch/suggest/:bookingId', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (req, res) => {
+  res.json(revenueOps.suggestCleaner(req.params.bookingId));
+});
+
+app.get('/api/admin/marketing/drafts', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (req, res) => {
+  res.json({ drafts: revenueOps.listMarketingDrafts() });
+});
+
+app.post('/api/admin/marketing/drafts', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (req, res) => {
+  const { title, caption, imagePath } = req.body || {};
+  if (!title) return res.status(400).json({ error: 'title required' });
+  const draft = revenueOps.queueMarketingDraft({
+    title,
+    caption,
+    imagePath,
+    createdBy: req.user?.email
+  });
+  res.status(201).json({ success: true, draft });
+});
+
+app.post('/api/admin/marketing/drafts/:id/approve', requireAuth, requireRole(['OWNER']), (req, res) => {
+  res.json({ success: true, ...revenueOps.approveMarketingDraft(req.params.id) });
+});
+
 // Social Media (placeholder - full impl in Task 8)
 app.get('/api/socials/posts', (req, res) => {
   res.json(db.getAllSocialPosts());
@@ -1454,6 +1529,31 @@ app.post('/api/webhook/meta', whatsappLimiter, verifyMetaSignature, async (req, 
       }
       for (const change of entry.changes || []) {
         const value = change.value || {};
+        for (const waMsg of value.messages || []) {
+          const sender = waMsg.from;
+          if (!sender) continue;
+          const phone = sender.startsWith('+') ? sender : `+${sender}`;
+          if (waMsg.type === 'image' && waMsg.image?.id) {
+            const proof = paymentsReview.submitCustomerWhatsAppProof(phone, {
+              mediaId: waMsg.image.id,
+              notes: 'WhatsApp image upload'
+            });
+            if (proof.success) {
+              await sendWhatsAppText(phone, 'Thanks! We received your payment screenshot and will review it shortly.');
+              continue;
+            }
+          }
+          const text = waMsg.text?.body || waMsg.button?.text;
+          if (text) {
+            events.push({
+              source: 'whatsapp_cloud',
+              phone,
+              profileName: value.contacts?.[0]?.profile?.name || 'Customer',
+              text,
+              replyTarget: { type: 'whatsapp', phone }
+            });
+          }
+        }
         const text = value.message || value.text || value.comment?.message;
         const sender = value.from?.id || value.sender_id || value.comment?.from?.id || value.user_id;
         const commentId = value.comment_id || value.comment?.id || value.id;
@@ -1796,6 +1896,7 @@ app.use((err, req, res, next) => {
 // ============================================================================
 
 server.listen(PORT, '0.0.0.0', () => {
+  startNotificationScheduler();
   console.log(`Server running on http://0.0.0.0:${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`Allowed origins: ${allowedOrigins.join(', ')}`);

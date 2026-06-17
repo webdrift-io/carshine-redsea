@@ -1,0 +1,50 @@
+name: Staging Deploy Artifact
+
+on:
+  push:
+    branches: [develop, staging]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20.19.0'
+
+jobs:
+  staging-package:
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install and test
+        working-directory: service-agent
+        run: |
+          npm ci
+          npm test
+          npx playwright install chromium --with-deps
+          npm run test:e2e
+        env:
+          NODE_ENV: test
+          USE_MASTRA_AGENT: 'true'
+      - name: Build landing
+        run: |
+          cd landing-page && npm ci
+          cd .. && node build-landing.cjs
+      - name: Package staging artifact
+        run: |
+          mkdir -p staging-deploy
+          for d in routes public agents services migrations middleware memory observability jobs data; do
+            cp -r service-agent/$d staging-deploy/ 2>/dev/null || true
+          done
+          for f in package.json server.js database.js minimax-agent.js parsers.js logger.js openapi.yaml website-knowledge.js; do
+            cp service-agent/$f staging-deploy/ 2>/dev/null || true
+          done
+          cp -r landing-page/dist staging-deploy/public-landing
+          tar -czf staging-deploy.tar.gz staging-deploy/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: staging-build
+          path: staging-deploy.tar.gz
+          retention-days: 14

@@ -22,7 +22,7 @@ function createPublicBooking(input = {}) {
     // Slot/past-time precondition — runs before any customer/booking writes.
     // M0-005a: window-overlap + malformed-date guard lives in slot-overlap.js.
     if (draftStatus === 'QUOTED') {
-      const slotError = assertNoSlotConflict(normalized, servicePackage, now);
+      const slotError = assertNoSlotConflict(normalized, servicePackage, now, 2);
       if (slotError) return slotError;
     }
 

@@ -472,6 +472,24 @@ const GREETING_REPLIES = {
  */
 function intakeReply(language, missingField, opts = {}) {
   if (!missingField) {
+    const name = opts.customerName;
+    if (opts.returningCustomer && name) {
+      const last = opts.lastBooking;
+      const lastHint = last?.preferredDate
+        ? (language === 'ar'
+          ? ` آخر حجز كان ${last.preferredDate}`
+          : language === 'de'
+            ? ` Letzte Buchung: ${last.preferredDate}`
+            : ` Last booking: ${last.preferredDate}`)
+        : '';
+      if (language === 'ar') {
+        return `منورنا تاني يا ${name}!${lastHint} تحب تحجز غسيل تجريبي ولا باقة شهرية؟`;
+      }
+      if (language === 'de') {
+        return `Willkommen zurück, ${name}!${lastHint} Möchten Sie eine Probe-Wäsche oder ein Monatspaket buchen?`;
+      }
+      return `Welcome back, ${name}!${lastHint} Would you like to book a Trial Wash or a monthly plan?`;
+    }
     return GREETING_REPLIES[language] || GREETING_REPLIES.en;
   }
   const tpl = ASK_NEXT_FIELD[missingField];

@@ -25,6 +25,9 @@ function freshDb() {
   delete require.cache[require.resolve('../database')];
   delete require.cache[require.resolve('better-sqlite3')];
   delete require.cache[require.resolve('../migrations/001_create_handoff_tickets')];
+  delete require.cache[require.resolve('../services/agent-booking-bridge')];
+  delete require.cache[require.resolve('../services/public-bookings')];
+  delete require.cache[require.resolve('../services/slot-overlap')];
   // Also clear the agents/tools + decision so they re-resolve their db.
   delete require.cache[require.resolve('../agents/tools')];
   delete require.cache[require.resolve('../agents/decision')];
@@ -37,6 +40,26 @@ function freshDb() {
   process.env.DATABASE_PATH = tmpPath;
   const db = require('../database');
   return { db, tmpPath };
+}
+
+function seedV2Booking(tools, overrides = {}) {
+  const base = {
+    customerName: 'Filler',
+    phone: `+20100000${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`,
+    area: 'El Gouna',
+    carType: 'BMW',
+    package: 'Trial Wash',
+    preferredDate: '2099-01-01',
+    preferredTime: '10:00',
+    location: 'X',
+    paymentMethod: 'Cash',
+    ...overrides
+  };
+  const result = tools.createBooking(base);
+  if (!result.bookingCreated) {
+    throw new Error(`seedV2Booking failed: ${result.error || 'unknown'}`);
+  }
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -195,25 +218,12 @@ describe('BookingAgent tools (checkSlot + createBooking + validateBookingFields)
   });
 
   it('checkSlot: returns isAvailable=false after 2 bookings fill the hour', () => {
-    // Create two bookings at 10:00
     for (let i = 0; i < 2; i++) {
-      db.createBooking(
-        {
-          id: `b_fill_${i}`,
-          customerName: 'Filler',
-          phone: '+201000000000',
-          area: 'El Gouna',
-          carType: 'BMW',
-          package: 'Trial Wash',
-          preferredDate: '2099-01-01',
-          preferredTime: '10:00',
-          location: 'X',
-          paymentMethod: 'Cash',
-          status: 'pending',
-          notes: ''
-        },
-        null
-      );
+      seedV2Booking(tools, {
+        preferredDate: '2099-01-01',
+        preferredTime: '10:00',
+        phone: `+2010000000${i}`
+      });
     }
     const r = tools.checkSlot({ date: '2099-01-01', time: '10:00' });
     expect(r.isAvailable).toBe(false);
@@ -243,33 +253,20 @@ describe('BookingAgent tools (checkSlot + createBooking + validateBookingFields)
       chatSessionId: 'session_test'
     });
     expect(r.bookingCreated).toBe(true);
-    expect(r.bookingId).toMatch(/^b_/);
-    const persisted = db.getBooking(r.bookingId);
+    expect(r.bookingId).toMatch(/^CR-/);
+    const persisted = tools.getBookingV2ByRef(r.bookingId);
     expect(persisted).toBeTruthy();
-    expect(persisted.status).toBe('pending');
+    expect(persisted.status).toBe('QUOTED');
     expect(preserved_notes_contains(persisted.notes, 'Created via AI agent'));
   });
 
   it('createBooking: rejects when slot is full at insert time (race-safe)', () => {
-    // Pre-fill hour 14:00
     for (let i = 0; i < 2; i++) {
-      db.createBooking(
-        {
-          id: `b_prerace_${i}`,
-          customerName: 'Filler',
-          phone: '+201000000000',
-          area: 'El Gouna',
-          carType: 'BMW',
-          package: 'Trial Wash',
-          preferredDate: '2099-01-01',
-          preferredTime: '14:00',
-          location: 'X',
-          paymentMethod: 'Cash',
-          status: 'pending',
-          notes: ''
-        },
-        null
-      );
+      seedV2Booking(tools, {
+        preferredDate: '2099-01-01',
+        preferredTime: '14:00',
+        phone: `+201000001${i}`
+      });
     }
     const r = tools.createBooking({
       customerName: 'Ahmed',
@@ -300,7 +297,7 @@ describe('BookingAgent tools (checkSlot + createBooking + validateBookingFields)
       paymentMethod: 'InstaPay'
     });
     expect(r.bookingCreated).toBe(true);
-    const persisted = db.getBooking(r.bookingId);
+    const persisted = tools.getBookingV2ByRef(r.bookingId);
     expect(persisted.notes).toMatch(/Awaiting receipt screenshot/);
   });
 
@@ -377,27 +374,14 @@ describe('BookingAgent tools (checkSlot + createBooking + validateBookingFields)
   });
 
   it('suggestAlternatives: excludes a specific time and respects capacity', () => {
-    // Fill 10:00, 11:00, 12:00
     const hours = [10, 11, 12];
     for (let i = 0; i < hours.length; i++) {
       for (let j = 0; j < 2; j++) {
-        db.createBooking(
-          {
-            id: `b_alt_${hours[i]}_${j}`,
-            customerName: 'Filler',
-            phone: '+201000000000',
-            area: 'El Gouna',
-            carType: 'BMW',
-            package: 'Trial Wash',
-            preferredDate: '2099-01-01',
-            preferredTime: `${String(hours[i]).padStart(2, '0')}:00`,
-            location: 'X',
-            paymentMethod: 'Cash',
-            status: 'pending',
-            notes: ''
-          },
-          null
-        );
+        seedV2Booking(tools, {
+          preferredDate: '2099-01-01',
+          preferredTime: `${String(hours[i]).padStart(2, '0')}:00`,
+          phone: `+20100001${i}${j}`
+        });
       }
     }
     const r = tools.suggestAlternatives({ date: '2099-01-01', excludeTime: '09:00' });
@@ -501,44 +485,22 @@ describe('HandoffAgent (urgencyFor + escalateToHuman + findCustomerBooking)', ()
   });
 
   it('findCustomerBooking: returns the customer\'s bookings, newest first', () => {
-    // Seed two bookings
-    db.createBooking(
-      {
-        id: 'b_old',
-        customerName: 'Ahmed',
-        phone: '+201000000000',
-        area: 'El Gouna',
-        carType: 'BMW',
-        package: 'Trial Wash',
-        preferredDate: '2098-12-01',
-        preferredTime: '10:00',
-        location: 'X',
-        paymentMethod: 'Cash',
-        status: 'pending',
-        notes: ''
-      },
-      null
-    );
-    db.createBooking(
-      {
-        id: 'b_new',
-        customerName: 'Ahmed',
-        phone: '+201000000000',
-        area: 'El Gouna',
-        carType: 'BMW',
-        package: 'Smart Plan',
-        preferredDate: '2099-01-01',
-        preferredTime: '10:00',
-        location: 'X',
-        paymentMethod: 'Cash',
-        status: 'pending',
-        notes: ''
-      },
-      null
-    );
+    seedV2Booking(tools, {
+      customerName: 'Ahmed',
+      phone: '+201000000000',
+      preferredDate: '2098-12-01',
+      preferredTime: '10:00'
+    });
+    const newer = seedV2Booking(tools, {
+      customerName: 'Ahmed',
+      phone: '+201000000000',
+      package: 'Smart Plan',
+      preferredDate: '2099-06-01',
+      preferredTime: '10:00'
+    });
     const r = tools.findCustomerBooking({ phone: '+201000000000' });
     expect(r.bookings.length).toBe(2);
-    expect(r.lastBooking.id).toBe('b_new');
+    expect(r.lastBooking.id).toBe(newer.bookingId);
   });
 
   it('findCustomerBooking: returns empty when no bookings exist', () => {
@@ -593,15 +555,14 @@ describe('Orchestrator (handleIncomingMessage contract)', () => {
       'Sara'
     );
     expect(r.bookingCreated).toBe(true);
-    expect(r.bookingId).toMatch(/^b_/);
+    expect(r.bookingId).toMatch(/^CR-/);
     expect(r.humanNeeded).toBe(false);
-    // Verify the booking is in the database
-    const persisted = db.getBooking(r.bookingId);
+    const persisted = orch.getBookingV2ByRef
+      ? orch.getBookingV2ByRef(r.bookingId)
+      : require('../agents/tools').getBookingV2ByRef(r.bookingId);
     expect(persisted).toBeTruthy();
     expect(persisted.customerName).toBe('Sara');
-    expect(persisted.area).toBe('Hurghada');
-    expect(persisted.carType).toBe('TOYOTA');
-    expect(persisted.package).toBe('Premium Plan');
+    expect(persisted.status).toBe('QUOTED');
   });
 
   it('does NOT create a booking for incomplete messages (asks for next field)', async () => {

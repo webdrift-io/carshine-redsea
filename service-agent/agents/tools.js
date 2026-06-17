@@ -36,6 +36,14 @@ const db = require('../database');
 const {
   applyHandoffTicketsMigration
 } = require('../migrations/001_create_handoff_tickets');
+const {
+  checkSlotV2,
+  suggestAlternativesV2,
+  createAgentBooking,
+  getBookingsV2ByPhone,
+  getBookingV2ByRef: getBookingV2ByRefFromBridge,
+  ALL_OPERATING_HOURS: BRIDGE_OPERATING_HOURS
+} = require('../services/agent-booking-bridge');
 
 // ---------------------------------------------------------------------------
 // Mem0 — real wrapper
@@ -167,11 +175,9 @@ function _newBookingId() {
 
 const lookupCustomer = async ({ phone }) => {
   if (!phone) return { found: false, phone: null, bookings: [], mem0: null };
-  const bookings = db.getBookingsByPhone ? db.getBookingsByPhone(phone) : [];
-  // Fallback: filter from getAllBookings if getBookingsByPhone is missing.
-  const safeBookings = Array.isArray(bookings) && bookings.length
-    ? bookings
-    : db.getAllBookings().filter((b) => b.phone === phone);
+  const v2Bookings = getBookingsV2ByPhone(phone);
+  const legacyBookings = db.getBookingsByPhone ? db.getBookingsByPhone(phone) : [];
+  const safeBookings = v2Bookings.length > 0 ? v2Bookings : legacyBookings;
   const mem0 = await mem0Lookup(phone);
   return {
     found: safeBookings.length > 0 || !!mem0,
@@ -208,30 +214,7 @@ const lookupCustomerTool = createTool({
 // 2. checkSlotTool
 // ---------------------------------------------------------------------------
 
-const checkSlot = ({ date, time }) => {
-  if (!date || !time) {
-    return { date, time, isAvailable: false, currentBookings: 0, capacity: 2, reason: 'missing-args' };
-  }
-  // Parse hour for "outside operating hours" reporting.
-  const hour = parseInt(String(time).split(':')[0], 10);
-  if (Number.isNaN(hour) || hour < 9 || hour > 17) {
-    return { date, time, isAvailable: false, currentBookings: 0, capacity: 2, reason: 'outside-hours' };
-  }
-  const isAvailable = db.isSlotAvailable(date, time);
-  // Count existing bookings on that date+hour for the response.
-  const all = db.getAllBookings();
-  const dayBookings = all.filter(
-    (b) => b.preferredDate === date && String(b.preferredTime).startsWith(String(hour).padStart(2, '0') + ':')
-  );
-  return {
-    date,
-    time,
-    isAvailable,
-    currentBookings: dayBookings.length,
-    capacity: 2,
-    reason: isAvailable ? 'ok' : 'full'
-  };
-};
+const checkSlot = ({ date, time }) => checkSlotV2({ date, time });
 
 const checkSlotTool = createTool({
   id: 'checkSlot',
@@ -258,25 +241,10 @@ const checkSlotTool = createTool({
 // 3. suggestAlternativesTool
 // ---------------------------------------------------------------------------
 
-const ALL_OPERATING_HOURS = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'];
+const ALL_OPERATING_HOURS = BRIDGE_OPERATING_HOURS;
 
-const suggestAlternatives = ({ date, excludeTime, max = 3 } = {}) => {
-  if (!date) return { date, alternatives: [] };
-  const all = db.getAllBookings();
-  // Build a map: hour -> count of bookings
-  const counts = new Map();
-  for (const b of all) {
-    if (b.preferredDate !== date) continue;
-    const hour = parseInt(String(b.preferredTime).split(':')[0], 10);
-    if (Number.isNaN(hour)) continue;
-    counts.set(hour, (counts.get(hour) || 0) + 1);
-  }
-  const alternatives = ALL_OPERATING_HOURS
-    .filter((t) => t !== excludeTime)
-    .filter((t) => (counts.get(parseInt(t.split(':')[0], 10)) || 0) < 2)
-    .slice(0, max);
-  return { date, alternatives, capacity: 2 };
-};
+const suggestAlternatives = ({ date, excludeTime, max = 3 } = {}) =>
+  suggestAlternativesV2({ date, excludeTime, max });
 
 const suggestAlternativesTool = createTool({
   id: 'suggestAlternatives',
@@ -320,47 +288,48 @@ const createBooking = (input = {}) => {
     return { bookingCreated: false, bookingId: null, missingFields: missing, error: null };
   }
 
-  // Re-check slot at the moment of insert to avoid TOCTOU.
-  if (!db.isSlotAvailable(input.preferredDate, input.preferredTime)) {
+  const slot = checkSlotV2({
+    date: input.preferredDate,
+    time: input.preferredTime
+  });
+  if (!slot.isAvailable) {
     return {
       bookingCreated: false,
       bookingId: null,
       missingFields: null,
       error: 'slot-unavailable',
-      alternatives: suggestAlternatives({
+      alternatives: suggestAlternativesV2({
         date: input.preferredDate,
         excludeTime: input.preferredTime
       }).alternatives
     };
   }
 
-  const bookingId = input.id || _newBookingId();
-  const now = new Date().toISOString();
-  const isInstaPay = String(input.paymentMethod).toLowerCase() === 'instapay';
-  const booking = {
-    id: bookingId,
-    customerName: String(input.customerName).trim(),
-    phone: String(input.phone).trim(),
-    area: input.area,
-    carType: input.carType,
-    package: input.package,
-    preferredDate: input.preferredDate,
-    preferredTime: input.preferredTime,
-    location: input.location,
-    paymentMethod: input.paymentMethod,
-    status: 'pending',
-    notes:
-      (input.notes ? input.notes + ' ' : '') +
-      (isInstaPay ? 'Awaiting receipt screenshot' : 'Created via AI agent'),
-    createdAt: now,
-    updatedAt: now
-  };
   try {
-    db.createBooking(booking, input.chatSessionId || null);
+    const result = createAgentBooking({
+      ...input,
+      notes: (input.notes ? input.notes + ' ' : '') + 'Created via AI agent'
+    });
+    if (!result.bookingCreated) {
+      return {
+        bookingCreated: false,
+        bookingId: null,
+        missingFields: result.missingFields,
+        error: result.error,
+        alternatives: result.alternatives
+      };
+    }
+    return {
+      bookingCreated: true,
+      bookingId: result.bookingId,
+      bookingV2Id: result.bookingV2Id,
+      missingFields: null,
+      error: null,
+      booking: result.booking
+    };
   } catch (err) {
     return { bookingCreated: false, bookingId: null, missingFields: null, error: err.message };
   }
-  return { bookingCreated: true, bookingId, missingFields: null, error: null, booking };
 };
 
 const createBookingTool = createTool({
@@ -409,7 +378,10 @@ const createBookingTool = createTool({
 
 const findCustomerBooking = ({ phone }) => {
   if (!phone) return { phone, bookings: [], lastBooking: null };
-  const bookings = db.getAllBookings().filter((b) => b.phone === phone);
+  const v2Bookings = getBookingsV2ByPhone(phone);
+  const bookings = v2Bookings.length > 0
+    ? v2Bookings
+    : db.getAllBookings().filter((b) => b.phone === phone);
   return { phone, bookings, lastBooking: bookings[0] || null };
 };
 
@@ -555,7 +527,7 @@ module.exports = {
   findCustomerBooking,
   escalateToHuman,
 
-  // Mem0 stubs (track-3 will replace these)
+  getBookingV2ByRef: getBookingV2ByRefFromBridge,
   mem0Lookup,
   mem0Remember,
   _resetMem0ForTests,

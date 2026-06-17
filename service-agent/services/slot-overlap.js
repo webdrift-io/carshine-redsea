@@ -95,7 +95,7 @@ function findOverlappingBookings({ scheduledStart, scheduledEnd, excludeBookingI
  * @param {string} now          ISO timestamp
  * @returns {null | { success:false, status:string, missingFields?:string[], message:string }}
  */
-function assertNoSlotConflict(normalized, servicePackage, now) {
+function assertNoSlotConflict(normalized, servicePackage, now, maxConcurrent = 1) {
   if (!normalized || !normalized.scheduledStart) {
     // No scheduledStart is not the slot-overlap layer's job; the public
     // service handles missing-field intake elsewhere. Return null so the
@@ -128,7 +128,10 @@ function assertNoSlotConflict(normalized, servicePackage, now) {
     scheduledEnd: endDate.toISOString()
   });
 
-  if (overlaps.length > 0) {
+  // Only reject when the slot is truly full (>= maxConcurrent active bookings).
+  // This aligns with checkSlotV2 which allows MAX_CONCURRENT (2) concurrent
+  // bookings per hour — a single overlap is allowed; two is full.
+  if (overlaps.length >= maxConcurrent) {
     return { ...CONFLICT_RESULT, conflictingBookings: overlaps.map(toConflictShape) };
   }
 

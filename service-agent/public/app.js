@@ -135,9 +135,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initial data fetch
   fetchData();
-  
-  // Poll data every 4 seconds for real-time changes
-  setInterval(fetchData, 40000);
+  setupSocketRealtime();
+
+  // Fallback poll every 4 minutes if socket disconnects
+  setInterval(fetchData, 240000);
 });
 
 function setAuthStatus(message, type = 'info') {
@@ -145,6 +146,30 @@ function setAuthStatus(message, type = 'info') {
   if (!box) return;
   box.textContent = message;
   box.className = `auth-status-box ${type}`;
+}
+
+let dashboardSocket = null;
+
+function setupSocketRealtime() {
+  if (typeof io === 'undefined' || !authToken) return;
+  try {
+    if (dashboardSocket) dashboardSocket.disconnect();
+    dashboardSocket = io({
+      auth: { token: authToken },
+      transports: ['websocket', 'polling']
+    });
+    dashboardSocket.on('connect', () => {
+      console.log('[Socket] connected');
+    });
+    dashboardSocket.on('booking:created', () => fetchData());
+    dashboardSocket.on('chat:updated', () => fetchData());
+    dashboardSocket.on('autopilot', () => fetchData());
+    dashboardSocket.on('disconnect', () => {
+      console.log('[Socket] disconnected — using slow poll fallback');
+    });
+  } catch (err) {
+    console.warn('[Socket] setup failed', err);
+  }
 }
 
 function setupAuthPanel() {
@@ -173,6 +198,7 @@ function setupAuthPanel() {
       authToken = data.token;
       localStorage.setItem('carshine_admin_token', authToken);
       setAuthStatus(`Logged in as ${data.user?.email || email}. Token expires in ${data.expiresIn}.`, 'ok');
+      setupSocketRealtime();
       fetchData();
     } catch (err) {
       setAuthStatus(`Login error: ${err.message}`, 'warn');
@@ -237,7 +263,27 @@ function setupNavigation() {
       switchSection(sectionId);
     });
   });
-  
+
+  // Hero action buttons (M2) — same routing as sidebar nav.
+  document.addEventListener('click', (e) => {
+    const heroBtn = e.target.closest('.m1-hero-btn[data-section]');
+    if (heroBtn) {
+      e.preventDefault();
+      const sectionId = heroBtn.getAttribute('data-section');
+      if (sectionId) switchSection(sectionId);
+    }
+  });
+
+  // Logo area in sidebar acts as quick "back to overview" (M2)
+  document.addEventListener('click', (e) => {
+    const logoLink = e.target.closest('.logo-area[data-section]');
+    if (logoLink) {
+      e.preventDefault();
+      const sectionId = logoLink.getAttribute('data-section');
+      if (sectionId) switchSection(sectionId);
+    }
+  });
+
   // Make clicking dashboard elements redirect to approvals
   document.addEventListener('click', (e) => {
     if (e.target && e.target.classList.contains('view-all-link')) {
@@ -650,48 +696,48 @@ function renderApprovalsQueue() {
     const paymentNote = usesInstaPay(b.paymentMethod)
       ? `<div class="payment-routing-note"><i class="fa-solid fa-receipt"></i> InstaPay to ${BUSINESS_CONTACT.localPhone}. Receipt screenshot required before final confirmation.</div>`
       : `<div class="payment-routing-note muted"><i class="fa-solid fa-circle-info"></i> Confirm payment method with the customer before approval.</div>`;
-    
+
     return `
-      <div class="approval-card card-glass" id="card-${b.id}">
+      <div class="approval-card card-glass" id="card-${escapeHtml(b.id)}">
         <div class="customer-card-meta">
-          <h3>${b.customerName}</h3>
-          <span class="meta-phone">${b.phone}</span>
+          <h3>${escapeHtml(b.customerName || '—')}</h3>
+          <span class="meta-phone">${escapeHtml(b.phone || '—')}</span>
           <div class="meta-detail-row">
-            <span><i class="fa-solid fa-clock"></i> Received: ${dateFormatted}</span>
+            <span><i class="fa-solid fa-clock"></i> Received: ${escapeHtml(dateFormatted)}</span>
           </div>
           <div class="meta-detail-row">
-            <span><i class="fa-solid fa-location-dot"></i> Address: ${b.location}</span>
+            <span><i class="fa-solid fa-location-dot"></i> Address: ${escapeHtml(b.location || '—')}</span>
           </div>
         </div>
-        
+
         <div class="booking-specs-col">
           <div class="specs-item">
             <i class="fa-solid fa-car"></i>
-            <span>${b.carType}</span>
+            <span>${escapeHtml(b.carType || '—')}</span>
           </div>
           <div class="specs-item">
             <i class="fa-solid fa-cube"></i>
-            <span class="badge-outline">${b.package.split(' - ')[0]}</span>
+            <span class="badge-outline">${escapeHtml((b.package || '').split(' - ')[0] || '—')}</span>
           </div>
           <div class="specs-item">
             <i class="fa-solid fa-calendar-check"></i>
-            <span>${b.preferredDate} at ${b.preferredTime}</span>
+            <span>${escapeHtml(b.preferredDate || '—')} at ${escapeHtml(b.preferredTime || '—')}</span>
           </div>
           <div class="specs-item">
             <i class="fa-solid fa-credit-card"></i>
-            <span>Payment: <strong>${b.paymentMethod}</strong></span>
+            <span>Payment: <strong>${escapeHtml(b.paymentMethod || '—')}</strong></span>
           </div>
           ${paymentNote}
         </div>
-        
+
         <div class="approval-actions-col">
-          <a class="btn btn-secondary btn-whatsapp" href="${customerWhatsAppUrl}" target="_blank" rel="noopener">
+          <a class="btn btn-secondary btn-whatsapp" href="${escapeHtml(customerWhatsAppUrl)}" target="_blank" rel="noopener">
             <i class="fa-brands fa-whatsapp"></i> WhatsApp
           </a>
-          <button class="btn btn-reject" onclick="rejectBooking('${b.id}')">
+          <button class="btn btn-reject" onclick="rejectBooking('${escapeHtml(b.id)}')">
             <i class="fa-solid fa-xmark"></i> Reject
           </button>
-          <button class="btn btn-approve" onclick="approveBooking('${b.id}')">
+          <button class="btn btn-approve" onclick="approveBooking('${escapeHtml(b.id)}')">
             <i class="fa-solid fa-check"></i> Approve
           </button>
         </div>

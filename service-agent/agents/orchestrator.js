@@ -77,6 +77,7 @@ const {
   createBooking,
   findCustomerBooking,
   escalateToHuman,
+  lookupCustomer,
   _resetMem0ForTests
 } = require('./tools');
 
@@ -273,11 +274,16 @@ async function _tryMastraGenerate(agent, message, opts = {}) {
  * Intake handler — used when router/intake agent is selected.
  * Returns { reply, needsHuman, reason, updatedSlots }.
  */
-function _handleIntake(routerOutput, session) {
+function _handleIntake(routerOutput, session, customerContext = null) {
   const { language, slots, intent } = routerOutput;
 
   // Merge with previously-collected session details so we don't re-ask.
   const merged = _mergeSlots(_normalizeSlotsFromSession(session), slots);
+  const greetingOpts = {
+    customerName: customerContext?.customerName || merged.customerName,
+    returningCustomer: Boolean(customerContext?.found),
+    lastBooking: customerContext?.lastBooking || null
+  };
 
   // Pure greeting / smalltalk with no booking started yet → greet warmly
   // instead of jumping straight into slot-fill ("What WhatsApp number...").
@@ -285,7 +291,7 @@ function _handleIntake(routerOutput, session) {
   // slot is present) we fall through to the slot-collection logic below.
   if (intent === 'chitchat' && !_hasBookingProgress(merged)) {
     return {
-      reply: intakeReply(language, null),
+      reply: intakeReply(language, null, greetingOpts),
       needsHuman: false,
       reason: null,
       nextField: null,
@@ -318,7 +324,11 @@ function _handleIntake(routerOutput, session) {
       break;
     }
   }
-  const reply = intakeReply(language, nextField, { customerName: merged.customerName });
+  const reply = intakeReply(language, nextField, {
+    customerName: greetingOpts.customerName,
+    returningCustomer: greetingOpts.returningCustomer,
+    lastBooking: greetingOpts.lastBooking
+  });
   return {
     reply,
     needsHuman: false,
@@ -527,6 +537,15 @@ async function _handleIncomingMessageInner(phone, message, profileName, session)
   // 1. Persist incoming
   _persistIncomingMessage(session, message);
 
+  let customerContext = null;
+  if (phone && !_isGeneratedWebPhone(phone)) {
+    try {
+      customerContext = await lookupCustomer({ phone });
+    } catch (err) {
+      console.warn('[Orchestrator] lookupCustomer failed:', err.message);
+    }
+  }
+
   // 1b. Interruption layer — runs BEFORE classifyIntent so general questions
   //     ("wait", "how are you", "i have other questions", "no i want to know
   //     about the price") never get trapped in the booking slot-fill loop.
@@ -673,7 +692,7 @@ async function _handleIncomingMessageInner(phone, message, profileName, session)
     outcome = _handleBooking(routerOutput, phone, session);
   } else {
     // intake or router — same surface
-    outcome = _handleIntake(routerOutput, session);
+    outcome = _handleIntake(routerOutput, session, customerContext);
     session = _persistCollectedSlots(session, outcome.mergedSlots, outcome.nextField, routerOutput.language);
   }
 

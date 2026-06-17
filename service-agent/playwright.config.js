@@ -46,7 +46,7 @@ module.exports = defineConfig({
       DATABASE_PATH: E2E_DB,
       JWT_SECRET: E2E_JWT_SECRET,
       // Prevent Mastra/LLM calls from failing silently during E2E
-      USE_MASTRA_AGENT: 'false',
+      USE_MASTRA_AGENT: process.env.USE_MASTRA_AGENT || 'true',
     },
   },
 

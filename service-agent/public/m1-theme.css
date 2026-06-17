@@ -2326,3 +2326,262 @@ body {
   gap: 6px;
 }
 .m1-dot.cyan   { background: #22d3ee; }
+
+/* ─────────────────────────────────────────────────────────────
+   99. PREMIUM POLISH (M2 — CarShine Red Sea branding)
+   Sidebar logo image, header brand mark, hero action buttons,
+   live-pulse indicator, robust hero image stacking, responsive
+   mobile drawer polish.
+───────────────────────────────────────────────────────────── */
+
+/* Sidebar logo image (new brand mark) */
+.sidebar .logo-area {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  user-select: none;
+}
+.sidebar .logo-icon {
+  background: linear-gradient(135deg, rgba(217,119,6,0.18), rgba(217,119,6,0.05));
+  border: 1px solid rgba(217,119,6,0.35);
+  box-shadow:
+    0 0 0 1px rgba(217,119,6,0.05) inset,
+    0 4px 14px rgba(217,119,6,0.18);
+  overflow: hidden;
+  position: relative;
+  transition: transform 220ms var(--ease-out-expo, cubic-bezier(.16,1,.3,1)),
+              box-shadow 220ms ease;
+}
+.sidebar .logo-area:hover .logo-icon {
+  transform: translateY(-1px) scale(1.03);
+  box-shadow:
+    0 0 0 1px rgba(217,119,6,0.1) inset,
+    0 8px 24px rgba(217,119,6,0.28);
+}
+.sidebar-logo-mark {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  display: block;
+  /* Blue mark is the most visible on dark sidebar; the copper halo behind
+     gives it a premium feel without changing the brand colour. */
+  filter: drop-shadow(0 0 6px rgba(217,119,6,0.35));
+  position: relative;
+  z-index: 1;
+}
+.sidebar .brand-title {
+  background: linear-gradient(180deg, #fff 0%, #f1f5f9 100%);
+  -webkit-background-clip: text;
+          background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: 0.3px;
+}
+.sidebar .brand-subtitle {
+  color: var(--accent-blue-light, #fbbf24);
+  font-weight: 600;
+  letter-spacing: 1.6px;
+  font-size: 10.5px;
+  opacity: 0.85;
+}
+
+/* Header brand row */
+.header-brand-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.header-brand-mark {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  flex-shrink: 0;
+  border-radius: 8px;
+  padding: 4px;
+  background: linear-gradient(135deg, rgba(217,119,6,0.15), rgba(217,119,6,0.04));
+  border: 1px solid rgba(217,119,6,0.25);
+  filter: drop-shadow(0 0 6px rgba(217,119,6,0.2));
+}
+
+/* Hero live pulse */
+.m1-hero-pulse {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  margin-right: 8px;
+  box-shadow: 0 0 0 0 rgba(34,197,94,0.6);
+  animation: m1-pulse 1.8s ease-out infinite;
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
+}
+@keyframes m1-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(34,197,94,0.55); }
+  70%  { box-shadow: 0 0 0 8px rgba(34,197,94,0); }
+  100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+}
+
+/* Hero action buttons */
+.m1-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+.m1-hero-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: transform 160ms ease, background 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.m1-hero-btn.primary {
+  background: linear-gradient(135deg, #D97706 0%, #b35c00 100%);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(217,119,6,0.4);
+}
+.m1-hero-btn.primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(217,119,6,0.55);
+}
+.m1-hero-btn.ghost {
+  background: rgba(255,255,255,0.04);
+  color: var(--text-primary, #e2e8f0);
+  border-color: rgba(255,255,255,0.1);
+}
+.m1-hero-btn.ghost:hover {
+  background: rgba(217,119,6,0.12);
+  border-color: rgba(217,119,6,0.35);
+  color: #fbbf24;
+  transform: translateY(-1px);
+}
+
+/* Hero car image — robust stacking. The picture itself stays z-index 2,
+   the glow stays z-index 1, and the grid pattern stays z-index 0. The
+   wrapper forces the picture's z-index context so the car paints above
+   the grid pattern even when the picture has its own stacking context. */
+.m1-hero-right {
+  z-index: 2;
+}
+.m1-hero-car-wrap {
+  position: relative;
+  display: inline-block;
+  z-index: 2;
+  isolation: isolate;
+}
+.m1-hero-car-image {
+  z-index: 3;
+  position: relative;
+  /* Make sure the picture is visible immediately — the .m1-car-enter
+     keyframe still plays, but the start state is now at 0.85 opacity
+     (visible) instead of 0, so screenshots taken during the animation
+     still capture a real image. */
+  opacity: 1;
+  animation: m1-car-enter 700ms var(--ease-out-expo, cubic-bezier(.16,1,.3,1)) both;
+  animation-delay: 120ms;
+  /* Re-assert the picture is a stacking context so z-index above wins
+     over the .m1-hero-banner::after grid (which is z-index 0). */
+  isolation: isolate;
+}
+.m1-hero-car-image img {
+  display: block !important;
+  width: 100%;
+  height: auto;
+  /* Make the JPG look intentional on the dark hero — the photo
+     was tuned bright, so a tiny brightness/contrast lift keeps the
+     car looking crisp without blowing out. */
+  filter: brightness(1.05) contrast(1.04) saturate(1.06);
+}
+.m1-hero-glow {
+  z-index: 1;
+}
+@keyframes m1-car-enter {
+  from { opacity: 0.85; transform: translateY(8px) scale(0.985); }
+  to   { opacity: 1;    transform: translateY(0)   scale(1); }
+}
+
+/* Subtle brand watermark in the sidebar footer */
+.sidebar-footer {
+  position: relative;
+}
+.sidebar-footer::before {
+  content: '';
+  position: absolute;
+  inset: auto 0 60px 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--glass-border, rgba(255,255,255,0.08)), transparent);
+  pointer-events: none;
+}
+
+/* Subtle brand wordmark under user profile (premium feel) */
+.user-profile {
+  position: relative;
+  padding-right: 4px;
+}
+.user-profile::after {
+  content: 'CarShine Red Sea';
+  position: absolute;
+  bottom: -18px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: 'Poppins', sans-serif;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted, #94a3b8);
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* Premium pill shadow on KPI cards */
+.kpi-card.card-glass {
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.25));
+  transition: transform 220ms var(--ease-out-expo, cubic-bezier(.16,1,.3,1)),
+              box-shadow 220ms ease,
+              border-color 220ms ease;
+}
+.kpi-card.card-glass:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.4);
+  border-color: var(--glass-border-hover, rgba(217,119,6,0.25));
+}
+
+/* Status pills — tighten alignment for cleaner readability */
+.m1-status-pill, .m1-chip, .status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Mobile drawer — improve readability on small screens */
+@media (max-width: 900px) {
+  .sidebar .logo-area .brand-subtitle { font-size: 9.5px; }
+  .sidebar .logo-icon { width: 38px; height: 38px; }
+  .sidebar-logo-mark { width: 28px; height: 28px; }
+  .header-brand-mark { width: 28px; height: 28px; }
+  .m1-hero-actions { gap: 6px; }
+  .m1-hero-btn { font-size: 11.5px; padding: 7px 12px; }
+}
+
+/* Light-mode (bw-theme) brand — keep the new logo readable on white too */
+body.light-mode .sidebar-logo-mark { filter: drop-shadow(0 0 4px rgba(217,119,6,0.25)); }
+body.light-mode .header-brand-mark {
+  background: linear-gradient(135deg, rgba(217,119,6,0.08), rgba(217,119,6,0.02));
+  border-color: rgba(217,119,6,0.2);
+}
+body.light-mode .m1-hero-btn.primary { color: #fff; }
+

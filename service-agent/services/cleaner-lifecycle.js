@@ -201,6 +201,23 @@ function transitionCleanerBookingStatus(bookingId, targetStatus, actor) {
     'SELECT id, status, payment_status, updated_at FROM bookings_v2 WHERE id = ?'
   ).get(bookingId);
 
+  if (targetStatus === 'COMPLETED') {
+    try {
+      const notifications = require('./notifications');
+      const fullRow = db.prepare(`
+        SELECT b.*, c.phone_raw, c.phone_e164, c.full_name, c.language
+        FROM bookings_v2 b
+        JOIN customers c ON c.id = b.customer_id
+        WHERE b.id = ?
+      `).get(bookingId);
+      if (fullRow) {
+        notifications.notifyCompletion(fullRow, fullRow).catch(() => {});
+      }
+    } catch (_e) {
+      // notifications are best-effort
+    }
+  }
+
   return {
     success: true,
     booking: {
