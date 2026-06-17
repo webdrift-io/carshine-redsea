@@ -24,6 +24,7 @@ const usersService = require('./services/users');
 const { assignCleaner, releaseAssignment } = require('./services/assignments');
 const paymentsReview = require('./services/payments-review');
 const cleanerLifecycle = require('./services/cleaner-lifecycle');
+const imageGen = require('./services/image-generation');
 
 // Feature flag: USE_MASTRA_AGENT (default: true). When false, the legacy
 // monolith in ./minimax-agent.js is used. The legacy file is kept around as a
@@ -459,6 +460,12 @@ app.get('/dashboard', (req, res) => {
 app.use('/dashboard', express.static(DASHBOARD_PUBLIC_DIR));
 app.use('/ar', express.static(path.join(PROJECT_ROOT, 'ar')));
 app.use('/de', express.static(path.join(PROJECT_ROOT, 'de')));
+// Generated marketing/website images (MiniMax). Read-only static; the API key
+// that produced them never touches the client — only the resulting PNGs do.
+app.use('/media', express.static(path.join(__dirname, 'generated-media'), {
+  maxAge: '7d',
+  index: false
+}));
 
 // API documentation routes
 app.use('/api-docs', require('./routes/api-docs'));
@@ -1309,6 +1316,46 @@ app.post('/api/agents/:id/toggle', requireAdmin, (req, res) => {
   logger.info({ agentId: id, status: agent.status, actor }, 'Agent status changed');
   
   res.json({ success: true, agent });
+});
+
+// ============================================================================
+// MARKETING — MiniMax image generation (admin only; key stays server-side)
+// ============================================================================
+
+// Whether image generation is configured (does NOT expose the key).
+app.get('/api/admin/marketing/image-status', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (req, res) => {
+  res.json({ configured: imageGen.isConfigured(), model: imageGen.IMAGE_MODEL });
+});
+
+// Generate one or more realistic brand images from a prompt.
+// Body: { prompt, category?, aspectRatio?, n?, rawPrompt?, seed? }
+app.post('/api/admin/marketing/images', requireAuth, requireRole(['OWNER', 'DISPATCHER']), async (req, res) => {
+  const { prompt, category, aspectRatio, n, rawPrompt, seed, width, height } = req.body || {};
+  if (!prompt || typeof prompt !== 'string' || prompt.trim().length < 3) {
+    return res.status(400).json({ error: 'A non-empty "prompt" is required.' });
+  }
+  if (!imageGen.isConfigured()) {
+    return res.status(503).json({
+      error: 'Image generation is not configured. Set MINIMAX_API_KEY in service-agent/.env (server-side only).'
+    });
+  }
+  try {
+    const result = await imageGen.generateAndSave({
+      prompt,
+      category,
+      aspectRatio,
+      width,
+      height,
+      n: Math.min(parseInt(n, 10) || 1, 4), // cap per-request to control cost
+      rawPrompt: Boolean(rawPrompt),
+      seed: Number.isInteger(seed) ? seed : undefined
+    });
+    // Never echo the key or upstream auth; only the saved local URLs.
+    res.json({ success: true, ...result });
+  } catch (err) {
+    console.error('[Marketing] image generation failed:', err.message);
+    res.status(502).json({ error: 'Image generation failed.', detail: err.message });
+  }
 });
 
 // Social Media (placeholder - full impl in Task 8)

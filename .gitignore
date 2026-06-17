@@ -132,3 +132,6 @@ tiktok-marketing/strategy.json
 
 # CLI history
 service-agent/cli_history.json
+
+# Generated marketing/website images (MiniMax)
+service-agent/generated-media/
