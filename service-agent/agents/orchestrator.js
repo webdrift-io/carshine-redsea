@@ -66,6 +66,12 @@ const {
 } = require('./decision');
 
 const {
+  detectInterruption,
+  buildInterruptionReply,
+  clearBookingDraft
+} = require('./interruption');
+
+const {
   checkSlot,
   suggestAlternatives,
   createBooking,
@@ -161,12 +167,23 @@ function _persistCollectedSlots(session, slots, nextField, language) {
   if (slots.time) bookingDetails.preferredTime = slots.time;
   const update = {
     bookingDetails,
-    lastAskedField: nextField || null,
+    // NOTE: db.updateChat uses `data.lastAskedField ?? existing` — so passing
+    // `null` would KEEP the previous value. To actually clear the pending
+    // field (e.g. after a greeting or a completed booking) we must pass `''`.
+    lastAskedField: nextField || '',
     language: language || session.language || 'en'
   };
   for (const [slotKey, sessionKey] of Object.entries(SLOT_TO_SESSION_FIELD)) {
     const value = slots?.[slotKey];
-    if (value != null && String(value).trim() !== '') update[sessionKey] = value;
+    if (value == null || String(value).trim() === '') continue;
+    // Do NOT overwrite the stable web-session key (`web_<ts>_<rand>`) with the
+    // customer's contact number — `_getOrCreateSession` looks the session up by
+    // session.phone, so clobbering it would orphan the conversation and lose
+    // all collected slots on the next message. The contact number is preserved
+    // in bookingDetails (above) and surfaced via _normalizeSlotsFromSession, so
+    // the booking still gets it.
+    if (sessionKey === 'phone' && _isGeneratedWebPhone(session.phone)) continue;
+    update[sessionKey] = value;
   }
   if (update.preferredDate == null && slots.date) update.preferredDate = slots.date;
   if (update.preferredTime == null && slots.time) update.preferredTime = slots.time;
@@ -257,20 +274,40 @@ async function _tryMastraGenerate(agent, message, opts = {}) {
  * Returns { reply, needsHuman, reason, updatedSlots }.
  */
 function _handleIntake(routerOutput, session) {
-  const { language, slots } = routerOutput;
+  const { language, slots, intent } = routerOutput;
 
   // Merge with previously-collected session details so we don't re-ask.
   const merged = _mergeSlots(_normalizeSlotsFromSession(session), slots);
-  // The "missing field" determines what to ask next.
+
+  // Pure greeting / smalltalk with no booking started yet → greet warmly
+  // instead of jumping straight into slot-fill ("What WhatsApp number...").
+  // Once the user actually starts booking (intent='book', or any booking
+  // slot is present) we fall through to the slot-collection logic below.
+  if (intent === 'chitchat' && !_hasBookingProgress(merged)) {
+    return {
+      reply: intakeReply(language, null),
+      needsHuman: false,
+      reason: null,
+      nextField: null,
+      mergedSlots: merged
+    };
+  }
+
+  // The "missing field" determines what to ask next. We collect the WASH
+  // details first (area → car → package → date → time → location) so the
+  // conversation feels natural, then the CONTACT details (name → phone) and
+  // finally payment. This means a web visitor who says "elgouna" then "sedan"
+  // is smoothly asked for the package next — instead of being stuck on
+  // "What is your full name?" before they've described the job.
   const FIELD_ORDER = [
-    'customerName',
-    'phone',
     'area',
     'carType',
     'package',
     'preferredDate',
     'preferredTime',
     'location',
+    'customerName',
+    'phone',
     'paymentMethod'
   ];
   let nextField = null;
@@ -490,6 +527,65 @@ async function _handleIncomingMessageInner(phone, message, profileName, session)
   // 1. Persist incoming
   _persistIncomingMessage(session, message);
 
+  // 1b. Interruption layer — runs BEFORE classifyIntent so general questions
+  //     ("wait", "how are you", "i have other questions", "no i want to know
+  //     about the price") never get trapped in the booking slot-fill loop.
+  //     See ./interruption.js for the pattern definitions.
+  const languageGuess = (function () {
+    try { return require('../parsers').detectLanguage(message); } catch (e) { return 'en'; }
+  })();
+  const sessionHasProgress = _hasBookingProgress(_normalizeSlotsFromSession(session));
+  // Only short-circuit if this is NOT the first user turn of a session.
+  // On the very first turn (no bot history) the regular intake gives
+  // a proper greeting; the interrupt reply is meant for mid-flow pauses.
+  const priorBotMessages = (session.messages || []).filter(
+    (m) => m.sender === 'bot' && m.text && m.text.trim() !== ''
+  );
+  const isFirstRealTurn = priorBotMessages.length === 0;
+  const detection = detectInterruption(message);
+  if (detection.action !== 'passthrough' && !isFirstRealTurn) {
+    let replyText;
+    if (detection.action === 'cancel_booking' || detection.action === 'restart') {
+      // Clear the draft so the next message starts a fresh intake.
+      const cleared = clearBookingDraft(session);
+      try {
+        db.updateChat(session.id, cleared);
+      } catch (err) {
+        console.warn('[Orchestrator] failed to clear booking draft:', err.message);
+      }
+      const refreshed = db.getChat(session.id) || session;
+      replyText = buildInterruptionReply(detection, false, languageGuess, null);
+      _persistBotReply(refreshed, replyText);
+      return {
+        reply: replyText,
+        bookingCreated: false,
+        bookingId: null,
+        humanNeeded: false
+      };
+    }
+    if (detection.action === 'continue_booking') {
+      // Resume next missing field. The regular flow will pick the
+      // right next field from the still-present bookingDetails.
+      try {
+        db.updateChat(session.id, { lastAskedField: session.lastAskedField || 'carType' });
+      } catch (err) {
+        // Non-fatal.
+      }
+      // Fall through to the regular flow.
+    } else {
+      // 'interrupt': answer the question first, then offer to continue.
+      const knowledgeAnswer = answerFromWebsiteKnowledge(message, languageGuess);
+      replyText = buildInterruptionReply(detection, sessionHasProgress, languageGuess, knowledgeAnswer);
+      _persistBotReply(session, replyText);
+      return {
+        reply: replyText,
+        bookingCreated: false,
+        bookingId: null,
+        humanNeeded: false
+      };
+    }
+  }
+
   // 2. Router (deterministic)
   const history = (session.messages || []).slice(-10).map((m) => ({
     role: m.sender === 'bot' ? 'assistant' : 'user',
@@ -499,24 +595,43 @@ async function _handleIncomingMessageInner(phone, message, profileName, session)
   if (session.language && session.language !== 'en' && routerOutput.language === 'en') {
     routerOutput.language = session.language;
   }
-  if (
-    session.lastAskedField === 'location' &&
-    !routerOutput.slots.location &&
-    !routerOutput.slots.time &&
-    !routerOutput.slots.date &&
-    !routerOutput.slots.phone &&
-    typeof message === 'string' &&
-    message.trim().length >= 4
-  ) {
-    routerOutput.slots.location = message.trim().slice(0, 300);
-  }
-  if (
-    session.lastAskedField === 'phone' &&
-    !routerOutput.slots.phone &&
-    typeof message === 'string' &&
-    /(\+?20\s?1\d{9}|01\d{9})/.test(message)
-  ) {
-    routerOutput.slots.phone = message.match(/(\+?20\s?1\d{9}|01\d{9})/)[1].replace(/\s/g, '');
+  // ---- Free-text answer capture --------------------------------------------
+  // When the bot has just asked for a specific field, treat the user's reply
+  // as the answer to THAT field. The interruption layer above already pulled
+  // out questions / commands, so anything reaching here during slot-fill is a
+  // genuine slot answer. This makes free-text fields (name, address) reliable
+  // — the deterministic slot extractor alone can't recognise an arbitrary
+  // person name or street address, AND it greedily mis-parses numbers inside
+  // an address ("villa 4" → 04:00). For these single-value answers we REPLACE
+  // routerOutput.slots with just the captured field, so the merge below keeps
+  // the previously-stored good values for everything else.
+  //
+  // Gated on !isFirstRealTurn: on the very first message there is no prior bot
+  // question, so "hi" must NOT be captured as the customer's name (the session
+  // is created with lastAskedField='customerName' as a default).
+  const asked = session.lastAskedField;
+  const trimmed = typeof message === 'string' ? message.trim() : '';
+  const phoneMatch = trimmed.match(/(\+?20\s?1\d{9}|01\d{9})/);
+  const looksLikePhone = Boolean(phoneMatch);
+  const isOnlyPhone = looksLikePhone && trimmed.replace(/[+\s\d]/g, '').length === 0;
+
+  if (!isFirstRealTurn) {
+    if (asked === 'phone' && looksLikePhone) {
+      routerOutput.slots = { phone: phoneMatch[1].replace(/\s/g, '') };
+    } else if (asked === 'location' && trimmed.length >= 3 && !isOnlyPhone) {
+      // An address is free text — discard any spurious date/time/etc the slot
+      // extractor pulled out of it so they can't overwrite stored values.
+      routerOutput.slots = { location: trimmed.slice(0, 300) };
+    } else if (
+      asked === 'customerName' &&
+      !looksLikePhone &&
+      !/\d/.test(trimmed) &&
+      trimmed.length >= 2 &&
+      trimmed.length <= 60 &&
+      detectInterruption(trimmed).action === 'passthrough'
+    ) {
+      routerOutput.slots = { customerName: trimmed.slice(0, 100) };
+    }
   }
   routerOutput.slots = _mergeSlots(_normalizeSlotsFromSession(session), routerOutput.slots);
   session = _persistCollectedSlots(session, routerOutput.slots, session.lastAskedField, routerOutput.language);
@@ -547,18 +662,13 @@ async function _handleIncomingMessageInner(phone, message, profileName, session)
     if (m && typeof m.text === 'string') enrichedReply = m.text;
   }
 
-  // 5. Run the deterministic handler (authoritative for actions)
+  // 5. Run the deterministic handler (authoritative for actions).
+  //    The interrupt layer (step 1b) already handled explicit interrupts
+  //    and answered general questions before we got here, so this branch
+  //    only runs for genuine booking slot-fill messages.
   let outcome;
-  const knowledgeReply = answerFromWebsiteKnowledge(message, routerOutput.language);
   if (route === 'handoff') {
     outcome = _handleHandoff(routerOutput, _isGeneratedWebPhone(phone) ? (routerOutput.slots.phone || phone) : phone, message, session);
-  } else if (knowledgeReply && (routerOutput.intent === 'info' || !_hasBookingProgress(routerOutput.slots))) {
-    outcome = {
-      reply: knowledgeReply,
-      bookingCreated: false,
-      bookingId: null,
-      humanNeeded: false
-    };
   } else if (route === 'booking') {
     outcome = _handleBooking(routerOutput, phone, session);
   } else {

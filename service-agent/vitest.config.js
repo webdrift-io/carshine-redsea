@@ -34,7 +34,11 @@ export default defineConfig({
         }
       }
     },
-    testTimeout: 10000,
-    hookTimeout: 10000
+    // Some suites rebuild a fresh SQLite DB per test (running the bcrypt
+    // cost-12 seed migrations each time), which can exceed 10s under full
+    // parallel load. Give hooks/tests generous headroom so the suite is not
+    // flaky on slower / loaded machines.
+    testTimeout: 30000,
+    hookTimeout: 30000
   }
 });

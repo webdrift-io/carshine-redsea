@@ -991,6 +991,7 @@ app.post('/api/public/chat', publicChatLimiter, async (req, res) => {
       sessionId: sessionIdToReturn,
       reply: result.reply,
       bookingCreated: result.bookingCreated,
+      bookingId: result.bookingId || null,
       humanNeeded: result.humanNeeded,
       aiProvider: ACTIVE_PROVIDER
     });

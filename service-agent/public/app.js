@@ -398,6 +398,14 @@ async function fetchJsonOrAuth(url, label) {
   const res = await fetch(url);
   const data = await parseJsonSafe(res);
   if (isAuthErrorResponse(res)) {
+    // Bad / expired token — clear it automatically so the next reload
+    // doesn't keep retrying with a stale token. This is the most common
+    // cause of "dashboard stops loading after I deployed".
+    if (authToken) {
+      authToken = '';
+      localStorage.removeItem('carshine_admin_token');
+      setAuthStatus('Token rejected (401). Cleared from localStorage. Please log in again.', 'warn');
+    }
     showDashboardAuthGate(`${label} requires admin login. Login to load live dashboard data.`);
     throw new Error(`AUTH_REQUIRED:${label}`);
   }
@@ -1820,7 +1828,7 @@ function renderScheduledPosts() {
     
     const slidesHTML = postImages.length > 0 ? `
       <div class="post-card-slides-preview">
-        ${postImages.map(slide => `<img src="${slide}" class="post-slide-thumb" alt="Slide preview">`).join('')}
+        ${postImages.map(slide => `<img src="${escapeHTML(String(slide))}" class="post-slide-thumb" alt="Slide preview" loading="lazy" onerror="this.style.display='none'">`).join('')}
       </div>
     ` : '';
     
