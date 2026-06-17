@@ -15,21 +15,21 @@
 :root.dark,
 html,
 body {
-  /* Surfaces */
-  --bg-primary:   #080c16;
-  --bg-secondary: #0b1122;
-  --bg-sidebar:   #060a10;
-  --bg-card:      #0e1428;
-  --bg-elevated:  #121830;
-  --bg-hover:     rgba(59, 130, 246, 0.07);
-  --bg-active:    rgba(59, 130, 246, 0.13);
+  /* Surfaces — black / graphite / charcoal (enterprise command-center) */
+  --bg-primary:   #0a0a0b;
+  --bg-secondary: #141416;
+  --bg-sidebar:   #070708;
+  --bg-card:      #161618;
+  --bg-elevated:  #1c1c1f;
+  --bg-hover:     rgba(255, 255, 255, 0.045);
+  --bg-active:    rgba(96, 165, 250, 0.12);
 
-  /* Glass */
-  --glass-bg:           rgba(10, 15, 28, 0.90);
-  --glass-bg-hover:     rgba(14, 20, 40, 0.97);
-  --glass-border:       rgba(59, 130, 246, 0.12);
-  --glass-border-hover: rgba(59, 130, 246, 0.26);
-  --glass-border-focus: rgba(59, 130, 246, 0.62);
+  /* Glass — neutral charcoal with subtle gray borders (accent reserved for meaning) */
+  --glass-bg:           rgba(22, 22, 24, 0.90);
+  --glass-bg-hover:     rgba(30, 30, 33, 0.97);
+  --glass-border:       rgba(255, 255, 255, 0.08);
+  --glass-border-hover: rgba(255, 255, 255, 0.16);
+  --glass-border-focus: rgba(96, 165, 250, 0.55);
 
   /* Text */
   --text-primary:   #e8eeff;
@@ -98,9 +98,9 @@ body {
   background-color: var(--bg-primary) !important;
   background-image:
     radial-gradient(ellipse 80% 60% at 75% -15%,
-      rgba(59, 130, 246, 0.09) 0%, transparent 60%),
+      rgba(96, 165, 250, 0.05) 0%, transparent 60%),
     radial-gradient(ellipse 50% 40% at 0% 90%,
-      rgba(59, 130, 246, 0.05) 0%, transparent 60%) !important;
+      rgba(255, 255, 255, 0.02) 0%, transparent 60%) !important;
   color: var(--text-primary) !important;
 }
 
@@ -346,15 +346,15 @@ header.topbar,
 /* ─── 7. HERO BANNER ───────────────────────────────────────────────────── */
 .m1-hero-banner {
   background: linear-gradient(135deg,
-    #0c1020 0%,
-    #0e1630 45%,
-    #080c1a 80%,
-    #060a16 100%) !important;
-  border: 1px solid rgba(59, 130, 246, 0.14) !important;
+    #161618 0%,
+    #1c1c20 45%,
+    #131315 80%,
+    #0e0e10 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
   border-top: 2px solid var(--accent-blue) !important;
   box-shadow:
     0 4px 40px rgba(0, 0, 0, 0.65),
-    inset 0 1px 0 rgba(59, 130, 246, 0.08) !important;
+    inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
 }
 
 /* Blue radial glow (overrides copper) */

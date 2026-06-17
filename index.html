@@ -418,23 +418,25 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 38px;
-      height: 38px;
-      margin-right: 6px;
-      border: 1px solid rgba(255,255,255,.22);
+      width: 40px;
+      height: 40px;
+      margin-right: 8px;
+      padding: 3px;
+      border: 1px solid rgba(96,165,250,.30);
       border-radius: 12px;
-      background: rgba(255,255,255,.12);
+      /* Always-dark chip so the neon mark stays legible over hero AND when scrolled */
+      background: radial-gradient(circle at 50% 35%, #11203a 0%, #070d18 100%);
+      box-shadow: 0 0 0 1px rgba(0,0,0,.2), 0 2px 10px rgba(0,0,0,.35);
       overflow: hidden;
     }
     .brand-logo-slot img {
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      object-fit: contain;
       display: block;
     }
     .topbar.is-scrolled .brand-logo-slot {
-      border-color: rgba(7,16,30,.12);
-      background: #07101e;
+      border-color: rgba(96,165,250,.40);
     }
     .brand span {
       font-family: "Playfair Display", Georgia, serif;
@@ -2975,6 +2977,14 @@
       line-height: 1.75;
       font-weight: 500;
     }
+    .footer-logo-mark {
+      display: block;
+      width: 72px;
+      height: 72px;
+      object-fit: contain;
+      margin-bottom: 14px;
+      filter: drop-shadow(0 4px 18px rgba(18,168,255,.35));
+    }
     .footer-brand-big {
       display: flex;
       align-items: baseline;
@@ -3389,7 +3399,7 @@
   <div class="shell" id="top">
     <header class="topbar" id="topbar">
       <nav class="nav" aria-label="Main navigation">
-        <a class="brand" href="#top" aria-label="Carshine Redsea home"><span class="brand-logo-slot" aria-hidden="true"><img src="/favicon.png" alt=""></span>Carshine <span>Redsea</span></a>
+        <a class="brand" href="#top" aria-label="Carshine Redsea home"><span class="brand-logo-slot" aria-hidden="true"><img src="/assets/brand/carshine-mark.png" alt="" width="40" height="40"></span>Carshine <span>Redsea</span></a>
         <div class="nav-links" aria-label="Primary links">
           <a class="nav-link" href="#how"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16"/><path d="M4 12h10"/><path d="M4 18h7"/></svg>How</a>
           <a class="nav-link" href="#services"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5 5L4 17v3h3l5.7-5.7a4 4 0 0 0 5-5l-2.2 2.2-3-3 2.2-2.2Z"/></svg>Services</a>
@@ -3800,7 +3810,7 @@
 
     <footer class="mini-footer">
       <div class="mini-footer-grid">
-        <div><h2>CARSHINE <span>Red Sea</span></h2><p>Mobile waterless car wash and car care in El Gouna, Hurghada and Sahl Hasheesh. Built for homes, hotels, offices, marinas, villas, compounds, rental fleets and busy Red Sea drivers.</p><div class="social-row"><a href="https://www.facebook.com/carshineredsea" target="_blank" rel="noopener" aria-label="Facebook"><svg viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3Z"/></svg></a><a href="https://wa.me/201555567205" target="_blank" rel="noopener" aria-label="WhatsApp"><svg viewBox="0 0 24 24"><path d="M20 11.5a8 8 0 0 1-11.8 7L4 20l1.5-4.1A8 8 0 1 1 20 11.5Z"/><path d="M9.2 8.6c.2-.5.5-.5.8-.5h.6c.2 0 .4.1.5.4l.8 1.8c.1.3.1.5-.1.7l-.4.5c-.2.2-.2.4 0 .7.4.7 1.1 1.4 2 1.8.3.2.5.1.7-.1l.5-.6c.2-.2.4-.3.7-.2l1.8.8c.3.1.4.3.4.6 0 .5-.2 1.3-.7 1.7-.6.5-1.7.7-3.5-.1-2.7-1.2-4.6-3.4-5.2-5.3-.4-1.1 0-1.8.3-2.2Z"/></svg></a><a href="https://www.instagram.com/carshineredsea/" target="_blank" rel="noopener" aria-label="Instagram"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><path d="M17.5 6.5h.01"/></svg></a></div></div>
+        <div><img src="/assets/brand/carshine-mark.png" alt="Carshine Red Sea" class="footer-logo-mark" width="72" height="72" loading="lazy"><h2>CARSHINE <span>Red Sea</span></h2><p>Mobile waterless car wash and car care in El Gouna, Hurghada and Sahl Hasheesh. Built for homes, hotels, offices, marinas, villas, compounds, rental fleets and busy Red Sea drivers.</p><div class="social-row"><a href="https://www.facebook.com/carshineredsea" target="_blank" rel="noopener" aria-label="Facebook"><svg viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3Z"/></svg></a><a href="https://wa.me/201555567205" target="_blank" rel="noopener" aria-label="WhatsApp"><svg viewBox="0 0 24 24"><path d="M20 11.5a8 8 0 0 1-11.8 7L4 20l1.5-4.1A8 8 0 1 1 20 11.5Z"/><path d="M9.2 8.6c.2-.5.5-.5.8-.5h.6c.2 0 .4.1.5.4l.8 1.8c.1.3.1.5-.1.7l-.4.5c-.2.2-.2.4 0 .7.4.7 1.1 1.4 2 1.8.3.2.5.1.7-.1l.5-.6c.2-.2.4-.3.7-.2l1.8.8c.3.1.4.3.4.6 0 .5-.2 1.3-.7 1.7-.6.5-1.7.7-3.5-.1-2.7-1.2-4.6-3.4-5.2-5.3-.4-1.1 0-1.8.3-2.2Z"/></svg></a><a href="https://www.instagram.com/carshineredsea/" target="_blank" rel="noopener" aria-label="Instagram"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><path d="M17.5 6.5h.01"/></svg></a></div></div>
         <div><h3>Services</h3><p>Exterior body wash<br>Interior refresh<br>Glass and mirrors<br>Wheels and tires<br>Motor bay add-on<br>Hotel and fleet plans</p></div>
         <div><h3>Contact</h3><p>WhatsApp: +20 155 556 7205<br>Launch areas: El Gouna, Hurghada, Sahl Hasheesh<br>Payments: Cash, InstaPay, Vodafone Cash, Orange Cash, Fawry, bank transfer<br>Service: 7 days a week by confirmed booking</p></div>
         <div><h3>Join us</h3><p>Want to work with Carshine Red Sea? Drop your details and we'll reach out on WhatsApp.</p><div class="join-box"><form class="join-form" id="join-form-en"><input placeholder="Full name" required autocomplete="name"><input placeholder="WhatsApp number" required autocomplete="tel" type="tel"><input type="email" placeholder="Email (optional)" autocomplete="email"><input type="file" aria-label="Upload CV (optional)" accept=".pdf,.doc,.docx,.jpg,.png"><button type="submit">Send my details</button></form><div class="join-done" id="join-done-en"><div class="join-done-icon">✓</div><h4>Application received!</h4><p>Thanks for your interest. Our team will contact you on WhatsApp as soon as possible — usually within 24 hours.</p></div></div></div>

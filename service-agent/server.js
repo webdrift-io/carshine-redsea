@@ -481,6 +481,11 @@ app.get('/dashboard', (req, res) => {
 app.use('/dashboard', express.static(DASHBOARD_PUBLIC_DIR));
 app.use('/ar', express.static(path.join(PROJECT_ROOT, 'ar')));
 app.use('/de', express.static(path.join(PROJECT_ROOT, 'de')));
+// Brand assets (logos) used by the landing pages — read-only static.
+app.use('/assets', express.static(path.join(PROJECT_ROOT, 'assets'), { maxAge: '7d', index: false }));
+// SEO files served at site root (also present in public_html on static hosting).
+app.get('/robots.txt', (req, res) => res.type('text/plain').sendFile(path.join(PROJECT_ROOT, 'robots.txt')));
+app.get('/sitemap.xml', (req, res) => res.type('application/xml').sendFile(path.join(PROJECT_ROOT, 'sitemap.xml')));
 // Generated marketing/website images (MiniMax). Read-only static; the API key
 // that produced them never touches the client — only the resulting PNGs do.
 app.use('/media', express.static(path.join(__dirname, 'generated-media'), {
