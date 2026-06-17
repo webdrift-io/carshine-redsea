@@ -1,0 +1,1109 @@
+/* =============================================================================
+   CarShine Red Sea — Premium Dark Dashboard Theme
+   Loaded LAST. Replaces the B&W override with an electric-blue dark
+   premium design matching the new neon logo.
+
+   Design tokens:
+     Background: deep navy  #080c16 / #0b1122
+     Glass:      rgba(10,15,28,0.9)  border rgba(59,130,246,0.12)
+     Accent:     electric blue  #3b82f6 / #60a5fa
+     Success:    #22c55e   Warning: #f59e0b   Danger: #ef4444
+   ============================================================================= */
+
+/* ─── 0. RESET ALL B&W OVERRIDES — Re-establish dark theme ─────────────── */
+:root,
+:root.dark,
+html,
+body {
+  /* Surfaces */
+  --bg-primary:   #080c16;
+  --bg-secondary: #0b1122;
+  --bg-sidebar:   #060a10;
+  --bg-card:      #0e1428;
+  --bg-elevated:  #121830;
+  --bg-hover:     rgba(59, 130, 246, 0.07);
+  --bg-active:    rgba(59, 130, 246, 0.13);
+
+  /* Glass */
+  --glass-bg:           rgba(10, 15, 28, 0.90);
+  --glass-bg-hover:     rgba(14, 20, 40, 0.97);
+  --glass-border:       rgba(59, 130, 246, 0.12);
+  --glass-border-hover: rgba(59, 130, 246, 0.26);
+  --glass-border-focus: rgba(59, 130, 246, 0.62);
+
+  /* Text */
+  --text-primary:   #e8eeff;
+  --text-secondary: #94a3b8;
+  --text-muted:     #4a5568;
+
+  /* Brand — ELECTRIC BLUE (matches neon logo) */
+  --accent-blue:        #3b82f6;
+  --accent-blue-light:  #60a5fa;
+  --accent-blue-glow:   rgba(59, 130, 246, 0.28);
+
+  /* Keep copper/amber aliases pointing at blue so M1 classes still work */
+  --accent-copper:       #3b82f6;
+  --accent-copper-light: #60a5fa;
+  --accent-copper-glow:  rgba(59, 130, 246, 0.28);
+
+  /* Status colours — each distinct */
+  --accent-green:        #22c55e;
+  --accent-green-glow:   rgba(34, 197, 94, 0.22);
+  --accent-amber:        #f59e0b;
+  --accent-amber-glow:   rgba(245, 158, 11, 0.22);
+  --accent-orange:       #f97316;
+  --accent-orange-glow:  rgba(249, 115, 22, 0.22);
+  --accent-red:          #ef4444;
+  --accent-red-glow:     rgba(239, 68, 68, 0.22);
+  --accent-purple:       #a855f7;
+  --accent-purple-glow:  rgba(168, 85, 247, 0.22);
+  --accent-cyan:         #06b6d4;
+  --accent-cyan-glow:    rgba(6, 182, 212, 0.22);
+  --accent-on:           #ffffff;
+
+  /* Shadows */
+  --shadow-card:  0 2px 20px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(59, 130, 246, 0.06);
+  --shadow-glow:  0 0 32px rgba(59, 130, 246, 0.18);
+  --shadow-modal: 0 24px 80px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(59, 130, 246, 0.14);
+
+  /* Radii (keep same as m1) */
+  --radius-xl: 16px;
+  --radius-lg: 12px;
+  --radius-md: 10px;
+  --radius-sm:  6px;
+  --radius-xs:  4px;
+  --radius-pill: 999px;
+
+  /* shadcn compatibility tokens */
+  --background: var(--bg-primary);
+  --foreground: var(--text-primary);
+  --card: var(--bg-card);
+  --card-foreground: var(--text-primary);
+  --border: var(--glass-border);
+  --input: var(--glass-border);
+  --ring: var(--accent-blue);
+  --primary: var(--accent-blue);
+  --primary-foreground: #fff;
+  --secondary: var(--bg-elevated);
+  --secondary-foreground: var(--text-secondary);
+  --muted: var(--bg-elevated);
+  --muted-foreground: var(--text-muted);
+  --destructive: var(--accent-red);
+  --destructive-foreground: #fff;
+}
+
+/* ─── 1. BASE SURFACES ─────────────────────────────────────────────────── */
+html,
+body {
+  background-color: var(--bg-primary) !important;
+  background-image:
+    radial-gradient(ellipse 80% 60% at 75% -15%,
+      rgba(59, 130, 246, 0.09) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 0% 90%,
+      rgba(59, 130, 246, 0.05) 0%, transparent 60%) !important;
+  color: var(--text-primary) !important;
+}
+
+/* ─── 2. APP CONTAINER ─────────────────────────────────────────────────── */
+.app-container {
+  background: transparent !important;
+}
+
+/* ─── 3. SIDEBAR ───────────────────────────────────────────────────────── */
+.sidebar,
+.app-sidebar,
+nav.sidebar {
+  background: var(--bg-sidebar) !important;
+  border-right: 1px solid var(--glass-border) !important;
+  box-shadow: 2px 0 24px rgba(0, 0, 0, 0.45) !important;
+}
+
+/* Logo area */
+.logo-area {
+  text-decoration: none !important;
+  display: flex !important;
+  align-items: center !important;
+  padding: 4px 4px 4px 4px !important;
+  gap: 0 !important;
+  border-radius: var(--radius-md) !important;
+  transition: background 160ms ease !important;
+}
+.logo-area:hover { background: var(--bg-hover) !important; }
+
+/* Full logo (shown in wide sidebar) */
+.sidebar-logo-full {
+  display: block;
+  width: 148px;
+  height: auto;
+  object-fit: contain;
+  filter: brightness(1.05) saturate(1.1);
+  transition: filter 200ms ease;
+}
+.sidebar-logo-full:hover { filter: brightness(1.15) saturate(1.2); }
+
+/* Icon mark (hidden in wide sidebar, shown when collapsed) */
+.sidebar-logo-icon {
+  display: none;
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+
+/* Nav group labels */
+.nav-group-label {
+  color: var(--text-muted) !important;
+  font-size: 9.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 1.5px !important;
+  text-transform: uppercase !important;
+}
+
+/* Nav items */
+.nav-item,
+.nav-link,
+.menu-item {
+  color: var(--text-secondary) !important;
+  border: 1px solid transparent !important;
+  transition: all 160ms ease !important;
+}
+.nav-item:hover,
+.nav-link:hover {
+  background: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--glass-border) !important;
+}
+.nav-item.active,
+.nav-link.active,
+.nav-item.is-active {
+  background: var(--bg-active) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--glass-border-hover) !important;
+  box-shadow: 0 2px 12px rgba(59, 130, 246, 0.14) !important;
+}
+.nav-item.active i { color: var(--accent-blue-light) !important; }
+
+/* Active indicator bar */
+.nav-item.active::before {
+  background: var(--accent-blue) !important;
+  opacity: 1 !important;
+  transform: scaleY(1) !important;
+}
+
+/* Badges */
+.badge,
+.badge-pending,
+.badge-waiting {
+  background: rgba(59, 130, 246, 0.15) !important;
+  color: var(--accent-blue-light) !important;
+  border: 1px solid rgba(59, 130, 246, 0.25) !important;
+}
+
+/* Sidebar footer user avatar */
+.user-avatar {
+  background: linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-purple) 100%) !important;
+}
+.user-name { color: var(--text-primary) !important; }
+.user-role { color: var(--text-muted) !important; }
+
+/* ─── 4. MAIN HEADER ───────────────────────────────────────────────────── */
+.main-header,
+header.topbar,
+.app-header {
+  background: rgba(8, 12, 22, 0.75) !important;
+  border-bottom: 1px solid var(--glass-border) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+}
+
+.main-header h1,
+#section-title {
+  background: linear-gradient(90deg, var(--text-primary) 0%, var(--accent-blue-light) 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+/* Autopilot widget pill */
+.autopilot-widget {
+  background: var(--glass-bg) !important;
+  border-color: var(--glass-border) !important;
+}
+
+.status-indicator.active {
+  background: rgba(34, 197, 94, 0.15) !important;
+  color: #4ade80 !important;
+  border: 1px solid rgba(34, 197, 94, 0.3) !important;
+}
+
+.quick-status {
+  background: var(--glass-bg) !important;
+  border-color: var(--glass-border) !important;
+  color: var(--text-secondary) !important;
+}
+
+/* ─── 5. GLASS CARDS ───────────────────────────────────────────────────── */
+.card-glass,
+.grid-card,
+.settings-card,
+.approval-card {
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: var(--shadow-card) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+}
+.card-glass:hover,
+.grid-card:hover {
+  border-color: var(--glass-border-hover) !important;
+}
+
+/* Card header text */
+.card-header h2,
+.approvals-header h2 {
+  color: var(--text-primary) !important;
+}
+.view-all-link {
+  color: var(--accent-blue-light) !important;
+  border-color: rgba(59, 130, 246, 0.2) !important;
+  background: rgba(59, 130, 246, 0.08) !important;
+}
+.view-all-link:hover {
+  background: rgba(59, 130, 246, 0.16) !important;
+  border-color: rgba(59, 130, 246, 0.36) !important;
+}
+
+/* ─── 6. KPI CARDS ─────────────────────────────────────────────────────── */
+.kpi-card {
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: var(--shadow-card) !important;
+  position: relative !important;
+  overflow: hidden !important;
+  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease !important;
+}
+.kpi-card:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--glass-border-hover) !important;
+  border-color: var(--glass-border-hover) !important;
+}
+
+/* Top accent stripe per card position */
+.kpi-grid .kpi-card:nth-child(1)::before { background: linear-gradient(90deg, var(--accent-blue), #818cf8) !important; }
+.kpi-grid .kpi-card:nth-child(2)::before { background: linear-gradient(90deg, var(--accent-green), #4ade80) !important; }
+.kpi-grid .kpi-card:nth-child(3)::before { background: linear-gradient(90deg, var(--accent-amber), #fcd34d) !important; }
+.kpi-grid .kpi-card:nth-child(4)::before { background: linear-gradient(90deg, var(--accent-purple), #c084fc) !important; }
+.kpi-grid .kpi-card:nth-child(5)::before { background: linear-gradient(90deg, var(--accent-cyan), #38bdf8) !important; }
+.kpi-grid .kpi-card:nth-child(6)::before { background: linear-gradient(90deg, var(--accent-orange), #fbbf24) !important; }
+.kpi-grid .kpi-card:nth-child(7)::before { background: linear-gradient(90deg, var(--accent-red), #f87171) !important; }
+.kpi-grid .kpi-card:nth-child(8)::before { background: linear-gradient(90deg, var(--accent-purple), var(--accent-blue)) !important; }
+
+/* KPI icon override colours */
+.kpi-icon.blue {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(96, 165, 250, 0.12)) !important;
+  color: var(--accent-blue-light) !important;
+  border: 1px solid rgba(59, 130, 246, 0.2) !important;
+}
+.kpi-icon.green {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(74, 222, 128, 0.12)) !important;
+  color: #4ade80 !important;
+  border: 1px solid rgba(34, 197, 94, 0.2) !important;
+}
+.kpi-icon.orange {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(253, 186, 116, 0.12)) !important;
+  color: #fcd34d !important;
+  border: 1px solid rgba(245, 158, 11, 0.2) !important;
+}
+.kpi-icon.purple {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(196, 131, 252, 0.12)) !important;
+  color: #c084fc !important;
+  border: 1px solid rgba(168, 85, 247, 0.2) !important;
+}
+/* Inline kpi-icon with style attribute (the v2 KPI row) */
+.kpi-icon[style*="0ea5e9"],
+.kpi-icon[style*="0284c7"] {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(6, 182, 212, 0.12)) !important;
+  color: var(--accent-cyan) !important;
+  border: 1px solid rgba(6, 182, 212, 0.2) !important;
+}
+.kpi-icon[style*="8b5cf6"],
+.kpi-icon[style*="6d28d9"] {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(109, 40, 217, 0.1)) !important;
+  color: #c084fc !important;
+  border: 1px solid rgba(168, 85, 247, 0.2) !important;
+}
+
+.kpi-details h3 {
+  color: var(--text-muted) !important;
+  font-size: 11px !important;
+  letter-spacing: 0.6px !important;
+  text-transform: uppercase !important;
+}
+.kpi-value { color: var(--text-primary) !important; }
+.kpi-trend.positive { color: #4ade80 !important; }
+.kpi-trend.warning  { color: #fbbf24 !important; }
+.kpi-trend.info     { color: var(--accent-blue-light) !important; }
+
+/* ─── 7. HERO BANNER ───────────────────────────────────────────────────── */
+.m1-hero-banner {
+  background: linear-gradient(135deg,
+    #0c1020 0%,
+    #0e1630 45%,
+    #080c1a 80%,
+    #060a16 100%) !important;
+  border: 1px solid rgba(59, 130, 246, 0.14) !important;
+  border-top: 2px solid var(--accent-blue) !important;
+  box-shadow:
+    0 4px 40px rgba(0, 0, 0, 0.65),
+    inset 0 1px 0 rgba(59, 130, 246, 0.08) !important;
+}
+
+/* Blue radial glow (overrides copper) */
+.m1-hero-banner::before {
+  background: radial-gradient(circle,
+    rgba(59, 130, 246, 0.18) 0%,
+    transparent 65%) !important;
+}
+
+/* Grid overlay */
+.m1-hero-banner::after {
+  background-image:
+    linear-gradient(rgba(59, 130, 246, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 130, 246, 0.025) 1px, transparent 1px) !important;
+  background-size: 32px 32px !important;
+}
+
+.m1-hero-eyebrow {
+  color: var(--accent-blue-light) !important;
+}
+.m1-hero-eyebrow::before {
+  background: var(--accent-blue-light) !important;
+}
+.m1-hero-title {
+  color: var(--text-primary) !important;
+}
+.m1-hero-title span {
+  color: var(--accent-blue-light) !important;
+}
+.m1-hero-sub {
+  color: var(--text-secondary) !important;
+}
+.m1-hero-stat-value { color: var(--text-primary) !important; }
+.m1-hero-stat-label { color: var(--text-muted) !important; }
+.m1-hero-stats { border-left-color: rgba(59, 130, 246, 0.18) !important; }
+
+/* Live / action tags */
+.m1-tag.blue {
+  background: rgba(59, 130, 246, 0.14) !important;
+  border-color: rgba(59, 130, 246, 0.28) !important;
+  color: var(--accent-blue-light) !important;
+}
+.m1-tag.green {
+  background: rgba(34, 197, 94, 0.12) !important;
+  border-color: rgba(34, 197, 94, 0.28) !important;
+  color: #4ade80 !important;
+}
+.m1-tag.amber {
+  background: rgba(245, 158, 11, 0.12) !important;
+  border-color: rgba(245, 158, 11, 0.28) !important;
+  color: #fcd34d !important;
+}
+
+/* Hero action buttons */
+.m1-hero-btn.primary {
+  background: linear-gradient(135deg, var(--accent-blue) 0%, #1d4ed8 100%) !important;
+  box-shadow: 0 3px 14px rgba(59, 130, 246, 0.35) !important;
+  color: #fff !important;
+}
+.m1-hero-btn.primary:hover {
+  background: linear-gradient(135deg, var(--accent-blue-light) 0%, var(--accent-blue) 100%) !important;
+  box-shadow: 0 5px 20px rgba(59, 130, 246, 0.5) !important;
+}
+.m1-hero-btn.ghost {
+  background: rgba(59, 130, 246, 0.07) !important;
+  border-color: rgba(59, 130, 246, 0.2) !important;
+  color: var(--text-secondary) !important;
+}
+.m1-hero-btn.ghost:hover {
+  background: rgba(59, 130, 246, 0.14) !important;
+  border-color: rgba(59, 130, 246, 0.35) !important;
+  color: var(--text-primary) !important;
+}
+
+/* ─── 8. HERO CAR IMAGE — Fixed visibility ─────────────────────────────── */
+/* NOTE: CSS !important blocks animation fill-mode. We set opacity:1 as the
+   static fallback so the image is always visible, then let the animation
+   do the entrance (fill-mode:both applies the `from` state during the delay). */
+.m1-hero-car-image {
+  opacity: 1;  /* visible by default — animation handles the entrance */
+  animation: cs-car-enter 750ms cubic-bezier(0.16, 1, 0.3, 1) 100ms both !important;
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, 0.65),
+    0 0 0 1px rgba(59, 130, 246, 0.3),
+    0 0 60px rgba(59, 130, 246, 0.25) !important;
+}
+
+@keyframes cs-car-enter {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Blue glow behind the car */
+.m1-hero-glow {
+  background: radial-gradient(ellipse at center,
+    rgba(59, 130, 246, 0.32) 0%,
+    rgba(6, 182, 212, 0.12) 40%,
+    transparent 70%) !important;
+}
+
+/* Pulse car icon fallback */
+.m1-hero-car-icon { color: rgba(59, 130, 246, 0.35) !important; }
+
+/* ─── 9. BUTTONS ───────────────────────────────────────────────────────── */
+.btn-primary,
+button.primary,
+.m1-btn-primary {
+  background: linear-gradient(135deg, var(--accent-blue) 0%, #1d4ed8 100%) !important;
+  color: #fff !important;
+  border-color: rgba(59, 130, 246, 0.45) !important;
+  box-shadow: 0 2px 12px rgba(59, 130, 246, 0.3) !important;
+}
+.btn-primary:hover,
+button.primary:hover {
+  background: linear-gradient(135deg, var(--accent-blue-light) 0%, var(--accent-blue) 100%) !important;
+  box-shadow: 0 4px 18px rgba(59, 130, 246, 0.48) !important;
+  transform: translateY(-1px) !important;
+  color: #fff !important;
+}
+
+.btn-secondary,
+.btn.secondary,
+button.secondary,
+.btn-ghost {
+  background: var(--glass-bg-hover) !important;
+  color: var(--text-secondary) !important;
+  border: 1px solid var(--glass-border) !important;
+}
+.btn-secondary:hover,
+.btn-ghost:hover {
+  background: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--glass-border-hover) !important;
+}
+
+.btn-approve {
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%) !important;
+  color: #fff !important;
+  border-color: rgba(22, 163, 74, 0.4) !important;
+  box-shadow: 0 2px 10px rgba(22, 163, 74, 0.28) !important;
+}
+.btn-approve:hover {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%) !important;
+  box-shadow: 0 4px 16px rgba(22, 163, 74, 0.4) !important;
+  color: #fff !important;
+  transform: translateY(-1px) !important;
+}
+
+.btn-reject {
+  background: rgba(239, 68, 68, 0.08) !important;
+  color: #f87171 !important;
+  border: 1px solid rgba(239, 68, 68, 0.22) !important;
+}
+.btn-reject:hover {
+  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%) !important;
+  color: #fff !important;
+  border-color: #ef4444 !important;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35) !important;
+  transform: translateY(-1px) !important;
+}
+
+.btn-send {
+  background: linear-gradient(135deg, var(--accent-blue) 0%, #1d4ed8 100%) !important;
+}
+.btn-send:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--accent-blue-light) 0%, var(--accent-blue) 100%) !important;
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4) !important;
+}
+
+/* ─── 10. STATUS PILLS — Full distinct color set ───────────────────────── */
+/* Base pill */
+.m1-status-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  padding: 3px 9px !important;
+  border-radius: var(--radius-pill) !important;
+}
+
+.m1-status-pill.verified,
+.m1-status-pill.completed {
+  background: rgba(34, 197, 94, 0.14) !important;
+  border: 1px solid rgba(34, 197, 94, 0.3) !important;
+  color: #4ade80 !important;
+}
+.m1-status-pill.pending,
+.m1-status-pill.quoted {
+  background: rgba(59, 130, 246, 0.14) !important;
+  border: 1px solid rgba(59, 130, 246, 0.3) !important;
+  color: var(--accent-blue-light) !important;
+}
+.m1-status-pill.on-the-way,
+.m1-status-pill.assigned {
+  background: rgba(245, 158, 11, 0.14) !important;
+  border: 1px solid rgba(245, 158, 11, 0.3) !important;
+  color: #fcd34d !important;
+}
+.m1-status-pill.in-progress {
+  background: rgba(168, 85, 247, 0.14) !important;
+  border: 1px solid rgba(168, 85, 247, 0.3) !important;
+  color: #c084fc !important;
+}
+.m1-status-pill.rejected,
+.m1-status-pill.cancelled {
+  background: rgba(239, 68, 68, 0.12) !important;
+  border: 1px solid rgba(239, 68, 68, 0.26) !important;
+  color: #f87171 !important;
+}
+.m1-status-pill.needs-human {
+  background: rgba(249, 115, 22, 0.14) !important;
+  border: 1px solid rgba(249, 115, 22, 0.3) !important;
+  color: #fb923c !important;
+}
+.m1-status-pill.collecting-info {
+  background: rgba(6, 182, 212, 0.12) !important;
+  border: 1px solid rgba(6, 182, 212, 0.28) !important;
+  color: var(--accent-cyan) !important;
+}
+
+/* Generic status chips (m1-chip) */
+.m1-chip.live {
+  background: rgba(34, 197, 94, 0.12) !important;
+  border: 1px solid rgba(34, 197, 94, 0.25) !important;
+  color: #4ade80 !important;
+}
+.m1-chip.manual-review {
+  background: rgba(245, 158, 11, 0.12) !important;
+  border: 1px solid rgba(245, 158, 11, 0.25) !important;
+  color: #fcd34d !important;
+}
+.m1-chip.dry-run {
+  background: rgba(168, 85, 247, 0.12) !important;
+  border: 1px solid rgba(168, 85, 247, 0.25) !important;
+  color: #c084fc !important;
+}
+
+/* Tag chips */
+.m1-tag,
+.m1-chip,
+.chip {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: var(--text-secondary) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+/* bw-theme's generic selector overrides — explicit beats generic */
+.badge {
+  background: rgba(59, 130, 246, 0.15) !important;
+  color: var(--accent-blue-light) !important;
+  border: 1px solid rgba(59, 130, 246, 0.25) !important;
+}
+
+/* Count badge */
+.count-badge {
+  background: rgba(59, 130, 246, 0.12) !important;
+  border: 1px solid rgba(59, 130, 246, 0.25) !important;
+  color: var(--accent-blue-light) !important;
+}
+
+/* ─── 11. FORMS & INPUTS ───────────────────────────────────────────────── */
+input,
+select,
+textarea,
+.input-field,
+.select-field,
+.textarea-field {
+  background: rgba(255, 255, 255, 0.03) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: var(--radius-sm) !important;
+}
+input:focus,
+select:focus,
+textarea:focus,
+.input-field:focus,
+.select-field:focus,
+.textarea-field:focus {
+  border-color: var(--glass-border-focus) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12) !important;
+}
+select option {
+  background: var(--bg-elevated) !important;
+  color: var(--text-primary) !important;
+}
+input::placeholder,
+textarea::placeholder { color: var(--text-muted) !important; }
+
+/* ─── 12. SECTION HEADINGS ─────────────────────────────────────────────── */
+.m1-section-title,
+.section-title,
+h1,
+h2,
+h3 {
+  color: var(--text-primary) !important;
+}
+.m1-section-sub,
+.section-sub,
+.subtitle,
+.settings-desc {
+  color: var(--text-muted) !important;
+}
+.m1-section-title i { color: var(--accent-blue-light) !important; }
+
+/* ─── 13. PAYMENT REVIEW CARDS ─────────────────────────────────────────── */
+.m1-payment-card {
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: var(--shadow-card) !important;
+}
+.m1-payment-card:hover {
+  border-color: var(--glass-border-hover) !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45) !important;
+  transform: translateY(-1px) !important;
+}
+.m1-payment-card[data-status="PAYMENT_PENDING_REVIEW"] {
+  border-left: 3px solid var(--accent-amber) !important;
+}
+.m1-payment-card[data-status="VERIFIED"] {
+  border-left: 3px solid var(--accent-green) !important;
+}
+.m1-payment-card[data-status="REJECTED"] {
+  border-left: 3px solid var(--accent-red) !important;
+}
+
+.m1-payment-customer  { color: var(--text-primary) !important; }
+.m1-payment-meta      { color: var(--text-muted) !important; }
+.m1-payment-meta i    { color: var(--accent-blue-light) !important; }
+.m1-payment-amount    { color: var(--text-primary) !important; }
+.m1-payment-link      { color: var(--text-muted) !important; }
+.m1-payment-link:hover { color: var(--accent-blue-light) !important; }
+
+.m1-payment-proof {
+  background: linear-gradient(135deg,
+    rgba(59, 130, 246, 0.1),
+    rgba(6, 182, 212, 0.07)) !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--accent-blue-light) !important;
+}
+
+#payments-review-list .card-glass[style*="PAYMENT_PENDING_REVIEW"],
+#payments-review-list .card-glass.status-pending {
+  border-left-color: var(--accent-amber) !important;
+}
+#payments-review-list .card-glass.status-verified {
+  border-left-color: var(--accent-green) !important;
+}
+#payments-review-list .card-glass.status-rejected {
+  border-left-color: var(--accent-red) !important;
+}
+
+/* ─── 14. CLEANER OPERATIONS CARDS ─────────────────────────────────────── */
+.m1-cleaner-card {
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: var(--shadow-card) !important;
+}
+.m1-cleaner-card:hover {
+  border-color: var(--glass-border-hover) !important;
+  background: var(--glass-bg-hover) !important;
+}
+.m1-cleaner-avatar {
+  background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%) !important;
+  border: 1px solid rgba(59, 130, 246, 0.3) !important;
+  color: var(--accent-blue-light) !important;
+}
+.m1-cleaner-name { color: var(--text-primary) !important; }
+.m1-cleaner-meta { color: var(--text-muted) !important; }
+
+/* Cleaner status filter chips */
+.cleaner-status-chip {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--text-secondary) !important;
+  transition: all 160ms ease !important;
+}
+.cleaner-status-chip:hover,
+.cleaner-status-chip.is-active {
+  background: var(--bg-active) !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+  color: var(--accent-blue-light) !important;
+}
+
+/* ─── 15. APPROVALS / V2 BOOKINGS ──────────────────────────────────────── */
+.approval-card {
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: var(--shadow-card) !important;
+}
+.approval-card:hover {
+  border-color: var(--glass-border-hover) !important;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4) !important;
+}
+
+.customer-card-meta h3 { color: var(--text-primary) !important; }
+.meta-phone { color: var(--text-muted) !important; }
+.meta-detail-row { color: var(--text-secondary) !important; }
+.meta-detail-row i { color: var(--accent-blue-light) !important; }
+.badge-outline {
+  border-color: rgba(59, 130, 246, 0.3) !important;
+  color: var(--accent-blue-light) !important;
+  background: rgba(59, 130, 246, 0.07) !important;
+}
+.payment-routing-note {
+  border-color: var(--glass-border) !important;
+  background: rgba(255, 255, 255, 0.02) !important;
+  color: var(--text-secondary) !important;
+}
+
+/* ─── 16. CALENDAR ─────────────────────────────────────────────────────── */
+.calendar-sidebar-left {
+  background: var(--glass-bg) !important;
+  border-color: var(--glass-border) !important;
+}
+.stats-summary-box {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border-color: var(--glass-border) !important;
+}
+.calendar-day-cell {
+  background: rgba(255, 255, 255, 0.01) !important;
+  border-color: var(--glass-border) !important;
+}
+.calendar-day-cell:hover {
+  background: var(--bg-hover) !important;
+  border-color: var(--glass-border-hover) !important;
+}
+.calendar-day-cell.today {
+  border-color: rgba(59, 130, 246, 0.45) !important;
+  background: rgba(59, 130, 246, 0.07) !important;
+}
+.calendar-day-cell.today .day-number {
+  color: var(--accent-blue-light) !important;
+  font-weight: 700 !important;
+}
+
+/* Calendar event dots */
+.day-event-dot.gouna    { background: var(--accent-blue) !important; }
+.day-event-dot.hurghada { background: var(--accent-green) !important; }
+.day-event-dot.sahl     { background: var(--accent-purple) !important; }
+
+/* Area filter indicators */
+.filter-indicator.gouna    { background: var(--accent-blue) !important; }
+.filter-indicator.hurghada { background: var(--accent-green) !important; }
+.filter-indicator.sahl     { background: var(--accent-purple) !important; }
+.filter-indicator.all      { background: var(--text-muted) !important; }
+
+/* Timeline events */
+.timeline-event-card {
+  background: rgba(255, 255, 255, 0.015) !important;
+  border-left-color: var(--accent-blue) !important;
+}
+.timeline-event-card:hover { background: var(--bg-hover) !important; }
+
+/* ─── 17. SETTINGS ─────────────────────────────────────────────────────── */
+.settings-card {
+  background: var(--glass-bg) !important;
+  border-color: var(--glass-border) !important;
+  box-shadow: var(--shadow-card) !important;
+}
+.auth-status-box {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border-color: var(--glass-border) !important;
+  color: var(--text-secondary) !important;
+}
+.auth-status-box.ok {
+  border-color: rgba(34, 197, 94, 0.3) !important;
+  color: #4ade80 !important;
+  background: rgba(34, 197, 94, 0.06) !important;
+}
+.auth-status-box.warn {
+  border-color: rgba(245, 158, 11, 0.3) !important;
+  color: #fcd34d !important;
+  background: rgba(245, 158, 11, 0.06) !important;
+}
+.integration-status-card {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border-color: var(--glass-border) !important;
+}
+.integration-status-card:hover { border-color: var(--glass-border-hover) !important; }
+.integration-card-head i { color: var(--accent-blue-light) !important; }
+.integration-pill.ok {
+  background: rgba(34, 197, 94, 0.14) !important;
+  color: #4ade80 !important;
+  border: 1px solid rgba(34, 197, 94, 0.25) !important;
+}
+.integration-pill.warn {
+  background: rgba(245, 158, 11, 0.12) !important;
+  color: #fcd34d !important;
+  border: 1px solid rgba(245, 158, 11, 0.25) !important;
+}
+
+/* Code/pre blocks */
+code,
+pre,
+.code-box,
+.code-pre {
+  background: rgba(0, 0, 0, 0.3) !important;
+  color: var(--accent-blue-light) !important;
+  border: 1px solid var(--glass-border) !important;
+}
+.method {
+  background: rgba(59, 130, 246, 0.2) !important;
+  color: var(--accent-blue-light) !important;
+}
+
+/* ─── 18. CHAT SIMULATOR ───────────────────────────────────────────────── */
+.chat-sessions-panel {
+  background: var(--glass-bg) !important;
+  border-color: var(--glass-border) !important;
+}
+.panel-search input {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border-color: var(--glass-border) !important;
+  color: var(--text-primary) !important;
+}
+.session-item { background: rgba(255,255,255,0.01) !important; }
+.session-item:hover {
+  background: var(--bg-hover) !important;
+  border-color: var(--glass-border) !important;
+}
+.session-item.active {
+  background: var(--bg-active) !important;
+  border-color: var(--glass-border-hover) !important;
+}
+.message-bubble.bot,
+.message-bubble.agent {
+  background: linear-gradient(135deg, var(--accent-blue) 0%, #1d4ed8 100%) !important;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.28) !important;
+}
+.message-bubble.customer {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid var(--glass-border) !important;
+}
+.avatar-circle {
+  background: linear-gradient(135deg, #1e3a8a, #1e40af) !important;
+  border: 1px solid rgba(59, 130, 246, 0.22) !important;
+}
+.status-badge.waiting,
+.status-badge.active,
+.status-badge.confirmed {
+  background: rgba(59, 130, 246, 0.12) !important;
+  border: 1px solid rgba(59, 130, 246, 0.25) !important;
+  color: var(--accent-blue-light) !important;
+}
+
+/* ─── 19. MODAL ────────────────────────────────────────────────────────── */
+.modal-overlay {
+  background: rgba(0, 0, 0, 0.75) !important;
+}
+.modal-content {
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--glass-border-hover) !important;
+  box-shadow: var(--shadow-modal) !important;
+}
+.modal-header {
+  border-bottom-color: var(--glass-border) !important;
+}
+.modal-footer {
+  border-top-color: var(--glass-border) !important;
+}
+.modal-header h2 { color: var(--text-primary) !important; }
+
+/* ─── 20. TABLES ───────────────────────────────────────────────────────── */
+table { color: var(--text-primary) !important; }
+th {
+  color: var(--text-muted) !important;
+  border-bottom: 1px solid var(--glass-border) !important;
+  background: rgba(255, 255, 255, 0.02) !important;
+}
+td { border-bottom: 1px solid rgba(255, 255, 255, 0.03) !important; }
+tr:hover td { background: var(--bg-hover) !important; }
+
+/* Traces table */
+.traces-table th {
+  color: var(--text-muted) !important;
+  border-bottom-color: var(--glass-border) !important;
+  background: rgba(255, 255, 255, 0.02) !important;
+}
+
+/* ─── 21. MINI BOOKING CARDS ────────────────────────────────────────────── */
+.mini-booking-card {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border-color: var(--glass-border) !important;
+}
+.mini-booking-card:hover {
+  background: var(--bg-hover) !important;
+  border-color: var(--glass-border-hover) !important;
+}
+
+/* ─── 22. LOG CONSOLE ──────────────────────────────────────────────────── */
+.log-console {
+  background: rgba(0, 0, 0, 0.25) !important;
+  border-color: var(--glass-border) !important;
+}
+.log-time { color: var(--accent-blue-light) !important; }
+
+/* ─── 23. EMPTY STATES ─────────────────────────────────────────────────── */
+.empty-state { color: var(--text-muted) !important; }
+.empty-state i { opacity: 0.4 !important; }
+
+/* ─── 24. SCROLL BARS ──────────────────────────────────────────────────── */
+::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.2) !important;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 130, 246, 0.38) !important;
+}
+::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+/* ─── 25. SOCIAL MEDIA SECTION ─────────────────────────────────────────── */
+.social-stat-card {
+  background: var(--glass-bg) !important;
+  border-color: var(--glass-border) !important;
+}
+.social-stat-card:hover {
+  border-color: var(--glass-border-hover) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* ─── 26. AUTH GATE ────────────────────────────────────────────────────── */
+.dashboard-auth-gate {
+  background: rgba(0, 0, 0, 0.78) !important;
+  backdrop-filter: blur(8px) !important;
+}
+.dashboard-auth-card {
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--glass-border-hover) !important;
+  border-radius: var(--radius-xl) !important;
+}
+
+/* ─── 27. SECTION HEADER CHIPS (Live / Manual Review etc) ──────────────── */
+.m1-section-header { border-bottom-color: var(--glass-border) !important; }
+
+/* ─── 28. PREMIUM SIDEBAR ENHANCEMENT ──────────────────────────────────── */
+/* Blue left-border accent on active nav item (on top of m1 ::before) */
+.nav-item.active {
+  box-shadow: 0 2px 12px rgba(59, 130, 246, 0.14) !important;
+}
+
+/* Sidebar active indicator */
+.nav-item.active::before {
+  background: linear-gradient(180deg, var(--accent-blue-light), var(--accent-blue)) !important;
+}
+
+/* Sidebar logo pulse dot */
+.m1-hero-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-green) !important;
+  box-shadow: 0 0 6px var(--accent-green) !important;
+  display: inline-block;
+}
+
+/* ─── 29. ICON COLORS ──────────────────────────────────────────────────── */
+.m1-dot.blue { background: var(--accent-blue) !important; }
+.m1-dot.green { background: var(--accent-green) !important; }
+.m1-dot.orange { background: var(--accent-amber) !important; }
+.m1-dot.red { background: var(--accent-red) !important; }
+
+/* ─── 30. LOGO RESPONSIVE BEHAVIOR ─────────────────────────────────────── */
+/* Wide sidebar (> 1280px): show full logo with text */
+.sidebar-logo-full { display: block !important; }
+.sidebar-logo-icon { display: none !important; }
+
+/* Icon-only sidebar (≤ 1280px, not drawer) */
+@media (max-width: 1280px) and (min-width: 769px) {
+  .sidebar-logo-full { display: none !important; }
+  .sidebar-logo-icon { display: block !important; }
+}
+
+/* Mobile drawer (≤ 768px): show full logo again */
+@media (max-width: 768px) {
+  .sidebar-logo-full { display: block !important; }
+  .sidebar-logo-icon { display: none !important; }
+  /* Mobile header top padding */
+  .main-content { padding-top: 58px !important; }
+}
+
+/* ─── 31. PREMIUM VISUAL ENHANCEMENTS ──────────────────────────────────── */
+
+/* Glowing top border on active section elements */
+.m1-payment-card[data-status="PAYMENT_PENDING_REVIEW"],
+.m1-payment-card[data-status="VERIFIED"],
+.m1-payment-card[data-status="REJECTED"] {
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease !important;
+}
+
+/* Smooth appear animation for dynamically rendered cards */
+@keyframes cs-card-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.m1-payment-card,
+.m1-cleaner-card,
+.approval-card {
+  animation: cs-card-enter 340ms cubic-bezier(0.16, 1, 0.3, 1) both !important;
+}
+
+/* Shimmer loading */
+.m1-shimmer {
+  background: linear-gradient(90deg,
+    rgba(59, 130, 246, 0.03) 0%,
+    rgba(59, 130, 246, 0.08) 50%,
+    rgba(59, 130, 246, 0.03) 100%) !important;
+  background-size: 400% 100% !important;
+  animation: cs-shimmer 1.6s infinite !important;
+}
+@keyframes cs-shimmer {
+  0%   { background-position: 100% 50%; }
+  100% { background-position: -100% 50%; }
+}
+
+/* Blue pulse on live chip */
+.m1-chip.live::before {
+  background: var(--accent-green) !important;
+}
+
+/* Section enter animation (reuses the one from m1 but updates colors) */
+@keyframes m1-section-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── 32. MOBILE TOGGLE BUTTON ──────────────────────────────────────────── */
+.mobile-menu-toggle {
+  background: var(--bg-elevated) !important;
+  border-color: var(--glass-border) !important;
+  color: var(--text-primary) !important;
+}
+.mobile-menu-toggle:hover {
+  background: var(--bg-active) !important;
+  border-color: var(--accent-blue) !important;
+}
+
+/* Sidebar backdrop (mobile) */
+.sidebar-backdrop.is-open {
+  background: rgba(0, 0, 0, 0.72) !important;
+}

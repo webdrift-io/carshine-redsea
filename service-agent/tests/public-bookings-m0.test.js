@@ -154,7 +154,8 @@ describe('M0 public booking API service', () => {
     expect(bookingCount).toBe(0);
   });
 
-  it('rejects conflicting slot and does not create a second QUOTED booking', () => {
+  it('rejects conflicting slot and does not create a third QUOTED booking (capacity=2)', () => {
+    // Capacity is 2 concurrent bookings per hour. Fill the slot first.
     const first = createPublicBooking(validBookingPayload({ idempotencyKey: 'slot-first-1' }));
     expect(first.status).toBe('QUOTED');
 
@@ -164,17 +165,27 @@ describe('M0 public booking API service', () => {
       email: 'ahmed@example.com',
       idempotencyKey: 'slot-second-1'
     }));
+    expect(second.status).toBe('QUOTED');
+
+    // Slot is now full (2/2). Third attempt must be rejected.
+    const third = createPublicBooking(validBookingPayload({
+      customerName: 'Sara Ibrahim',
+      phone: '01055555555',
+      email: 'sara@example.com',
+      idempotencyKey: 'slot-third-1'
+    }));
 
     const quotedCount = database.db
       .prepare("SELECT COUNT(*) AS count FROM bookings_v2 WHERE status = 'QUOTED'")
       .get().count;
 
-    expect(second.success).toBe(false);
-    expect(second.status).toBe('NEEDS_HUMAN');
-    expect(quotedCount).toBe(1);
+    expect(third.success).toBe(false);
+    expect(third.status).toBe('NEEDS_HUMAN');
+    expect(quotedCount).toBe(2);
   });
 
-  it('M0-005a: rejects overlap, not just exact scheduledStart match (window-overlap)', () => {
+  it('M0-005a: rejects window-overlap once slot is full (capacity=2)', () => {
+    // Fill the hour with 2 bookings at 10:00 on 2026-08-15.
     const first = createPublicBooking(validBookingPayload({
       idempotencyKey: 'm0-005a-window-first',
       preferredDate: '2026-08-15',
@@ -182,10 +193,20 @@ describe('M0 public booking API service', () => {
     }));
     expect(first.status).toBe('QUOTED');
 
-    // 30 minutes later — old equality check would have missed this. New
-    // window-overlap query must reject it.
     const second = createPublicBooking(validBookingPayload({
-      idempotencyKey: 'm0-005a-window-second',
+      idempotencyKey: 'm0-005a-window-second-fill',
+      customerName: 'Ahmed Ali',
+      phone: '01033333333',
+      email: 'ahmed@example.com',
+      preferredDate: '2026-08-15',
+      preferredTime: '10:00'
+    }));
+    expect(second.status).toBe('QUOTED');
+
+    // 30 minutes later — old equality check would have missed this. New
+    // window-overlap query detects it AND capacity is now full.
+    const third = createPublicBooking(validBookingPayload({
+      idempotencyKey: 'm0-005a-window-third',
       customerName: 'Lina Mostafa',
       phone: '01044444444',
       email: 'lina@example.com',
@@ -197,9 +218,9 @@ describe('M0 public booking API service', () => {
       .prepare("SELECT COUNT(*) AS count FROM bookings_v2 WHERE status = 'QUOTED'")
       .get().count;
 
-    expect(second.success).toBe(false);
-    expect(second.status).toBe('NEEDS_HUMAN');
-    expect(quotedCount).toBe(1);
+    expect(third.success).toBe(false);
+    expect(third.status).toBe('NEEDS_HUMAN');
+    expect(quotedCount).toBe(2);
   });
 
   it('returns the same booking for duplicate idempotency keys', () => {

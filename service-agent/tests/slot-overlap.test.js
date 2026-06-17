@@ -179,10 +179,11 @@ describe('M0-005a slot-overlap refinement', () => {
     expect(result.status).toBe('NEEDS_HUMAN');
   });
 
-  it('public booking creation rejects overlap (integration with public-bookings)', () => {
+  it('public booking creation rejects overlap once slot is full (capacity=2, integration)', () => {
     delete require.cache[require.resolve('../services/public-bookings')];
     const { createPublicBooking } = require('../services/public-bookings');
 
+    // Fill the slot to capacity (2 bookings).
     const first = createPublicBooking(validPayload({
       idempotencyKey: 'm0-005a-overlap-first',
       preferredDate: '2026-09-10',
@@ -190,6 +191,16 @@ describe('M0-005a slot-overlap refinement', () => {
     }));
     expect(first.status).toBe('QUOTED');
 
+    const fill = createPublicBooking(validPayload({
+      idempotencyKey: 'm0-005a-overlap-fill',
+      customerName: 'Fill Customer',
+      phone: '01088888888',
+      preferredDate: '2026-09-10',
+      preferredTime: '10:00'
+    }));
+    expect(fill.status).toBe('QUOTED');
+
+    // Now the slot is full; overlapping booking at 10:30 must be rejected.
     const second = createPublicBooking(validPayload({
       idempotencyKey: 'm0-005a-overlap-second',
       customerName: 'Second Customer',

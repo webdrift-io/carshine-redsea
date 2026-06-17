@@ -3,18 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CarShine Red Sea - Admin Dashboard</title>
+  <title>CarShine Red Sea — Operations Dashboard</title>
+  <meta name="description" content="CarShine Red Sea operations dashboard: bookings, payment review, cleaner dispatch, and live KPIs for El Gouna, Hurghada and Sahl Hasheesh.">
+  <meta name="theme-color" content="#0a0a0b">
+  <!-- Brand favicon (transparent mark) -->
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/carshine-mark-blue.png">
+  <link rel="apple-touch-icon" href="assets/brand/carshine-mark-blue.png">
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <!-- Custom Styles -->
   <link rel="stylesheet" href="style.css">
   <!-- M1 Premium Theme -->
   <link rel="stylesheet" href="m1-theme.css">
-  <link rel="stylesheet" href="bw-theme.css">
+  <!-- CarShine Premium Dark Theme (electric-blue, replaces B&W override) -->
+  <link rel="stylesheet" href="carshine-premium.css">
 </head>
 <body class="dark-mode">
   <!-- Mobile menu toggle (tablet/phone) -->
@@ -27,15 +33,12 @@
     
     <!-- Navigation Sidebar -->
     <aside class="sidebar">
-      <div class="logo-area">
-        <div class="logo-icon">
-          <i class="fa-solid fa-wand-magic-sparkles"></i>
-        </div>
-        <div class="logo-text">
-          <span class="brand-title">CarShine</span>
-          <span class="brand-subtitle">Red Sea</span>
-        </div>
-      </div>
+      <a href="#overview" class="logo-area" data-section="overview" aria-label="CarShine Red Sea — go to overview">
+        <!-- Full logo with text (wide sidebar) -->
+        <img src="assets/brand/carshine-logo-full.png" alt="CarShine Red Sea" class="sidebar-logo-full" width="148" height="auto">
+        <!-- Icon mark (collapsed sidebar at ≤1280px) -->
+        <img src="assets/brand/carshine-mark-blue.png" alt="CarShine Red Sea" class="sidebar-logo-icon" width="36" height="36">
+      </a>
       
       <nav class="nav-menu">
         <div class="nav-group-label">Operations</div>
@@ -115,8 +118,13 @@
       <!-- Top Header -->
       <header class="main-header">
         <div class="header-left">
-          <h1 id="section-title">Dashboard Overview</h1>
-          <p id="section-subtitle">Real-time control panel for Red Sea operations.</p>
+          <div class="header-brand-row">
+            <img src="assets/brand/carshine-mark-blue.png" alt="" class="header-brand-mark" width="28" height="28" aria-hidden="true">
+            <div>
+              <h1 id="section-title">Dashboard Overview</h1>
+              <p id="section-subtitle">Real-time control panel for Red Sea operations.</p>
+            </div>
+          </div>
         </div>
         <div class="header-right">
           <!-- Autopilot Widget -->
@@ -146,13 +154,18 @@
         <!-- M1 Hero Banner -->
         <div class="m1-hero-banner">
           <div class="m1-hero-left">
-            <div class="m1-hero-eyebrow">CarShine Red Sea · Operations</div>
+            <div class="m1-hero-eyebrow"><span class="m1-hero-pulse" aria-hidden="true"></span>CarShine Red Sea · Operations</div>
             <div class="m1-hero-title">Your <span>mobile car wash</span><br>command center</div>
-            <div class="m1-hero-sub">Real-time bookings, payment review, and cleaner dispatch — all in one place. Red Sea territory.</div>
+            <div class="m1-hero-sub">Real-time bookings, payment review, and cleaner dispatch — all in one place. El Gouna · Hurghada · Sahl Hasheesh.</div>
             <div class="m1-hero-tags">
               <span class="m1-tag blue"><i class="fa-solid fa-circle-check"></i> Live Data</span>
               <span class="m1-tag green"><i class="fa-solid fa-shield-halved"></i> Payment Safe</span>
-              <span class="m1-tag amber"><i class="fa-solid fa-location-dot"></i> El Gouna · Hurghada · Sahl Hasheesh</span>
+              <span class="m1-tag amber"><i class="fa-solid fa-shield-halved"></i> AI cannot verify payments</span>
+            </div>
+            <div class="m1-hero-actions">
+              <a href="#" class="m1-hero-btn primary" data-section="bookings-v2"><i class="fa-solid fa-calendar-check"></i> View bookings</a>
+              <a href="#" class="m1-hero-btn ghost" data-section="payments-review"><i class="fa-solid fa-receipt"></i> Review payments</a>
+              <a href="#" class="m1-hero-btn ghost" data-section="cleaners-ops"><i class="fa-solid fa-spray-can-sparkles"></i> Assign cleaners</a>
             </div>
           </div>
           <div class="m1-hero-stats">
@@ -170,13 +183,15 @@
             </div>
           </div>
           <div class="m1-hero-right">
-            <picture class="m1-hero-car-image" aria-hidden="true">
-              <source media="(max-width: 600px)" srcset="assets/hero/car-hero-mobile.jpg">
-              <img src="assets/hero/car-hero-960.jpg" alt="" loading="lazy" decoding="async" width="960" height="540">
-            </picture>
-            <div class="m1-hero-glow" aria-hidden="true"></div>
-            <div class="m1-hero-car-fallback" aria-hidden="true">
-              <i class="fa-solid fa-car-wash"></i>
+            <div class="m1-hero-car-wrap">
+              <picture class="m1-hero-car-image" aria-hidden="true">
+                <source media="(max-width: 600px)" srcset="assets/hero/car-hero-mobile.jpg">
+                <img src="assets/hero/car-hero-960.jpg" alt="" loading="eager" decoding="async" width="960" height="540">
+              </picture>
+              <div class="m1-hero-glow" aria-hidden="true"></div>
+              <div class="m1-hero-car-fallback" aria-hidden="true">
+                <i class="fa-solid fa-car-wash"></i>
+              </div>
             </div>
           </div>
         </div>
@@ -901,6 +916,7 @@
     </div>
   </div>
 
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
   <script src="app.js"></script>
 </body>
 </html>
