@@ -1058,10 +1058,17 @@ app.post('/api/public/chat', publicChatLimiter, async (req, res) => {
   }
 });
 
+// Separate rate limiter for widget polling (GET only — much more frequent than POST)
+const publicChatPollLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  message: { messages: [], found: false, sessionId: null }
+});
+
 /**
- * Get chat history for a public session
+ * Get chat history for a public session (polled by widget for agent replies)
  */
-app.get('/api/public/chat/:sessionId', publicChatLimiter, (req, res) => {
+app.get('/api/public/chat/:sessionId', publicChatPollLimiter, (req, res) => {
   const { sessionId } = req.params;
   const chat = db.getChat(sessionId);
   if (!chat) {

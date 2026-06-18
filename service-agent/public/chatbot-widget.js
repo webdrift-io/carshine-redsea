@@ -33,6 +33,11 @@
   let isOpen = false;
   let isTyping = false;
   const STORAGE_KEY = 'carshine_chat_state_v1';
+  let lastKnownAgentMsgCount = 0;
+  let pollTimer = null;
+  let pollInterval = 3000;
+  let pollIdleMs = 0;
+  const POLL_MAX_IDLE_MS = 600000;
   
   // Inject styles
   const STYLES = `
@@ -197,6 +202,37 @@
       color: white;
       align-self: flex-start;
       border-bottom-left-radius: 4px;
+    }
+    .cs-msg.cs-agent {
+      align-self: flex-start;
+      background: linear-gradient(135deg, #1a3a2a, #2d5a40);
+      color: #e2f0e8;
+      border-bottom-left-radius: 4px;
+    }
+    .cs-msg.cs-agent::before {
+      content: 'CarShine Team';
+      display: block;
+      font-size: 10px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.55);
+      margin-bottom: 3px;
+      letter-spacing: 0.04em;
+    }
+    .cs-unread-dot {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      width: 13px;
+      height: 13px;
+      background: #f87171;
+      border-radius: 50%;
+      border: 2px solid #25D366;
+      animation: cs-unread-pulse 1.4s ease-in-out infinite;
+      pointer-events: none;
+    }
+    @keyframes cs-unread-pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.35); opacity: 0.75; }
     }
     
     .cs-typing {
@@ -466,11 +502,17 @@
       }
     });
     
-    // Show welcome message
-    if (config.welcomeMessage) {
+    // Show welcome message (or restore history for returning visitors)
+    if (sessionId) {
+      // Returning visitor: restore conversation and start polling for agent replies
+      setTimeout(async () => {
+        await restoreHistory();
+        startPolling();
+      }, 400);
+    } else if (config.welcomeMessage) {
       addMessage('bot', config.welcomeMessage);
     }
-    
+
     if (config.autoOpen) {
       setTimeout(toggleChat, 500);
     }
@@ -481,6 +523,7 @@
     isOpen = !isOpen;
     if (isOpen) {
       window_.classList.add('cs-open');
+      _clearUnreadDot();
       // Hide badge
       const badge = document.querySelector('.cs-badge');
       if (badge) badge.style.display = 'none';
@@ -550,7 +593,8 @@
       const data = await res.json();
       sessionId = data.sessionId;
       persistChatState();
-      
+      startPolling();
+
       // Simulate typing delay for natural feel
       await new Promise(r => setTimeout(r, 400 + Math.random() * 400));
       hideTyping();
@@ -592,6 +636,76 @@
     } catch (err) {
       // Storage can be blocked in private browsers; chat still works for the current page session.
     }
+  }
+
+  function startPolling() {
+    if (pollTimer || !sessionId) return;
+    pollTimer = setTimeout(_doPoll, pollInterval);
+  }
+
+  function stopPolling() {
+    clearTimeout(pollTimer);
+    pollTimer = null;
+  }
+
+  async function _doPoll() {
+    pollTimer = null;
+    if (!sessionId) return;
+    try {
+      const res = await fetch(config.apiUrl + '/api/public/chat/' + encodeURIComponent(sessionId));
+      if (res.ok) {
+        const data = await res.json();
+        const agentMsgs = (data.messages || []).filter(m => m.sender === 'agent');
+        if (agentMsgs.length > lastKnownAgentMsgCount) {
+          agentMsgs.slice(lastKnownAgentMsgCount).forEach(m => {
+            addMessage('agent', m.text);
+            if (!isOpen) _showUnreadDot();
+          });
+          lastKnownAgentMsgCount = agentMsgs.length;
+          pollIdleMs = 0;
+          pollInterval = 3000;
+        } else {
+          pollIdleMs += pollInterval;
+          if (pollIdleMs > 180000) pollInterval = 15000;
+          else if (pollIdleMs > 60000) pollInterval = 8000;
+        }
+      }
+    } catch (e) { /* silently ignore poll errors */ }
+    if (pollIdleMs < POLL_MAX_IDLE_MS) {
+      pollTimer = setTimeout(_doPoll, pollInterval);
+    }
+  }
+
+  async function restoreHistory() {
+    if (!sessionId) return;
+    try {
+      const res = await fetch(config.apiUrl + '/api/public/chat/' + encodeURIComponent(sessionId));
+      if (!res.ok) return;
+      const data = await res.json();
+      const msgs = data.messages || [];
+      if (msgs.length === 0) return;
+      addMessage('system', '— Earlier conversation —');
+      msgs.forEach(m => {
+        if (m.sender === 'bot') addMessage('bot', m.text);
+        else if (m.sender === 'customer') addMessage('user', m.text);
+        else if (m.sender === 'agent') addMessage('agent', m.text);
+      });
+      lastKnownAgentMsgCount = msgs.filter(m => m.sender === 'agent').length;
+    } catch (e) { /* ignore */ }
+  }
+
+  function _showUnreadDot() {
+    const launcher = document.querySelector('.cs-chat-launcher');
+    if (launcher && !launcher.querySelector('.cs-unread-dot')) {
+      const dot = document.createElement('span');
+      dot.className = 'cs-unread-dot';
+      launcher.style.position = 'relative';
+      launcher.appendChild(dot);
+    }
+  }
+
+  function _clearUnreadDot() {
+    document.querySelector('.cs-unread-dot')?.remove();
   }
 
   function openChat() {

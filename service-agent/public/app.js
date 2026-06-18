@@ -162,7 +162,16 @@ function setupSocketRealtime() {
       console.log('[Socket] connected');
     });
     dashboardSocket.on('booking:created', () => fetchData());
-    dashboardSocket.on('chat:updated', () => fetchData());
+    dashboardSocket.on('chat:updated', () => {
+      fetchData();
+      if (currentSection !== 'chat-simulator') {
+        const chatNav = document.querySelector('.nav-item[data-section="chat-simulator"]');
+        if (chatNav) {
+          chatNav.classList.add('has-new-chat');
+          setTimeout(() => chatNav.classList.remove('has-new-chat'), 3500);
+        }
+      }
+    });
     dashboardSocket.on('autopilot', () => fetchData());
     dashboardSocket.on('disconnect', () => {
       console.log('[Socket] disconnected — using slow poll fallback');
@@ -902,10 +911,10 @@ function renderChatSidebar() {
     const lastMsg = messages[messages.length - 1];
     const previewText = lastMsg ? lastMsg.text : 'No messages yet';
     const initials = c.customerName ? c.customerName.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase() : 'CU';
-    
+
     let badgeClass = 'status-active';
     let badgeLabel = 'Active';
-    
+
     if (c.status === 'waiting_approval') {
       badgeClass = 'status-waiting';
       badgeLabel = 'Review';
@@ -913,21 +922,26 @@ function renderChatSidebar() {
       badgeClass = 'status-booked';
       badgeLabel = c.status;
     }
-    
+
     const isSelected = c.id === activeChatId ? 'active' : '';
-    
+    const isWebSession = c.phone && c.phone.startsWith('web_');
+    const lastMsgAge = lastMsg ? (Date.now() - new Date(lastMsg.timestamp).getTime()) : Infinity;
+    const isLive = isWebSession && lastMsgAge < 120000 && lastMsg && lastMsg.sender === 'customer';
+
     return `
       <div class="session-item ${isSelected}" onclick="selectChat('${c.id}')">
         <div class="avatar-circle">${initials}</div>
         <div class="session-details">
           <div class="session-header">
-            <span class="session-name">${c.customerName}</span>
+            <span class="session-name">${escapeHtml(c.customerName)}</span>
             <span class="session-time">${lastMsg ? new Date(lastMsg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}</span>
           </div>
-          <span class="session-preview">${previewText}</span>
+          <span class="session-preview">${escapeHtml(previewText)}</span>
           <div class="session-meta-row">
             <span class="badge-micro lang">${c.language || '??'}</span>
             <span class="badge-micro ${badgeClass}">${badgeLabel}</span>
+            ${isWebSession ? '<span class="badge-micro web-badge">WEB</span>' : ''}
+            ${isLive ? '<span class="live-pulse-dot" title="Customer is typing / just messaged"></span>' : ''}
           </div>
         </div>
       </div>

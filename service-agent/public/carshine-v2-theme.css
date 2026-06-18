@@ -938,6 +938,46 @@ a:focus-visible, button:focus-visible {
 }
 .main-content > * { position: relative; z-index: 1; }
 
+/* ─── 33b. SIDEBAR LOGO — white badge so black logo shows on dark bg ──────── */
+.sidebar-logo-full {
+  background: rgba(255,255,255,0.96) !important;
+  border-radius: 8px !important;
+  padding: 5px 9px !important;
+  width: 110px !important;
+}
+.sidebar-logo-icon {
+  background: rgba(255,255,255,0.96) !important;
+  border-radius: 8px !important;
+  padding: 4px !important;
+}
+
+/* WEB session badge + live pulse for chat sidebar */
+.badge-micro.web-badge {
+  background: rgba(59,130,246,0.15) !important;
+  color: var(--cs2-blue2) !important;
+  border: 1px solid rgba(59,130,246,0.25) !important;
+}
+.live-pulse-dot {
+  width: 7px !important;
+  height: 7px !important;
+  min-width: 7px !important;
+  background: var(--cs2-green) !important;
+  border-radius: 50% !important;
+  animation: cs2-live-pulse 1.2s infinite !important;
+}
+@keyframes cs2-live-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.6); opacity: 0.6; }
+}
+/* Nav badge pulse when new chat arrives */
+.nav-item.has-new-chat .badge {
+  animation: cs2-badge-ping 1s ease 3 !important;
+}
+@keyframes cs2-badge-ping {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.4); box-shadow: 0 0 0 4px rgba(251,191,36,0.25); }
+}
+
 /* ─── 34. CLICKABLE KPI CARDS ─────────────────────────────────────────────── */
 .kpi-card[data-section] {
   cursor: pointer !important;
