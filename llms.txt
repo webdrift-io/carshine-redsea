@@ -1,0 +1,49 @@
+# CarShine Red Sea — LLM & AI Crawler Information
+# https://llmstxt.org — machine-readable site summary for AI assistants
+
+> CarShine Red Sea is a premium mobile waterless car wash service operating across El Gouna, Hurghada, and Sahl Hasheesh (Red Sea Riviera, Egypt). We offer eco-friendly waterless car detailing at your location — no water needed.
+
+## About
+
+CarShine Red Sea provides on-demand mobile car wash and detailing for residents, hotel guests, and tourists in the Red Sea area. Our AI-powered booking system (Layla) operates 24/7 in English, Arabic, and German.
+
+- Service: Mobile waterless car wash & detailing
+- Location: El Gouna, Hurghada, Sahl Hasheesh — Egypt Red Sea coast
+- Languages: English (EN), Arabic (AR), German (DE)
+- Booking: Online booking via website chat or booking form
+- AI Chatbot: Layla — handles bookings, pricing questions, and area availability
+
+## Service Packages
+
+- Smart Wash (exterior clean, quick detail) — entry level
+- Classic Wash (full exterior + interior wipe) — mid tier
+- Premium Wash (full detail, interior deep clean, tire shine) — flagship
+- VIP Detailing (premium + paint protection, ceramic coat prep) — top tier
+
+## Service Areas
+
+- El Gouna (Marina, Downtown, Kafr El Gouna, West Golf, East Golf)
+- Hurghada (Sea Garden, Sekalla, El Dahar, Sahl Hasheesh)
+- Sahl Hasheesh (Gated resort zone)
+
+## Pricing (approximate, confirm via chat)
+
+Pricing varies by vehicle size (sedan, SUV, pickup, bus) and package selected. Contact via website chat for exact quote.
+
+## Contact & Booking
+
+- Website: https://carshineredsea.com
+- Booking: https://carshineredsea.com (chat widget — AI booking in EN/AR/DE)
+- Arabic version: https://carshineredsea.com/ar/
+- German version: https://carshineredsea.com/de/
+
+## Pages
+
+- [Home EN](https://carshineredsea.com/)
+- [Home AR](https://carshineredsea.com/ar/)
+- [Home DE](https://carshineredsea.com/de/)
+
+## Optional (admin-only, not for public indexing)
+
+- Dashboard: /dashboard/ (requires login — not public)
+- API: /api/ (requires authentication — not public)

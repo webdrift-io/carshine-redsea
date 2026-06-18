@@ -1118,6 +1118,85 @@ app.get('/api/public/bookings/:publicRef/status', publicChatLimiter, (req, res) 
   res.json({ success: true, ...status });
 });
 
+// ============================================================================
+// FIRST-PARTY WEBSITE ANALYTICS (privacy-safe, no external scripts)
+// ============================================================================
+
+const analyticsLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  message: { success: false }
+});
+
+/** POST /api/public/analytics/event — called by landing page tracking snippet */
+app.post('/api/public/analytics/event', analyticsLimiter, (req, res) => {
+  const VALID = ['page_view','chatbot_open','booking_started','booking_submitted','cta_click','page_section'];
+  const { event_type, page_path, referrer, session_id } = req.body || {};
+  if (!event_type || !VALID.includes(event_type)) return res.status(400).json({ success: false });
+
+  const ua = req.headers['user-agent'] || '';
+  const rawIp = (req.headers['x-forwarded-for'] || req.ip || '').split(',')[0].trim();
+  const isMobile = /Mobile|Android|iPhone|iPod/.test(ua);
+  const isTablet = /iPad|Tablet/.test(ua);
+  const device_type = isTablet ? 'tablet' : isMobile ? 'mobile' : 'desktop';
+  // Truncate to 3 octets (IPv4) or 18 chars (IPv6) — no individual tracking
+  const ip_prefix = rawIp.includes(':')
+    ? rawIp.substring(0, 18)
+    : rawIp.split('.').slice(0, 3).join('.');
+  // Country from Cloudflare header (free, no API call)
+  const country = req.headers['cf-ipcountry'] || req.headers['x-country-code'] || null;
+
+  try {
+    db.db.prepare(`
+      INSERT INTO website_events (event_type, page_path, referrer, ip_prefix, country, device_type, session_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      event_type,
+      (page_path || '/').toString().substring(0, 200),
+      (referrer || '').toString().substring(0, 500),
+      ip_prefix,
+      country,
+      device_type,
+      (session_id || '').toString().substring(0, 64)
+    );
+    res.json({ success: true });
+  } catch (e) {
+    logger.error({ err: e }, 'Analytics insert failed');
+    res.status(500).json({ success: false });
+  }
+});
+
+/** GET /api/admin/analytics/summary */
+app.get('/api/admin/analytics/summary', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (req, res) => {
+  const days = Math.min(parseInt(req.query.days) || 7, 90);
+  const since = new Date(Date.now() - days * 86400000).toISOString();
+  try {
+    const pageViews    = db.db.prepare(`SELECT COUNT(*) n FROM website_events WHERE event_type='page_view' AND created_at>?`).get(since).n;
+    const todayViews   = db.db.prepare(`SELECT COUNT(*) n FROM website_events WHERE event_type='page_view' AND date(created_at)=date('now')`).get().n;
+    const uniqueSess   = db.db.prepare(`SELECT COUNT(DISTINCT session_id) n FROM website_events WHERE created_at>?`).get(since).n;
+    const conversions  = db.db.prepare(`SELECT COUNT(*) n FROM website_events WHERE event_type='booking_submitted' AND created_at>?`).get(since).n;
+    const topPages     = db.db.prepare(`SELECT page_path,COUNT(*) views FROM website_events WHERE event_type='page_view' AND created_at>? GROUP BY page_path ORDER BY views DESC LIMIT 10`).all(since);
+    const topRefs      = db.db.prepare(`SELECT referrer,COUNT(*) count FROM website_events WHERE referrer!='' AND referrer IS NOT NULL AND created_at>? GROUP BY referrer ORDER BY count DESC LIMIT 8`).all(since);
+    const deviceBreak  = db.db.prepare(`SELECT device_type,COUNT(*) count FROM website_events WHERE created_at>? GROUP BY device_type`).all(since);
+    const dailyViews   = db.db.prepare(`SELECT date(created_at) day,COUNT(*) views FROM website_events WHERE event_type='page_view' AND created_at>? GROUP BY day ORDER BY day`).all(since);
+    const countries    = db.db.prepare(`SELECT country,COUNT(*) count FROM website_events WHERE country IS NOT NULL AND created_at>? GROUP BY country ORDER BY count DESC LIMIT 8`).all(since);
+    res.json({ period_days:days, page_views:pageViews, views_today:todayViews, unique_sessions:uniqueSess, booking_conversions:conversions, top_pages:topPages, top_referrers:topRefs, device_breakdown:deviceBreak, daily_views:dailyViews, country_breakdown:countries });
+  } catch (e) {
+    logger.error({ err: e }, 'Analytics summary failed');
+    res.status(500).json({ error: 'Analytics unavailable' });
+  }
+});
+
+/** GET /api/admin/analytics/recent */
+app.get('/api/admin/analytics/recent', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (req, res) => {
+  try {
+    const events = db.db.prepare(`SELECT id,event_type,page_path,referrer,country,device_type,created_at FROM website_events ORDER BY created_at DESC LIMIT 100`).all();
+    res.json(events);
+  } catch (e) {
+    res.status(500).json({ error: 'Analytics unavailable' });
+  }
+});
+
 // Settings
 app.get('/api/settings', (req, res) => {
   res.json({ autopilot });

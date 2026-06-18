@@ -38,7 +38,7 @@
     <aside class="sidebar">
       <a href="#overview" class="logo-area" data-section="overview" aria-label="CarShine Red Sea — go to overview">
         <!-- Full logo with text (wide sidebar) -->
-        <img src="assets/brand/carshine-logo-black-full.png" alt="CarShine Red Sea" class="sidebar-logo-full" width="176" height="auto">
+        <img src="assets/brand/carshine-logo-new.png" alt="CarShine Red Sea" class="sidebar-logo-full" width="176" height="auto">
         <!-- Icon mark (collapsed sidebar at ≤1280px) -->
         <img src="assets/brand/carshine-logo-mark-black.png" alt="CarShine Red Sea" class="sidebar-logo-icon" width="40" height="40">
       </a>
@@ -83,6 +83,12 @@
         <a href="#" class="nav-item" data-section="socials">
           <i class="fa-solid fa-share-nodes"></i>
           <span>Social Media</span>
+        </a>
+
+        <div class="nav-group-label">Insights</div>
+        <a href="#" class="nav-item" data-section="analytics">
+          <i class="fa-solid fa-chart-area"></i>
+          <span>Analytics</span>
         </a>
 
         <div class="nav-group-label">System</div>
@@ -208,7 +214,7 @@
             <div class="kpi-details">
               <h3>Total Bookings</h3>
               <p class="kpi-value" id="kpi-total">0</p>
-              <span class="kpi-trend positive"><i class="fa-solid fa-arrow-up"></i> +12% this week</span>
+              <span class="kpi-trend info" id="kpi-total-breakdown">All channels</span>
             </div>
             <svg class="kpi-sparkline" viewBox="0 0 56 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
               <rect x="0" y="14" width="6" height="6" rx="1" fill="#3b82f6"/><rect x="8" y="10" width="6" height="10" rx="1" fill="#3b82f6"/><rect x="16" y="12" width="6" height="8" rx="1" fill="#3b82f6"/><rect x="24" y="6" width="6" height="14" rx="1" fill="#3b82f6"/><rect x="32" y="8" width="6" height="12" rx="1" fill="#3b82f6"/><rect x="40" y="2" width="6" height="18" rx="1" fill="#3b82f6"/><rect x="48" y="4" width="6" height="16" rx="1" fill="#3b82f6"/>
@@ -982,6 +988,124 @@
               </thead>
               <tbody id="traces-tbody">
                 <tr><td colspan="6" style="padding: 18px 14px; text-align: center; color: var(--text-secondary);">Loading traces…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Analytics Section -->
+      <section id="section-analytics" class="dashboard-section">
+        <div class="cs2-section-header">
+          <h1>Website Analytics</h1>
+          <p>First-party visitor insights — no external trackers.</p>
+        </div>
+
+        <!-- KPI Row -->
+        <div class="kpi-grid cs2-analytics-kpi">
+          <div class="kpi-card card-glass">
+            <div class="kpi-icon blue"><i class="fa-solid fa-eye"></i></div>
+            <div class="kpi-details">
+              <h3>Page Views Today</h3>
+              <p class="kpi-value" id="an-views-today">–</p>
+              <span class="kpi-trend info">Last 24 h</span>
+            </div>
+          </div>
+          <div class="kpi-card card-glass">
+            <div class="kpi-icon purple"><i class="fa-solid fa-users"></i></div>
+            <div class="kpi-details">
+              <h3>Sessions (7d)</h3>
+              <p class="kpi-value" id="an-sessions">–</p>
+              <span class="kpi-trend info">Unique visitors</span>
+            </div>
+          </div>
+          <div class="kpi-card card-glass">
+            <div class="kpi-icon green"><i class="fa-solid fa-calendar-check"></i></div>
+            <div class="kpi-details">
+              <h3>Booking Conversions</h3>
+              <p class="kpi-value" id="an-conversions">–</p>
+              <span class="kpi-trend positive">Last 7 days</span>
+            </div>
+          </div>
+          <div class="kpi-card card-glass">
+            <div class="kpi-icon" style="background:linear-gradient(135deg,#0ea5e9,#0284c7)"><i class="fa-solid fa-chart-line"></i></div>
+            <div class="kpi-details">
+              <h3>Total Views (7d)</h3>
+              <p class="kpi-value" id="an-total-views">–</p>
+              <span class="kpi-trend info">Page views</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="cs2-analytics-row">
+          <!-- Daily bar chart -->
+          <div class="grid-card card-glass cs2-chart-card">
+            <div class="card-header">
+              <h2>Daily Page Views</h2>
+              <span class="cs2-badge cs2-badge-blue">7 days</span>
+            </div>
+            <div class="card-body">
+              <div id="an-daily-chart-wrap" style="min-height:100px;">
+                <div class="cs2-empty-state"><i class="fa-solid fa-chart-area"></i><p>Collecting data…</p></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Device breakdown -->
+          <div class="grid-card card-glass cs2-status-card">
+            <div class="card-header">
+              <h2>Device Split</h2>
+              <span class="cs2-badge">Live</span>
+            </div>
+            <div class="card-body">
+              <div class="cs2-status-list" id="an-device-list">
+                <div class="cs2-empty-state small"><i class="fa-solid fa-mobile-screen-button"></i><p>Collecting…</p></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom tables row -->
+        <div class="dashboard-grid" style="margin-top:12px;">
+          <!-- Top pages -->
+          <div class="grid-card card-glass">
+            <div class="card-header">
+              <h2>Top Pages</h2>
+              <span class="cs2-badge">7 days</span>
+            </div>
+            <div class="card-body">
+              <div id="an-top-pages">
+                <div class="cs2-empty-state small"><i class="fa-solid fa-file-lines"></i><p>No data yet</p></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Top referrers -->
+          <div class="grid-card card-glass">
+            <div class="card-header">
+              <h2>Referrers</h2>
+              <span class="cs2-badge">7 days</span>
+            </div>
+            <div class="card-body">
+              <div id="an-referrers">
+                <div class="cs2-empty-state small"><i class="fa-solid fa-link"></i><p>No data yet</p></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent events -->
+        <div class="grid-card card-glass" style="margin-top:12px;">
+          <div class="card-header">
+            <h2>Recent Activity</h2>
+            <button class="btn btn-sm" onclick="loadAnalytics()"><i class="fa-solid fa-rotate-right"></i> Refresh</button>
+          </div>
+          <div class="card-body" style="max-height:320px;overflow-y:auto;">
+            <table class="cs2-table" id="an-recent-table">
+              <thead><tr><th>Time</th><th>Event</th><th>Page</th><th>Device</th><th>Country</th></tr></thead>
+              <tbody id="an-recent-tbody">
+                <tr><td colspan="5" class="cs2-empty-cell"><i class="fa-solid fa-satellite-dish"></i> Waiting for first visitor…</td></tr>
               </tbody>
             </table>
           </div>

@@ -621,21 +621,27 @@ function renderIntegrationStatus() {
 
 // --- KPI UPDATING ---
 function updateKPIs() {
-  const total = bookingsList.length;
+  const legacy = bookingsList.length;
   const confirmed = bookingsList.filter(b => b.status === 'confirmed').length;
   const pending = bookingsList.filter(b => b.status === 'pending').length;
   const chatsCount = chatSessions.length;
-  
-  document.getElementById('kpi-total').textContent = total;
-  document.getElementById('kpi-confirmed').textContent = confirmed;
-  document.getElementById('kpi-pending').textContent = pending;
-  document.getElementById('kpi-chats').textContent = chatsCount;
 
   // V2 KPIs
   const v2Total = bookingsV2List.length;
   const v2Quoted = bookingsV2List.filter(b => b.status === 'QUOTED').length;
   const v2NeedsHuman = bookingsV2List.filter(b => b.status === 'NEEDS_HUMAN').length;
   const v2Collecting = bookingsV2List.filter(b => b.status === 'COLLECTING_INFO').length;
+
+  // Total = real combined count across both systems
+  const total = legacy + v2Total;
+  document.getElementById('kpi-total').textContent = total;
+  const breakdownEl = document.getElementById('kpi-total-breakdown');
+  if (breakdownEl) breakdownEl.textContent = legacy + ' legacy · ' + v2Total + ' AI';
+
+  document.getElementById('kpi-confirmed').textContent = confirmed;
+  document.getElementById('kpi-pending').textContent = pending;
+  document.getElementById('kpi-chats').textContent = chatsCount;
+
   document.getElementById('kpi-v2-total').textContent = v2Total;
   document.getElementById('kpi-v2-quoted').textContent = v2Quoted;
   document.getElementById('kpi-v2-needs-human').textContent = v2NeedsHuman;
@@ -2558,3 +2564,103 @@ function escapeHtml(s) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
+
+// ── ANALYTICS ────────────────────────────────────────────────────────────────
+async function loadAnalytics() {
+  try {
+    const [summary, recent] = await Promise.all([
+      fetch('/api/admin/analytics/summary?days=7').then(r => r.ok ? r.json() : null),
+      fetch('/api/admin/analytics/recent').then(r => r.ok ? r.json() : [])
+    ]);
+    if (summary) renderAnalyticsSummary(summary);
+    renderAnalyticsRecent(Array.isArray(recent) ? recent : []);
+  } catch (e) {
+    console.error('[Analytics]', e);
+  }
+}
+
+function renderAnalyticsSummary(s) {
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v ?? '–'; };
+  set('an-views-today', s.views_today);
+  set('an-sessions',    s.unique_sessions);
+  set('an-conversions', s.booking_conversions);
+  set('an-total-views', s.page_views);
+
+  // Daily bar chart (SVG)
+  const wrap = document.getElementById('an-daily-chart-wrap');
+  if (wrap && s.daily_views?.length) {
+    const max = Math.max(...s.daily_views.map(d => d.views), 1);
+    const W = 280, H = 80, barW = Math.floor((W - 8) / s.daily_views.length) - 3;
+    const bars = s.daily_views.map((d, i) => {
+      const h = Math.max(3, Math.round((d.views / max) * H));
+      const x = 4 + i * (barW + 3);
+      const label = d.day?.slice(5) || '';
+      return `<rect x="${x}" y="${H - h}" width="${barW}" height="${h}" rx="2" fill="rgba(59,130,246,0.7)"/>
+              <text x="${x + barW/2}" y="${H + 12}" font-size="9" fill="rgba(255,255,255,0.4)" text-anchor="middle">${label}</text>`;
+    }).join('');
+    wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H + 16}" style="width:100%;height:auto;display:block;" xmlns="http://www.w3.org/2000/svg">${bars}</svg>`;
+  }
+
+  // Device split
+  const devList = document.getElementById('an-device-list');
+  if (devList && s.device_breakdown?.length) {
+    const total = s.device_breakdown.reduce((acc, d) => acc + d.count, 0) || 1;
+    const icons = { mobile: 'fa-mobile-screen-button', desktop: 'fa-desktop', tablet: 'fa-tablet-screen-button' };
+    const clrs  = { mobile: '#60a5fa', desktop: '#4ade80', tablet: '#c084fc' };
+    devList.innerHTML = s.device_breakdown.map(d => {
+      const pct = Math.round((d.count / total) * 100);
+      const clr = clrs[d.device_type] || '#94a3b8';
+      return `<div class="cs2-status-row">
+        <span class="cs2-dot" style="background:${clr};box-shadow:0 0 6px ${clr}66;"></span>
+        <span class="cs2-status-name" style="text-transform:capitalize;">${d.device_type || 'unknown'}</span>
+        <div class="cs2-bar-wrap"><div class="cs2-bar" style="--pct:${pct}%;--clr:${clr};"></div></div>
+        <span class="cs2-stat-n">${d.count}</span>
+      </div>`;
+    }).join('');
+  }
+
+  // Top pages
+  const topPages = document.getElementById('an-top-pages');
+  if (topPages && s.top_pages?.length) {
+    topPages.innerHTML = `<table class="cs2-table"><thead><tr><th>Page</th><th>Views</th></tr></thead><tbody>
+      ${s.top_pages.map(p => `<tr><td class="cs2-monospace">${escapeHtml(p.page_path || '/')}</td><td>${p.views}</td></tr>`).join('')}
+    </tbody></table>`;
+  }
+
+  // Top referrers
+  const topRefs = document.getElementById('an-referrers');
+  if (topRefs && s.top_referrers?.length) {
+    topRefs.innerHTML = `<table class="cs2-table"><thead><tr><th>Referrer</th><th>Visits</th></tr></thead><tbody>
+      ${s.top_referrers.map(r => `<tr><td class="cs2-monospace">${escapeHtml((r.referrer || 'Direct').substring(0, 50))}</td><td>${r.count}</td></tr>`).join('')}
+    </tbody></table>`;
+  } else if (topRefs) {
+    topRefs.innerHTML = `<div class="cs2-empty-state small"><i class="fa-solid fa-link-slash"></i><p>No referrer data yet</p></div>`;
+  }
+}
+
+function renderAnalyticsRecent(events) {
+  const tbody = document.getElementById('an-recent-tbody');
+  if (!tbody) return;
+  if (!events.length) {
+    tbody.innerHTML = `<tr><td colspan="5" class="cs2-empty-cell"><i class="fa-solid fa-satellite-dish"></i> Waiting for first visitor…</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = events.slice(0, 50).map(e => {
+    const t = new Date(e.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    const eventBadge = { page_view:'blue', chatbot_open:'purple', booking_started:'orange', booking_submitted:'green', cta_click:'cyan' };
+    const clr = eventBadge[e.event_type] || 'gray';
+    return `<tr>
+      <td style="color:var(--cs2-txt3);font-size:11px;">${t}</td>
+      <td><span class="cs2-badge cs2-badge-${clr}" style="font-size:10px;">${e.event_type}</span></td>
+      <td class="cs2-monospace" style="font-size:11px;">${escapeHtml(e.page_path || '/')}</td>
+      <td style="font-size:11px;color:var(--cs2-txt3);">${e.device_type || '–'}</td>
+      <td style="font-size:11px;color:var(--cs2-txt3);">${e.country || '–'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// Load analytics when navigating to that section
+document.addEventListener('click', (e) => {
+  const nav = e.target.closest('[data-section="analytics"]');
+  if (nav) setTimeout(loadAnalytics, 100);
+});

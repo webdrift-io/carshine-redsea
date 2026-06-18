@@ -1,0 +1,16 @@
+# AI & LLM crawler information for CarShine Red Sea
+# See also: /llms.txt
+
+User-agent: *
+Allow: /
+Allow: /ar/
+Allow: /de/
+Allow: /llms.txt
+Disallow: /dashboard/
+Disallow: /api/
+Disallow: /login
+
+# Preferred summary (for AI assistants)
+Name: CarShine Red Sea
+Description: Premium mobile waterless car wash in El Gouna, Hurghada and Sahl Hasheesh, Egypt. Book via AI chatbot in English, Arabic or German.
+URL: https://carshineredsea.com

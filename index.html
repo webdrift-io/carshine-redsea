@@ -3368,6 +3368,53 @@
       }
     }
   </style>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "name": "CarShine Red Sea",
+    "description": "Premium mobile waterless car wash service in El Gouna, Hurghada, and Sahl Hasheesh, Egypt. Eco-friendly detailing at your location.",
+    "url": "https://carshineredsea.com",
+    "logo": "https://carshineredsea.com/assets/brand/carshine-logo-new.png",
+    "image": "https://carshineredsea.com/assets/brand/carshine-logo-new.png",
+    "telephone": "+20-xxx-xxx-xxxx",
+    "email": "info@carshineredsea.com",
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "El Gouna",
+      "addressRegion": "Red Sea Governorate",
+      "addressCountry": "EG"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": "27.3941",
+      "longitude": "33.6765"
+    },
+    "areaServed": [
+      {"@type": "City", "name": "El Gouna"},
+      {"@type": "City", "name": "Hurghada"},
+      {"@type": "City", "name": "Sahl Hasheesh"}
+    ],
+    "hasOfferCatalog": {
+      "@type": "OfferCatalog",
+      "name": "Car Wash Packages",
+      "itemListElement": [
+        {"@type": "Offer", "name": "Smart Wash", "description": "Exterior clean and quick detail"},
+        {"@type": "Offer", "name": "Classic Wash", "description": "Full exterior and interior wipe"},
+        {"@type": "Offer", "name": "Premium Wash", "description": "Full detail with interior deep clean and tire shine"},
+        {"@type": "Offer", "name": "VIP Detailing", "description": "Premium detailing with paint protection and ceramic coat prep"}
+      ]
+    },
+    "openingHoursSpecification": {
+      "@type": "OpeningHoursSpecification",
+      "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],
+      "opens": "08:00",
+      "closes": "20:00"
+    },
+    "sameAs": [],
+    "inLanguage": ["en", "ar", "de"]
+  }
+  </script>
 </head>
 <body class="is-loading">
   <div class="loader" id="loader" aria-hidden="true">
@@ -4282,6 +4329,21 @@
       welcomeMessage: "Hi, I am Layla. I can help you book a mobile car wash, explain packages, confirm InstaPay steps, and pass your request to the CarShine team.",
       autoOpen: false
     });
+  </script>
+  <script>
+    (function(){
+      var _csTrack=function(type,extra){
+        try{
+          var p={event_type:type,page_path:location.pathname,referrer:document.referrer||''};
+          if(extra)Object.assign(p,extra);
+          fetch('/api/public/analytics/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p),keepalive:true}).catch(function(){});
+        }catch(e){}
+      };
+      _csTrack('page_view');
+      document.querySelectorAll('[data-track-cta]').forEach(function(el){
+        el.addEventListener('click',function(){_csTrack('cta_click',{page_path:location.pathname+'#'+el.getAttribute('data-track-cta')});});
+      });
+    })();
   </script>
 </body>
 </html>

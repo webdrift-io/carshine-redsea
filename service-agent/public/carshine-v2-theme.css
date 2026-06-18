@@ -1108,7 +1108,154 @@ a:focus-visible, button:focus-visible {
 .cs2-badge-blue  { background: rgba(59,130,246,0.12) !important; color: var(--cs2-blue2) !important; border-color: rgba(59,130,246,0.25) !important; }
 .cs2-badge-green { background: rgba(74,222,128,0.1) !important;  color: var(--cs2-green) !important; border-color: rgba(74,222,128,0.25) !important; }
 
-/* ─── 37. MOBILE IMPROVEMENTS ─────────────────────────────────────────────── */
+/* ─── 37. ANALYTICS SECTION COMPONENTS ───────────────────────────────────── */
+.cs2-section-header {
+  margin-bottom: 16px !important;
+}
+.cs2-section-header h1 {
+  font-size: 20px !important;
+  font-weight: 600 !important;
+  color: var(--cs2-txt1) !important;
+  margin: 0 0 4px !important;
+}
+.cs2-section-header p {
+  font-size: 13px !important;
+  color: var(--cs2-txt3) !important;
+  margin: 0 !important;
+}
+
+/* Empty states */
+.cs2-empty-state {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 40px 20px !important;
+  color: var(--cs2-txt3) !important;
+  text-align: center !important;
+  gap: 10px !important;
+}
+.cs2-empty-state i {
+  font-size: 28px !important;
+  opacity: 0.35 !important;
+}
+.cs2-empty-state p {
+  font-size: 12px !important;
+  margin: 0 !important;
+  color: var(--cs2-txt3) !important;
+}
+.cs2-empty-state.small {
+  padding: 24px 16px !important;
+}
+.cs2-empty-state.small i {
+  font-size: 20px !important;
+}
+
+/* Analytics KPI grid — slightly narrower cards */
+.cs2-analytics-kpi .kpi-card {
+  cursor: default !important;
+}
+.cs2-analytics-kpi .kpi-card:hover {
+  transform: none !important;
+  box-shadow: var(--cs2-glass-shadow) !important;
+}
+
+/* Data table */
+.cs2-table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  font-size: 12px !important;
+}
+.cs2-table thead th {
+  text-align: left !important;
+  padding: 6px 10px !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: var(--cs2-txt3) !important;
+  border-bottom: 1px solid var(--cs2-border) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+}
+.cs2-table tbody td {
+  padding: 8px 10px !important;
+  color: var(--cs2-txt2) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.03) !important;
+  font-size: 12px !important;
+}
+.cs2-table tbody tr:last-child td {
+  border-bottom: none !important;
+}
+.cs2-table tbody tr:hover td {
+  background: rgba(255,255,255,0.02) !important;
+}
+.cs2-empty-cell {
+  text-align: center !important;
+  padding: 28px 10px !important;
+  color: var(--cs2-txt3) !important;
+  font-size: 12px !important;
+}
+.cs2-empty-cell i {
+  margin-right: 6px !important;
+  opacity: 0.5 !important;
+}
+
+/* Monospace text (IPs, codes, etc.) */
+.cs2-monospace {
+  font-family: 'SF Mono', ui-monospace, monospace !important;
+  font-size: 11px !important;
+  color: var(--cs2-txt3) !important;
+}
+
+/* Extra badge color variants */
+.cs2-badge-cyan   { background: rgba(34,211,238,0.10) !important; color: #22d3ee !important; border-color: rgba(34,211,238,0.25) !important; }
+.cs2-badge-orange { background: rgba(251,146,60,0.10) !important; color: #fb923c !important; border-color: rgba(251,146,60,0.25) !important; }
+.cs2-badge-gray   { background: rgba(148,163,184,0.10) !important; color: var(--cs2-txt3) !important; border-color: var(--cs2-border) !important; }
+.cs2-badge-purple { background: rgba(192,132,252,0.10) !important; color: var(--cs2-purple) !important; border-color: rgba(192,132,252,0.25) !important; }
+
+/* Daily bar chart (analytics section) */
+.cs2-daily-chart {
+  width: 100% !important;
+  height: 90px !important;
+  display: block !important;
+}
+.cs2-chart-labels {
+  display: flex !important;
+  justify-content: space-between !important;
+  padding: 4px 4px 0 !important;
+  font-size: 10px !important;
+  color: var(--cs2-txt3) !important;
+  letter-spacing: 0.03em !important;
+}
+
+/* Simple list rows for top pages / referrers */
+.cs2-list-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 7px 0 !important;
+  border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+  gap: 8px !important;
+}
+.cs2-list-row:last-child {
+  border-bottom: none !important;
+}
+.cs2-list-label {
+  font-size: 12px !important;
+  color: var(--cs2-txt2) !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+.cs2-list-count {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: var(--cs2-txt1) !important;
+  flex-shrink: 0 !important;
+}
+
+/* ─── 38. MOBILE IMPROVEMENTS ─────────────────────────────────────────────── */
 @media (max-width: 900px) {
   .cs2-analytics-row {
     grid-template-columns: 1fr !important;

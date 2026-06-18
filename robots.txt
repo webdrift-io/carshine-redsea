@@ -2,6 +2,9 @@ User-agent: *
 Allow: /
 Allow: /ar/
 Allow: /de/
+Allow: /llms.txt
+Allow: /ai.txt
+Allow: /sitemap.xml
 
 # Private / authenticated areas — keep out of the index
 Disallow: /dashboard
@@ -9,4 +12,26 @@ Disallow: /dashboard/
 Disallow: /login
 Disallow: /api/
 
+# AI / LLM crawlers — allow and point to llms.txt
+User-agent: GPTBot
+Allow: /
+Allow: /llms.txt
+
+User-agent: ClaudeBot
+Allow: /
+Allow: /llms.txt
+
+User-agent: Google-Extended
+Allow: /
+Allow: /llms.txt
+
+User-agent: PerplexityBot
+Allow: /
+Allow: /llms.txt
+
+User-agent: Amazonbot
+Allow: /
+Allow: /llms.txt
+
 Sitemap: https://carshineredsea.com/sitemap.xml
+LLMs: https://carshineredsea.com/llms.txt

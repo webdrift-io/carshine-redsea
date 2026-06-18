@@ -3257,6 +3257,29 @@
       transform: translateY(-1px);
     }
   </style>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "name": "كارشاين ريد سي",
+    "alternateName": "CarShine Red Sea",
+    "description": "خدمة غسيل سيارات متنقلة بدون ماء في الجونة والغردقة وسهل حشيش. تفصيل صديق للبيئة في موقعك.",
+    "url": "https://carshineredsea.com/ar/",
+    "logo": "https://carshineredsea.com/assets/brand/carshine-logo-new.png",
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "الجونة",
+      "addressRegion": "محافظة البحر الأحمر",
+      "addressCountry": "EG"
+    },
+    "areaServed": [
+      {"@type": "City", "name": "الجونة"},
+      {"@type": "City", "name": "الغردقة"},
+      {"@type": "City", "name": "سهل حشيش"}
+    ],
+    "inLanguage": "ar"
+  }
+  </script>
 </head>
 <body class="is-loading">
   <div class="loader" id="loader" aria-hidden="true">
@@ -3783,7 +3806,7 @@
       button.disabled = true;
       button.textContent = "جاري إرسال الطلب...";
 
-      fetch("http://localhost:5000/api/bookings", {
+      fetch(location.origin + "/api/bookings", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -4154,7 +4177,7 @@
   <script src="/chatbot-widget.js"></script>
   <script>
     window.CarShineChat?.init({
-      apiUrl: "http://127.0.0.1:5000",
+      apiUrl: window.location.origin,
       position: "bottom-right",
       title: "Layla - CarShine Assistant",
       subtitle: "Online - AI booking",
@@ -4165,6 +4188,21 @@
       welcomeMessage: "Hi, I am Layla. I can help you book a mobile car wash, explain packages, confirm InstaPay steps, and pass your request to the CarShine team.",
       autoOpen: false
     });
+  </script>
+  <script>
+    (function(){
+      var _csTrack=function(type,extra){
+        try{
+          var p={event_type:type,page_path:location.pathname,referrer:document.referrer||''};
+          if(extra)Object.assign(p,extra);
+          fetch('/api/public/analytics/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p),keepalive:true}).catch(function(){});
+        }catch(e){}
+      };
+      _csTrack('page_view');
+      document.querySelectorAll('[data-track-cta]').forEach(function(el){
+        el.addEventListener('click',function(){_csTrack('cta_click',{page_path:location.pathname+'#'+el.getAttribute('data-track-cta')});});
+      });
+    })();
   </script>
 </body>
 </html>
