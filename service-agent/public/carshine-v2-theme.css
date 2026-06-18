@@ -1,0 +1,939 @@
+/* =============================================================================
+   CarShine Red Sea — V2 Premium Redesign
+   Loads last. Overrides the existing theme with a cleaner, more minimal SaaS
+   aesthetic: near-black backgrounds, ultra-light glass cards, Geist typography,
+   compact layout. Inspired by modern dark SaaS dashboards.
+   ============================================================================= */
+
+/* ─── 0. FONT ────────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap');
+
+*, *::before, *::after {
+  font-family: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+}
+
+/* ─── 1. CORE PALETTE — Darker, cleaner, more minimal ───────────────────── */
+:root {
+  --cs2-black:    #000000;
+  --cs2-bg:       #030304;
+  --cs2-surface:  rgba(255,255,255,0.03);
+  --cs2-surface2: rgba(255,255,255,0.05);
+  --cs2-border:   rgba(255,255,255,0.08);
+  --cs2-border2:  rgba(255,255,255,0.12);
+  --cs2-txt1:     #f8fafc;
+  --cs2-txt2:     #94a3b8;
+  --cs2-txt3:     #475569;
+  --cs2-blue:     #3b82f6;
+  --cs2-blue2:    #60a5fa;
+  --cs2-green:    #4ade80;
+  --cs2-amber:    #fbbf24;
+  --cs2-red:      #f87171;
+  --cs2-purple:   #c084fc;
+  --cs2-cyan:     #22d3ee;
+}
+
+/* ─── 2. BASE SURFACES ───────────────────────────────────────────────────── */
+html, body {
+  background-color: var(--cs2-bg) !important;
+  background-image:
+    radial-gradient(ellipse 70% 40% at 60% -10%, rgba(59,130,246,0.04) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 30% at 0% 100%, rgba(99,102,241,0.03) 0%, transparent 60%) !important;
+  color: var(--cs2-txt1) !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+  letter-spacing: -0.01em !important;
+}
+
+/* ─── 3. SIDEBAR — Compact, minimal, pure black ─────────────────────────── */
+.sidebar, .app-sidebar, nav.sidebar {
+  background: #000000 !important;
+  border-right: 1px solid var(--cs2-border) !important;
+  box-shadow: none !important;
+  width: 220px !important;
+  min-width: 220px !important;
+}
+
+/* Logo area — compact, not oversized */
+.logo-area {
+  padding: 14px 16px !important;
+  border-bottom: 1px solid var(--cs2-border) !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0 !important;
+}
+.logo-area:hover { background: rgba(255,255,255,0.04) !important; }
+
+/* Full sidebar logo — properly sized */
+.sidebar-logo-full {
+  width: 110px !important;
+  height: auto !important;
+  background: #ffffff !important;
+  padding: 6px 10px !important;
+  border-radius: 9px !important;
+  box-shadow: 0 1px 8px rgba(0,0,0,0.4) !important;
+  display: block !important;
+  transform: none !important;
+  transition: opacity 160ms ease !important;
+}
+.sidebar-logo-full:hover {
+  transform: none !important;
+  opacity: 0.92 !important;
+}
+
+/* Icon mark for collapsed view */
+.sidebar-logo-icon {
+  width: 34px !important;
+  height: 34px !important;
+  background: #ffffff !important;
+  padding: 5px !important;
+  border-radius: 8px !important;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.4) !important;
+}
+
+/* Nav group labels */
+.nav-group-label {
+  color: var(--cs2-txt3) !important;
+  font-size: 9px !important;
+  font-weight: 600 !important;
+  letter-spacing: 1.4px !important;
+  text-transform: uppercase !important;
+  padding: 16px 16px 4px !important;
+  margin: 0 !important;
+}
+
+/* Nav items — compact */
+.nav-item, .nav-link, .menu-item {
+  color: var(--cs2-txt2) !important;
+  border: 1px solid transparent !important;
+  border-radius: 8px !important;
+  padding: 7px 12px !important;
+  margin: 1px 6px !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  letter-spacing: -0.01em !important;
+  gap: 9px !important;
+  transition: all 130ms ease !important;
+}
+.nav-item i, .nav-link i {
+  font-size: 13px !important;
+  width: 16px !important;
+  text-align: center !important;
+}
+.nav-item:hover, .nav-link:hover {
+  color: var(--cs2-txt1) !important;
+  background: rgba(255,255,255,0.05) !important;
+  border-color: var(--cs2-border) !important;
+}
+.nav-item.active, .nav-link.active, .nav-item.is-active {
+  color: var(--cs2-txt1) !important;
+  background: rgba(255,255,255,0.08) !important;
+  border-color: rgba(255,255,255,0.12) !important;
+  font-weight: 500 !important;
+  box-shadow: none !important;
+}
+.nav-item.active i { color: var(--cs2-txt1) !important; }
+.nav-item.active::before {
+  background: rgba(255,255,255,0.7) !important;
+  width: 2px !important;
+  border-radius: 0 2px 2px 0 !important;
+}
+
+/* Badges — compact pills */
+.badge, .badge-pending, .badge-waiting {
+  background: rgba(255,255,255,0.08) !important;
+  color: var(--cs2-txt2) !important;
+  border: 1px solid var(--cs2-border) !important;
+  font-size: 9.5px !important;
+  padding: 1px 6px !important;
+  border-radius: 99px !important;
+}
+
+/* Sidebar footer */
+.sidebar-footer {
+  border-top: 1px solid var(--cs2-border) !important;
+  padding: 12px !important;
+  margin: 0 !important;
+}
+.user-avatar {
+  background: rgba(255,255,255,0.12) !important;
+  color: var(--cs2-txt1) !important;
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 8px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+.user-name {
+  color: var(--cs2-txt1) !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+}
+.user-role {
+  color: var(--cs2-txt3) !important;
+  font-size: 11px !important;
+}
+.theme-toggle {
+  color: var(--cs2-txt3) !important;
+  font-size: 12px !important;
+  padding: 6px 8px !important;
+  border-radius: 6px !important;
+  margin-bottom: 8px !important;
+}
+.theme-toggle:hover {
+  background: rgba(255,255,255,0.05) !important;
+  color: var(--cs2-txt2) !important;
+}
+
+/* ─── 4. MAIN HEADER — Slim, clean ──────────────────────────────────────── */
+.main-header, header.topbar, .app-header {
+  background: rgba(3,3,4,0.90) !important;
+  border-bottom: 1px solid var(--cs2-border) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  height: 52px !important;
+  min-height: 52px !important;
+  padding: 0 20px !important;
+  box-shadow: none !important;
+}
+
+.main-header h1, #section-title {
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.02em !important;
+  background: var(--cs2-txt1) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+#section-subtitle {
+  font-size: 11.5px !important;
+  color: var(--cs2-txt3) !important;
+}
+
+/* Header brand mark */
+.header-brand-mark {
+  width: 24px !important;
+  height: 24px !important;
+  background: #fff !important;
+  padding: 3px !important;
+  border-radius: 6px !important;
+}
+
+/* Autopilot pill */
+.autopilot-widget {
+  background: rgba(255,255,255,0.04) !important;
+  border: 1px solid var(--cs2-border) !important;
+  border-radius: 8px !important;
+  padding: 5px 12px !important;
+  font-size: 12px !important;
+}
+.widget-label { color: var(--cs2-txt3) !important; font-size: 11px !important; }
+
+.status-indicator.active {
+  background: rgba(74,222,128,0.12) !important;
+  color: var(--cs2-green) !important;
+  border: 1px solid rgba(74,222,128,0.25) !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  padding: 2px 8px !important;
+  border-radius: 99px !important;
+}
+
+.quick-status {
+  background: rgba(255,255,255,0.04) !important;
+  border: 1px solid var(--cs2-border) !important;
+  color: var(--cs2-txt3) !important;
+  font-size: 12px !important;
+  padding: 5px 12px !important;
+  border-radius: 8px !important;
+}
+
+/* ─── 5. MAIN CONTENT ────────────────────────────────────────────────────── */
+.main-content {
+  background: var(--cs2-bg) !important;
+}
+.content-body, .section-body, .dashboard-section {
+  padding: 20px 24px !important;
+}
+
+/* ─── 6. GLASS CARDS — Lighter, more translucent ────────────────────────── */
+.card-glass, .grid-card, .settings-card, .approval-card {
+  background: rgba(255,255,255,0.03) !important;
+  border: 1px solid var(--cs2-border) !important;
+  box-shadow: none !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border-radius: 12px !important;
+}
+.card-glass:hover, .grid-card:hover {
+  background: rgba(255,255,255,0.045) !important;
+  border-color: var(--cs2-border2) !important;
+  box-shadow: none !important;
+}
+
+/* Card headers */
+.card-header {
+  border-bottom: 1px solid var(--cs2-border) !important;
+  padding: 12px 16px !important;
+}
+.card-header h2 {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: var(--cs2-txt1) !important;
+  letter-spacing: -0.01em !important;
+}
+.card-body { padding: 16px !important; }
+
+/* View-all links */
+.view-all-link {
+  font-size: 11.5px !important;
+  color: var(--cs2-txt3) !important;
+  background: rgba(255,255,255,0.05) !important;
+  border: 1px solid var(--cs2-border) !important;
+  border-radius: 6px !important;
+  padding: 3px 10px !important;
+  transition: all 130ms ease !important;
+}
+.view-all-link:hover {
+  color: var(--cs2-txt1) !important;
+  background: rgba(255,255,255,0.08) !important;
+  border-color: var(--cs2-border2) !important;
+}
+
+/* ─── 7. KPI CARDS ───────────────────────────────────────────────────────── */
+.kpi-card {
+  background: rgba(255,255,255,0.03) !important;
+  border: 1px solid var(--cs2-border) !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+  padding: 16px !important;
+  transition: border-color 160ms ease, background 160ms ease !important;
+}
+.kpi-card:hover {
+  background: rgba(255,255,255,0.05) !important;
+  border-color: var(--cs2-border2) !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+/* Remove colored top stripe - cleaner look */
+.kpi-card::before {
+  display: none !important;
+}
+
+.kpi-icon, .kpi-icon.blue, .kpi-icon.green, .kpi-icon.orange, .kpi-icon.purple {
+  background: rgba(255,255,255,0.07) !important;
+  border: 1px solid var(--cs2-border) !important;
+  border-radius: 8px !important;
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 14px !important;
+  color: var(--cs2-txt2) !important;
+}
+
+.kpi-details h3 {
+  font-size: 10.5px !important;
+  font-weight: 500 !important;
+  color: var(--cs2-txt3) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.8px !important;
+  margin-bottom: 4px !important;
+}
+.kpi-value {
+  font-size: 26px !important;
+  font-weight: 600 !important;
+  color: var(--cs2-txt1) !important;
+  line-height: 1.1 !important;
+  letter-spacing: -0.03em !important;
+}
+.kpi-trend {
+  font-size: 11px !important;
+  font-weight: 400 !important;
+  margin-top: 4px !important;
+  display: block !important;
+}
+.kpi-trend.positive { color: var(--cs2-green) !important; }
+.kpi-trend.warning  { color: var(--cs2-amber) !important; }
+.kpi-trend.info     { color: var(--cs2-txt3) !important; }
+
+/* ─── 8. HERO BANNER — Subdued, not overwhelming ────────────────────────── */
+.m1-hero-banner {
+  background: rgba(255,255,255,0.025) !important;
+  border: 1px solid var(--cs2-border) !important;
+  border-top: 1px solid rgba(255,255,255,0.12) !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+  margin-bottom: 16px !important;
+}
+.m1-hero-banner::before {
+  background: radial-gradient(ellipse 50% 80% at 80% 50%,
+    rgba(59,130,246,0.06) 0%, transparent 70%) !important;
+}
+.m1-hero-banner::after { display: none !important; }
+
+.m1-hero-eyebrow {
+  font-size: 11px !important;
+  color: var(--cs2-txt3) !important;
+  letter-spacing: 0.8px !important;
+}
+.m1-hero-eyebrow::before { background: var(--cs2-txt3) !important; }
+
+.m1-hero-title {
+  font-size: 28px !important;
+  font-weight: 600 !important;
+  line-height: 1.15 !important;
+  letter-spacing: -0.04em !important;
+  color: var(--cs2-txt1) !important;
+}
+.m1-hero-title span { color: var(--cs2-txt1) !important; }
+
+.m1-hero-sub {
+  font-size: 13px !important;
+  color: var(--cs2-txt3) !important;
+  line-height: 1.5 !important;
+}
+
+.m1-hero-stat-value {
+  font-size: 30px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.04em !important;
+  color: var(--cs2-txt1) !important;
+}
+.m1-hero-stat-label {
+  font-size: 11px !important;
+  color: var(--cs2-txt3) !important;
+  letter-spacing: 0.4px !important;
+}
+.m1-hero-stats {
+  border-left: 1px solid var(--cs2-border) !important;
+}
+
+/* Tags */
+.m1-tag, .m1-chip, .chip {
+  background: rgba(255,255,255,0.05) !important;
+  border: 1px solid var(--cs2-border) !important;
+  color: var(--cs2-txt3) !important;
+  font-size: 11px !important;
+  padding: 3px 9px !important;
+  border-radius: 6px !important;
+}
+.m1-tag.blue  { color: var(--cs2-blue2) !important; border-color: rgba(59,130,246,0.2) !important; background: rgba(59,130,246,0.08) !important; }
+.m1-tag.green { color: var(--cs2-green) !important; border-color: rgba(74,222,128,0.2) !important; background: rgba(74,222,128,0.08) !important; }
+.m1-tag.amber { color: var(--cs2-amber) !important; border-color: rgba(251,191,36,0.2) !important; background: rgba(251,191,36,0.08) !important; }
+
+/* Hero buttons */
+.m1-hero-btn.primary {
+  background: rgba(255,255,255,0.10) !important;
+  border: 1px solid rgba(255,255,255,0.16) !important;
+  color: var(--cs2-txt1) !important;
+  box-shadow: none !important;
+  font-size: 13px !important;
+}
+.m1-hero-btn.primary:hover {
+  background: rgba(255,255,255,0.16) !important;
+  box-shadow: none !important;
+  color: var(--cs2-txt1) !important;
+}
+.m1-hero-btn.ghost {
+  background: transparent !important;
+  border: 1px solid var(--cs2-border) !important;
+  color: var(--cs2-txt3) !important;
+  font-size: 13px !important;
+}
+.m1-hero-btn.ghost:hover {
+  background: rgba(255,255,255,0.05) !important;
+  border-color: var(--cs2-border2) !important;
+  color: var(--cs2-txt2) !important;
+}
+
+/* Hero car glow — subtle */
+.m1-hero-glow {
+  background: radial-gradient(ellipse at center,
+    rgba(59,130,246,0.12) 0%, transparent 70%) !important;
+}
+.m1-hero-car-image {
+  box-shadow: 0 16px 48px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.08) !important;
+}
+
+/* ─── 9. BUTTONS — Clean, minimal ───────────────────────────────────────── */
+.btn-primary, button.primary, .m1-btn-primary {
+  background: rgba(255,255,255,0.12) !important;
+  color: var(--cs2-txt1) !important;
+  border: 1px solid rgba(255,255,255,0.18) !important;
+  box-shadow: none !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  border-radius: 8px !important;
+}
+.btn-primary:hover, button.primary:hover {
+  background: rgba(255,255,255,0.18) !important;
+  box-shadow: none !important;
+  transform: none !important;
+  color: var(--cs2-txt1) !important;
+}
+
+.btn-secondary, .btn.secondary, button.secondary, .btn-ghost {
+  background: rgba(255,255,255,0.04) !important;
+  color: var(--cs2-txt2) !important;
+  border: 1px solid var(--cs2-border) !important;
+  font-size: 12.5px !important;
+  font-weight: 400 !important;
+  border-radius: 8px !important;
+}
+.btn-secondary:hover, .btn-ghost:hover {
+  background: rgba(255,255,255,0.07) !important;
+  color: var(--cs2-txt1) !important;
+  border-color: var(--cs2-border2) !important;
+}
+
+.btn-approve {
+  background: rgba(74,222,128,0.12) !important;
+  color: var(--cs2-green) !important;
+  border: 1px solid rgba(74,222,128,0.25) !important;
+  box-shadow: none !important;
+  font-size: 12.5px !important;
+  border-radius: 8px !important;
+}
+.btn-approve:hover {
+  background: rgba(74,222,128,0.20) !important;
+  box-shadow: none !important;
+  color: var(--cs2-green) !important;
+  transform: none !important;
+}
+
+.btn-reject {
+  background: rgba(248,113,113,0.08) !important;
+  color: var(--cs2-red) !important;
+  border: 1px solid rgba(248,113,113,0.2) !important;
+  font-size: 12.5px !important;
+  border-radius: 8px !important;
+}
+.btn-reject:hover {
+  background: rgba(248,113,113,0.16) !important;
+  color: var(--cs2-red) !important;
+  border-color: rgba(248,113,113,0.35) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.btn-send {
+  background: rgba(59,130,246,0.18) !important;
+  border: 1px solid rgba(59,130,246,0.3) !important;
+  color: var(--cs2-blue2) !important;
+}
+.btn-send:hover:not(:disabled) {
+  background: rgba(59,130,246,0.28) !important;
+  box-shadow: none !important;
+}
+
+/* ─── 10. STATUS PILLS ───────────────────────────────────────────────────── */
+.m1-status-pill {
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  padding: 2px 8px !important;
+  border-radius: 6px !important;
+  letter-spacing: 0.4px !important;
+}
+.m1-status-pill.verified,
+.m1-status-pill.completed {
+  background: rgba(74,222,128,0.10) !important;
+  border: 1px solid rgba(74,222,128,0.22) !important;
+  color: var(--cs2-green) !important;
+}
+.m1-status-pill.pending,
+.m1-status-pill.quoted {
+  background: rgba(59,130,246,0.10) !important;
+  border: 1px solid rgba(59,130,246,0.22) !important;
+  color: var(--cs2-blue2) !important;
+}
+.m1-status-pill.on-the-way,
+.m1-status-pill.assigned {
+  background: rgba(251,191,36,0.10) !important;
+  border: 1px solid rgba(251,191,36,0.22) !important;
+  color: var(--cs2-amber) !important;
+}
+.m1-status-pill.in-progress {
+  background: rgba(192,132,252,0.10) !important;
+  border: 1px solid rgba(192,132,252,0.22) !important;
+  color: var(--cs2-purple) !important;
+}
+.m1-status-pill.rejected,
+.m1-status-pill.cancelled {
+  background: rgba(248,113,113,0.08) !important;
+  border: 1px solid rgba(248,113,113,0.20) !important;
+  color: var(--cs2-red) !important;
+}
+.m1-status-pill.needs-human {
+  background: rgba(251,191,36,0.10) !important;
+  border: 1px solid rgba(251,191,36,0.22) !important;
+  color: var(--cs2-amber) !important;
+}
+.m1-status-pill.collecting-info {
+  background: rgba(34,211,238,0.10) !important;
+  border: 1px solid rgba(34,211,238,0.22) !important;
+  color: var(--cs2-cyan) !important;
+}
+
+/* Chip overrides */
+.m1-chip.live {
+  background: rgba(74,222,128,0.08) !important;
+  border: 1px solid rgba(74,222,128,0.2) !important;
+  color: var(--cs2-green) !important;
+}
+.m1-chip.manual-review {
+  background: rgba(251,191,36,0.08) !important;
+  border: 1px solid rgba(251,191,36,0.2) !important;
+  color: var(--cs2-amber) !important;
+}
+.m1-chip.dry-run {
+  background: rgba(192,132,252,0.08) !important;
+  border: 1px solid rgba(192,132,252,0.2) !important;
+  color: var(--cs2-purple) !important;
+}
+
+.badge, .badge-pending, .badge-waiting, .count-badge {
+  background: rgba(255,255,255,0.07) !important;
+  color: var(--cs2-txt3) !important;
+  border: 1px solid var(--cs2-border) !important;
+  font-size: 9.5px !important;
+  padding: 1px 6px !important;
+  border-radius: 99px !important;
+}
+
+/* ─── 11. FORMS ──────────────────────────────────────────────────────────── */
+input, select, textarea, .input-field, .select-field, .textarea-field {
+  background: rgba(255,255,255,0.04) !important;
+  color: var(--cs2-txt1) !important;
+  border: 1px solid var(--cs2-border) !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+  font-family: 'Geist', 'Inter', sans-serif !important;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: rgba(255,255,255,0.20) !important;
+  background: rgba(255,255,255,0.06) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(255,255,255,0.04) !important;
+}
+input::placeholder, textarea::placeholder { color: var(--cs2-txt3) !important; }
+select option { background: #0d0d0f !important; color: var(--cs2-txt1) !important; }
+
+/* ─── 12. TABLES ─────────────────────────────────────────────────────────── */
+table, .data-table, .bookings-table {
+  border-collapse: collapse !important;
+  width: 100% !important;
+}
+th {
+  background: rgba(255,255,255,0.03) !important;
+  color: var(--cs2-txt3) !important;
+  font-size: 10.5px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.7px !important;
+  padding: 10px 14px !important;
+  border-bottom: 1px solid var(--cs2-border) !important;
+}
+td {
+  color: var(--cs2-txt2) !important;
+  font-size: 13px !important;
+  padding: 10px 14px !important;
+  border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+}
+tr:hover td {
+  background: rgba(255,255,255,0.025) !important;
+}
+
+/* ─── 13. SECTION HEADINGS ───────────────────────────────────────────────── */
+.m1-section-title, .section-title {
+  font-size: 20px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.03em !important;
+  color: var(--cs2-txt1) !important;
+  margin-bottom: 4px !important;
+}
+
+h1 { font-size: 22px !important; font-weight: 600 !important; letter-spacing: -0.03em !important; color: var(--cs2-txt1) !important; }
+h2 { font-size: 16px !important; font-weight: 500 !important; letter-spacing: -0.02em !important; color: var(--cs2-txt1) !important; }
+h3 { font-size: 14px !important; font-weight: 500 !important; letter-spacing: -0.01em !important; color: var(--cs2-txt1) !important; }
+p  { color: var(--cs2-txt2) !important; font-size: 13px !important; line-height: 1.55 !important; }
+
+/* ─── 14. CHAT SECTION ───────────────────────────────────────────────────── */
+.chat-sessions-panel, .chat-window-panel {
+  background: rgba(255,255,255,0.025) !important;
+  border: 1px solid var(--cs2-border) !important;
+  border-radius: 12px !important;
+  backdrop-filter: blur(16px) !important;
+}
+.chat-message-bubble {
+  background: rgba(255,255,255,0.06) !important;
+  border: 1px solid rgba(255,255,255,0.06) !important;
+  border-radius: 12px !important;
+  color: var(--cs2-txt1) !important;
+  font-size: 13px !important;
+}
+.chat-message-bubble.outgoing {
+  background: rgba(59,130,246,0.12) !important;
+  border-color: rgba(59,130,246,0.18) !important;
+}
+.chat-input-area {
+  background: rgba(255,255,255,0.04) !important;
+  border-top: 1px solid var(--cs2-border) !important;
+}
+.panel-search input {
+  background: rgba(255,255,255,0.04) !important;
+}
+.chat-session-item:hover {
+  background: rgba(255,255,255,0.04) !important;
+}
+.chat-session-item.active {
+  background: rgba(255,255,255,0.07) !important;
+  border-color: var(--cs2-border2) !important;
+}
+
+/* ─── 15. LOG CONSOLE ────────────────────────────────────────────────────── */
+.log-console {
+  background: #000000 !important;
+  border: 1px solid var(--cs2-border) !important;
+  border-radius: 10px !important;
+  padding: 12px !important;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace !important;
+  font-size: 11.5px !important;
+}
+.log-entry { color: var(--cs2-txt3) !important; padding: 2px 0 !important; }
+.log-entry.system { color: rgba(59,130,246,0.7) !important; }
+.log-entry.success { color: rgba(74,222,128,0.75) !important; }
+.log-entry.warning { color: rgba(251,191,36,0.75) !important; }
+.log-entry.error   { color: rgba(248,113,113,0.8) !important; }
+.log-time { color: var(--cs2-txt3) !important; margin-right: 8px !important; }
+
+/* ─── 16. MODALS ─────────────────────────────────────────────────────────── */
+.modal-overlay, .modal-backdrop {
+  background: rgba(0,0,0,0.75) !important;
+  backdrop-filter: blur(8px) !important;
+}
+.modal-container, .modal-card, .modal-content {
+  background: #0d0d0f !important;
+  border: 1px solid var(--cs2-border2) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.05) !important;
+}
+.modal-header {
+  border-bottom: 1px solid var(--cs2-border) !important;
+  padding: 16px 20px !important;
+}
+.modal-title {
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.02em !important;
+  color: var(--cs2-txt1) !important;
+}
+
+/* ─── 17. TOGGLE SWITCH ──────────────────────────────────────────────────── */
+.switch .slider {
+  background: rgba(255,255,255,0.12) !important;
+  border: 1px solid var(--cs2-border) !important;
+}
+.switch input:checked + .slider {
+  background: rgba(74,222,128,0.3) !important;
+  border-color: rgba(74,222,128,0.45) !important;
+}
+.switch .slider::before {
+  background: var(--cs2-txt2) !important;
+}
+.switch input:checked + .slider::before {
+  background: var(--cs2-green) !important;
+}
+
+/* ─── 18. SCROLLBARS — Minimal ───────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 4px !important;
+  height: 4px !important;
+}
+::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.10) !important;
+  border-radius: 4px !important;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.18) !important;
+}
+
+/* ─── 19. LOADING / EMPTY STATES ─────────────────────────────────────────── */
+.empty-state {
+  color: var(--cs2-txt3) !important;
+}
+.empty-state i { color: rgba(255,255,255,0.12) !important; }
+.empty-state p { font-size: 13px !important; }
+
+/* Loading spinner */
+.loading-spinner, .spinner {
+  border-color: var(--cs2-border) !important;
+  border-top-color: var(--cs2-txt3) !important;
+}
+
+/* ─── 20. PANELS WITH HEADER DOTS (Mac-style) ────────────────────────────── */
+/* Add mac dots to card-glass headers that have a card-header child */
+.grid-card > .card-header::before,
+.card-glass > .card-header::before {
+  content: '';
+  display: inline-flex;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.12);
+  box-shadow: 13px 0 0 rgba(255,255,255,0.08), 26px 0 0 rgba(255,255,255,0.06);
+  margin-right: 30px;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+/* ─── 21. MOBILE RESPONSIVE FIXES ───────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .sidebar { width: 200px !important; min-width: 200px !important; }
+}
+@media (max-width: 768px) {
+  .sidebar { width: 260px !important; }
+  .content-body, .section-body, .dashboard-section { padding: 14px 16px !important; }
+}
+
+/* ─── 22. APPROVAL CARDS ─────────────────────────────────────────────────── */
+.approval-card {
+  background: rgba(255,255,255,0.025) !important;
+  border: 1px solid var(--cs2-border) !important;
+  border-radius: 10px !important;
+  padding: 14px !important;
+}
+.approval-card:hover {
+  background: rgba(255,255,255,0.04) !important;
+  border-color: var(--cs2-border2) !important;
+}
+
+/* ─── 23. PAYMENT REVIEW ─────────────────────────────────────────────────── */
+.payment-proof-img {
+  border-radius: 8px !important;
+  border: 1px solid var(--cs2-border) !important;
+}
+
+/* ─── 24. CALENDAR ───────────────────────────────────────────────────────── */
+.calendar-day.today {
+  background: rgba(255,255,255,0.07) !important;
+  border-color: rgba(255,255,255,0.15) !important;
+}
+.calendar-event {
+  background: rgba(59,130,246,0.14) !important;
+  border-left: 2px solid var(--cs2-blue2) !important;
+  color: var(--cs2-txt2) !important;
+  border-radius: 4px !important;
+  font-size: 11.5px !important;
+}
+
+/* ─── 25. SOCIAL SECTION ─────────────────────────────────────────────────── */
+.social-post-card {
+  background: rgba(255,255,255,0.025) !important;
+  border: 1px solid var(--cs2-border) !important;
+  border-radius: 10px !important;
+}
+
+/* ─── 26. SETTINGS ───────────────────────────────────────────────────────── */
+.settings-card {
+  background: rgba(255,255,255,0.025) !important;
+  border: 1px solid var(--cs2-border) !important;
+  border-radius: 12px !important;
+}
+.settings-section-title {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: var(--cs2-txt3) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.8px !important;
+}
+
+/* ─── 27. BOOKINGS TABLE ─────────────────────────────────────────────────── */
+.booking-row, .bookings-list-mini .booking-item {
+  border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+  padding: 10px 0 !important;
+}
+.booking-row:hover, .booking-item:hover {
+  background: rgba(255,255,255,0.025) !important;
+}
+.booking-name { color: var(--cs2-txt1) !important; font-size: 13px !important; font-weight: 500 !important; }
+.booking-meta { color: var(--cs2-txt3) !important; font-size: 11.5px !important; }
+
+/* ─── 28. AGENTS / TRACES ────────────────────────────────────────────────── */
+.agent-card {
+  background: rgba(255,255,255,0.025) !important;
+  border: 1px solid var(--cs2-border) !important;
+  border-radius: 10px !important;
+}
+.trace-item {
+  border-left: 1px solid var(--cs2-border) !important;
+  padding-left: 14px !important;
+  margin-left: 6px !important;
+  color: var(--cs2-txt3) !important;
+  font-size: 12px !important;
+}
+
+/* ─── 29. OVERVIEW ACTIVITY LOG ──────────────────────────────────────────── */
+.activity-item {
+  border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+  padding: 8px 0 !important;
+  font-size: 12.5px !important;
+  color: var(--cs2-txt3) !important;
+}
+
+/* ─── 30. FOOTER / BOTTOM BARS ───────────────────────────────────────────── */
+.footer-bar, .status-bar, .bottom-bar {
+  background: rgba(0,0,0,0.6) !important;
+  border-top: 1px solid var(--cs2-border) !important;
+  color: var(--cs2-txt3) !important;
+  font-size: 11px !important;
+}
+
+/* ─── 31. LOGIN PAGE ─────────────────────────────────────────────────────── */
+.login-card, .auth-card {
+  background: rgba(255,255,255,0.03) !important;
+  border: 1px solid var(--cs2-border) !important;
+  border-radius: 16px !important;
+  backdrop-filter: blur(24px) !important;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.8) !important;
+}
+.login-title { font-size: 22px !important; font-weight: 600 !important; letter-spacing: -0.03em !important; }
+
+/* ─── 32. MISC UTILITY ───────────────────────────────────────────────────── */
+.divider, hr {
+  border: none !important;
+  border-top: 1px solid var(--cs2-border) !important;
+  margin: 16px 0 !important;
+}
+.text-muted, .muted { color: var(--cs2-txt3) !important; font-size: 12px !important; }
+.text-primary { color: var(--cs2-txt1) !important; }
+.text-secondary { color: var(--cs2-txt2) !important; }
+
+/* Remove default outline on buttons/links that don't need it */
+a, button { outline: none !important; }
+a:focus-visible, button:focus-visible {
+  outline: 2px solid rgba(255,255,255,0.2) !important;
+  outline-offset: 2px !important;
+}
+
+/* ─── 33. SUBTLE GRID BACKGROUND ─────────────────────────────────────────── */
+.main-content::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+  z-index: 0;
+}
+.main-content > * { position: relative; z-index: 1; }
