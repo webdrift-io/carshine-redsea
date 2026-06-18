@@ -201,7 +201,7 @@
 
         <!-- KPI Grid -->
         <div class="kpi-grid">
-          <div class="kpi-card card-glass">
+          <div class="kpi-card card-glass" data-section="bookings-v2" role="button" tabindex="0">
             <div class="kpi-icon blue">
               <i class="fa-solid fa-car-wash"></i>
             </div>
@@ -210,9 +210,12 @@
               <p class="kpi-value" id="kpi-total">0</p>
               <span class="kpi-trend positive"><i class="fa-solid fa-arrow-up"></i> +12% this week</span>
             </div>
+            <svg class="kpi-sparkline" viewBox="0 0 56 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect x="0" y="14" width="6" height="6" rx="1" fill="#3b82f6"/><rect x="8" y="10" width="6" height="10" rx="1" fill="#3b82f6"/><rect x="16" y="12" width="6" height="8" rx="1" fill="#3b82f6"/><rect x="24" y="6" width="6" height="14" rx="1" fill="#3b82f6"/><rect x="32" y="8" width="6" height="12" rx="1" fill="#3b82f6"/><rect x="40" y="2" width="6" height="18" rx="1" fill="#3b82f6"/><rect x="48" y="4" width="6" height="16" rx="1" fill="#3b82f6"/>
+            </svg>
           </div>
-          
-          <div class="kpi-card card-glass">
+
+          <div class="kpi-card card-glass" data-section="approvals" role="button" tabindex="0">
             <div class="kpi-icon green">
               <i class="fa-solid fa-circle-check"></i>
             </div>
@@ -221,9 +224,12 @@
               <p class="kpi-value" id="kpi-confirmed">0</p>
               <span class="kpi-trend positive"><i class="fa-solid fa-arrow-up"></i> Scheduled</span>
             </div>
+            <svg class="kpi-sparkline" viewBox="0 0 56 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect x="0" y="10" width="6" height="10" rx="1" fill="#4ade80"/><rect x="8" y="7" width="6" height="13" rx="1" fill="#4ade80"/><rect x="16" y="10" width="6" height="10" rx="1" fill="#4ade80"/><rect x="24" y="5" width="6" height="15" rx="1" fill="#4ade80"/><rect x="32" y="7" width="6" height="13" rx="1" fill="#4ade80"/><rect x="40" y="2" width="6" height="18" rx="1" fill="#4ade80"/><rect x="48" y="5" width="6" height="15" rx="1" fill="#4ade80"/>
+            </svg>
           </div>
 
-          <div class="kpi-card card-glass">
+          <div class="kpi-card card-glass" data-section="approvals" role="button" tabindex="0">
             <div class="kpi-icon orange">
               <i class="fa-solid fa-clock-rotate-left"></i>
             </div>
@@ -232,9 +238,12 @@
               <p class="kpi-value" id="kpi-pending">0</p>
               <span class="kpi-trend warning" id="kpi-pending-trend">Needs attention</span>
             </div>
+            <svg class="kpi-sparkline" viewBox="0 0 56 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect x="0" y="5" width="6" height="15" rx="1" fill="#fbbf24"/><rect x="8" y="8" width="6" height="12" rx="1" fill="#fbbf24"/><rect x="16" y="2" width="6" height="18" rx="1" fill="#fbbf24"/><rect x="24" y="11" width="6" height="9" rx="1" fill="#fbbf24"/><rect x="32" y="5" width="6" height="15" rx="1" fill="#fbbf24"/><rect x="40" y="11" width="6" height="9" rx="1" fill="#fbbf24"/><rect x="48" y="14" width="6" height="6" rx="1" fill="#fbbf24"/>
+            </svg>
           </div>
 
-          <div class="kpi-card card-glass">
+          <div class="kpi-card card-glass" data-section="chat-simulator" role="button" tabindex="0">
             <div class="kpi-icon purple">
               <i class="fa-solid fa-message"></i>
             </div>
@@ -243,12 +252,15 @@
               <p class="kpi-value" id="kpi-chats">0</p>
               <span class="kpi-trend info" id="kpi-autopilot-mode">Autopilot ON</span>
             </div>
+            <svg class="kpi-sparkline" viewBox="0 0 56 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect x="0" y="9" width="6" height="11" rx="1" fill="#c084fc"/><rect x="8" y="6" width="6" height="14" rx="1" fill="#c084fc"/><rect x="16" y="11" width="6" height="9" rx="1" fill="#c084fc"/><rect x="24" y="4" width="6" height="16" rx="1" fill="#c084fc"/><rect x="32" y="7" width="6" height="13" rx="1" fill="#c084fc"/><rect x="40" y="2" width="6" height="18" rx="1" fill="#c084fc"/><rect x="48" y="6" width="6" height="14" rx="1" fill="#c084fc"/>
+            </svg>
           </div>
         </div>
 
         <!-- V2 Bookings KPI Row -->
         <div class="kpi-grid" style="margin-top:0.5rem;">
-          <div class="kpi-card card-glass">
+          <div class="kpi-card card-glass" data-section="bookings-v2" role="button" tabindex="0">
             <div class="kpi-icon" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);">
               <i class="fa-solid fa-globe"></i>
             </div>
@@ -257,8 +269,11 @@
               <p class="kpi-value" id="kpi-v2-total">0</p>
               <span class="kpi-trend info">Normalized channel</span>
             </div>
+            <svg class="kpi-sparkline" viewBox="0 0 56 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect x="0" y="14" width="6" height="6" rx="1" fill="#0ea5e9"/><rect x="8" y="10" width="6" height="10" rx="1" fill="#0ea5e9"/><rect x="16" y="12" width="6" height="8" rx="1" fill="#0ea5e9"/><rect x="24" y="6" width="6" height="14" rx="1" fill="#0ea5e9"/><rect x="32" y="8" width="6" height="12" rx="1" fill="#0ea5e9"/><rect x="40" y="2" width="6" height="18" rx="1" fill="#0ea5e9"/><rect x="48" y="4" width="6" height="16" rx="1" fill="#0ea5e9"/>
+            </svg>
           </div>
-          <div class="kpi-card card-glass">
+          <div class="kpi-card card-glass" data-section="approvals" role="button" tabindex="0">
             <div class="kpi-icon green">
               <i class="fa-solid fa-receipt"></i>
             </div>
@@ -267,8 +282,11 @@
               <p class="kpi-value" id="kpi-v2-quoted">0</p>
               <span class="kpi-trend positive">Awaiting payment</span>
             </div>
+            <svg class="kpi-sparkline" viewBox="0 0 56 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect x="0" y="9" width="6" height="11" rx="1" fill="#4ade80"/><rect x="8" y="6" width="6" height="14" rx="1" fill="#4ade80"/><rect x="16" y="9" width="6" height="11" rx="1" fill="#4ade80"/><rect x="24" y="2" width="6" height="18" rx="1" fill="#4ade80"/><rect x="32" y="6" width="6" height="14" rx="1" fill="#4ade80"/><rect x="40" y="2" width="6" height="18" rx="1" fill="#4ade80"/><rect x="48" y="6" width="6" height="14" rx="1" fill="#4ade80"/>
+            </svg>
           </div>
-          <div class="kpi-card card-glass">
+          <div class="kpi-card card-glass" data-section="bookings-v2" role="button" tabindex="0">
             <div class="kpi-icon orange">
               <i class="fa-solid fa-triangle-exclamation"></i>
             </div>
@@ -277,8 +295,11 @@
               <p class="kpi-value" id="kpi-v2-needs-human">0</p>
               <span class="kpi-trend warning">Review required</span>
             </div>
+            <svg class="kpi-sparkline" viewBox="0 0 56 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect x="0" y="6" width="6" height="14" rx="1" fill="#fbbf24"/><rect x="8" y="11" width="6" height="9" rx="1" fill="#fbbf24"/><rect x="16" y="2" width="6" height="18" rx="1" fill="#fbbf24"/><rect x="24" y="11" width="6" height="9" rx="1" fill="#fbbf24"/><rect x="32" y="6" width="6" height="14" rx="1" fill="#fbbf24"/><rect x="40" y="15" width="6" height="5" rx="1" fill="#fbbf24"/><rect x="48" y="11" width="6" height="9" rx="1" fill="#fbbf24"/>
+            </svg>
           </div>
-          <div class="kpi-card card-glass">
+          <div class="kpi-card card-glass" data-section="bookings-v2" role="button" tabindex="0">
             <div class="kpi-icon" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9);">
               <i class="fa-solid fa-hourglass-half"></i>
             </div>
@@ -286,6 +307,73 @@
               <h3>Collecting Info</h3>
               <p class="kpi-value" id="kpi-v2-collecting">0</p>
               <span class="kpi-trend info">Incomplete forms</span>
+            </div>
+            <svg class="kpi-sparkline" viewBox="0 0 56 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect x="0" y="11" width="6" height="9" rx="1" fill="#8b5cf6"/><rect x="8" y="6" width="6" height="14" rx="1" fill="#8b5cf6"/><rect x="16" y="11" width="6" height="9" rx="1" fill="#8b5cf6"/><rect x="24" y="2" width="6" height="18" rx="1" fill="#8b5cf6"/><rect x="32" y="6" width="6" height="14" rx="1" fill="#8b5cf6"/><rect x="40" y="2" width="6" height="18" rx="1" fill="#8b5cf6"/><rect x="48" y="6" width="6" height="14" rx="1" fill="#8b5cf6"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Analytics Row -->
+        <div class="cs2-analytics-row">
+          <div class="grid-card card-glass cs2-chart-card">
+            <div class="card-header">
+              <h2>Bookings This Week</h2>
+              <span class="cs2-badge cs2-badge-blue">7 days</span>
+            </div>
+            <div class="card-body">
+              <svg class="cs2-weekly-chart" viewBox="0 0 280 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <line x1="0" y1="0" x2="280" y2="0" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+                <line x1="0" y1="27" x2="280" y2="27" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+                <line x1="0" y1="53" x2="280" y2="53" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+                <line x1="0" y1="80" x2="280" y2="80" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+                <rect x="2"   y="47" width="34" height="33" rx="3" fill="rgba(59,130,246,0.45)"/>
+                <rect x="42"  y="27" width="34" height="53" rx="3" fill="rgba(59,130,246,0.55)"/>
+                <rect x="82"  y="51" width="34" height="29" rx="3" fill="rgba(59,130,246,0.4)"/>
+                <rect x="122" y="18" width="34" height="62" rx="3" fill="rgba(59,130,246,0.7)"/>
+                <rect x="162" y="33" width="34" height="47" rx="3" fill="rgba(59,130,246,0.6)"/>
+                <rect x="202" y="6"  width="34" height="74" rx="3" fill="rgba(59,130,246,0.95)" filter="url(#glow)"/>
+                <rect x="242" y="57" width="34" height="23" rx="3" fill="rgba(59,130,246,0.3)"/>
+                <defs><filter id="glow"><feGaussianBlur stdDeviation="2" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+              </svg>
+              <div class="cs2-chart-days">
+                <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-card card-glass cs2-status-card">
+            <div class="card-header">
+              <h2>Booking Status</h2>
+              <span class="cs2-badge cs2-badge-green">Live</span>
+            </div>
+            <div class="card-body">
+              <div class="cs2-status-list">
+                <div class="cs2-status-row">
+                  <span class="cs2-dot green"></span>
+                  <span class="cs2-status-name">Confirmed</span>
+                  <div class="cs2-bar-wrap"><div class="cs2-bar" style="--pct:0%;--clr:#4ade80;"></div></div>
+                  <span class="cs2-stat-n" id="analytics-confirmed">–</span>
+                </div>
+                <div class="cs2-status-row">
+                  <span class="cs2-dot orange"></span>
+                  <span class="cs2-status-name">Pending</span>
+                  <div class="cs2-bar-wrap"><div class="cs2-bar" style="--pct:0%;--clr:#fbbf24;"></div></div>
+                  <span class="cs2-stat-n" id="analytics-pending">–</span>
+                </div>
+                <div class="cs2-status-row">
+                  <span class="cs2-dot blue"></span>
+                  <span class="cs2-status-name">Collecting</span>
+                  <div class="cs2-bar-wrap"><div class="cs2-bar" style="--pct:0%;--clr:#60a5fa;"></div></div>
+                  <span class="cs2-stat-n" id="analytics-collecting">–</span>
+                </div>
+                <div class="cs2-status-row">
+                  <span class="cs2-dot red"></span>
+                  <span class="cs2-status-name">Needs Attention</span>
+                  <div class="cs2-bar-wrap"><div class="cs2-bar" style="--pct:0%;--clr:#f87171;"></div></div>
+                  <span class="cs2-stat-n" id="analytics-attention">–</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>

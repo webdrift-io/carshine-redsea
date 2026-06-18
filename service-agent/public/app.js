@@ -292,6 +292,28 @@ function setupNavigation() {
       switchSection(target);
     }
   });
+
+  // KPI cards — click navigates to linked section
+  document.addEventListener('click', (e) => {
+    const kpiCard = e.target.closest('.kpi-card[data-section]');
+    if (kpiCard) {
+      e.preventDefault();
+      const sectionId = kpiCard.getAttribute('data-section');
+      if (sectionId) switchSection(sectionId);
+    }
+  });
+
+  // KPI cards — keyboard navigation (Enter / Space)
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      const kpiCard = document.activeElement?.closest('.kpi-card[data-section]');
+      if (kpiCard) {
+        e.preventDefault();
+        const sectionId = kpiCard.getAttribute('data-section');
+        if (sectionId) switchSection(sectionId);
+      }
+    }
+  });
 }
 
 function switchSection(sectionId) {
@@ -609,6 +631,20 @@ function updateKPIs() {
   document.getElementById('kpi-v2-quoted').textContent = v2Quoted;
   document.getElementById('kpi-v2-needs-human').textContent = v2NeedsHuman;
   document.getElementById('kpi-v2-collecting').textContent = v2Collecting;
+
+  // Analytics status breakdown bars
+  const _analyticsMax = Math.max(total + v2Total, 1);
+  const _updateAnalytics = (id, val) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = val;
+    const bar = el.closest('.cs2-status-row')?.querySelector('.cs2-bar');
+    if (bar) bar.style.setProperty('--pct', Math.min(100, Math.round((val / _analyticsMax) * 100)) + '%');
+  };
+  _updateAnalytics('analytics-confirmed', confirmed);
+  _updateAnalytics('analytics-pending', pending);
+  _updateAnalytics('analytics-collecting', v2Collecting);
+  _updateAnalytics('analytics-attention', v2NeedsHuman);
   const v2Badge = document.getElementById('badge-v2-needs-human');
   v2Badge.textContent = v2NeedsHuman;
   v2Badge.style.display = v2NeedsHuman > 0 ? 'inline' : 'none';

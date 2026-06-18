@@ -937,3 +937,168 @@ a:focus-visible, button:focus-visible {
   z-index: 0;
 }
 .main-content > * { position: relative; z-index: 1; }
+
+/* ─── 34. CLICKABLE KPI CARDS ─────────────────────────────────────────────── */
+.kpi-card[data-section] {
+  cursor: pointer !important;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease !important;
+  overflow: visible !important;
+}
+.kpi-card[data-section]:hover {
+  transform: translateY(-3px) !important;
+  border-color: rgba(255,255,255,0.18) !important;
+  box-shadow: 0 12px 36px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.07) !important;
+}
+.kpi-card[data-section]:active {
+  transform: translateY(-1px) scale(0.99) !important;
+  transition-duration: 0.06s !important;
+}
+.kpi-card[data-section]:focus-visible {
+  outline: 2px solid rgba(59,130,246,0.5) !important;
+  outline-offset: 2px !important;
+}
+
+/* ─── 35. KPI SPARKLINES ──────────────────────────────────────────────────── */
+.kpi-sparkline {
+  width: 56px !important;
+  height: 26px !important;
+  flex-shrink: 0 !important;
+  align-self: flex-end !important;
+  margin-right: 4px !important;
+  margin-bottom: 2px !important;
+  opacity: 0.35 !important;
+  transition: opacity 0.18s ease !important;
+}
+.kpi-card[data-section]:hover .kpi-sparkline {
+  opacity: 0.7 !important;
+}
+
+/* ─── 36. ANALYTICS ROW ───────────────────────────────────────────────────── */
+.cs2-analytics-row {
+  display: grid !important;
+  grid-template-columns: 1fr 300px !important;
+  gap: 12px !important;
+  margin-top: 12px !important;
+}
+.cs2-chart-card .card-body,
+.cs2-status-card .card-body {
+  padding-top: 8px !important;
+}
+.cs2-weekly-chart {
+  width: 100% !important;
+  height: 80px !important;
+  display: block !important;
+}
+.cs2-chart-days {
+  display: flex !important;
+  justify-content: space-between !important;
+  padding: 4px 2px 0 !important;
+  font-size: 10px !important;
+  color: var(--cs2-txt3) !important;
+}
+.cs2-chart-days span {
+  flex: 1 !important;
+  text-align: center !important;
+  letter-spacing: 0.02em !important;
+}
+
+/* Status breakdown */
+.cs2-status-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 11px !important;
+}
+.cs2-status-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+.cs2-dot {
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: 50% !important;
+  flex-shrink: 0 !important;
+}
+.cs2-dot.green  { background: var(--cs2-green)  !important; box-shadow: 0 0 6px rgba(74,222,128,0.5) !important; }
+.cs2-dot.orange { background: var(--cs2-amber)  !important; box-shadow: 0 0 6px rgba(251,191,36,0.5)  !important; }
+.cs2-dot.blue   { background: var(--cs2-blue)   !important; box-shadow: 0 0 6px rgba(59,130,246,0.5)  !important; }
+.cs2-dot.red    { background: var(--cs2-red)    !important; box-shadow: 0 0 6px rgba(248,113,113,0.5) !important; }
+.cs2-dot.purple { background: var(--cs2-purple) !important; box-shadow: 0 0 6px rgba(192,132,252,0.5) !important; }
+
+.cs2-status-name {
+  font-size: 12px !important;
+  color: var(--cs2-txt2) !important;
+  width: 100px !important;
+  flex-shrink: 0 !important;
+}
+.cs2-bar-wrap {
+  flex: 1 !important;
+  height: 3px !important;
+  background: rgba(255,255,255,0.06) !important;
+  border-radius: 2px !important;
+  overflow: hidden !important;
+}
+.cs2-bar {
+  height: 100% !important;
+  width: var(--pct, 0%) !important;
+  background: var(--clr, var(--cs2-blue)) !important;
+  border-radius: 2px !important;
+  transition: width 0.9s cubic-bezier(0.4,0,0.2,1) !important;
+}
+.cs2-stat-n {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: var(--cs2-txt1) !important;
+  width: 20px !important;
+  text-align: right !important;
+  flex-shrink: 0 !important;
+}
+
+/* Badge pill */
+.cs2-badge {
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  padding: 2px 8px !important;
+  border-radius: 20px !important;
+  background: rgba(255,255,255,0.06) !important;
+  color: var(--cs2-txt3) !important;
+  border: 1px solid var(--cs2-border) !important;
+  letter-spacing: 0.02em !important;
+}
+.cs2-badge-blue  { background: rgba(59,130,246,0.12) !important; color: var(--cs2-blue2) !important; border-color: rgba(59,130,246,0.25) !important; }
+.cs2-badge-green { background: rgba(74,222,128,0.1) !important;  color: var(--cs2-green) !important; border-color: rgba(74,222,128,0.25) !important; }
+
+/* ─── 37. MOBILE IMPROVEMENTS ─────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .cs2-analytics-row {
+    grid-template-columns: 1fr !important;
+  }
+}
+@media (max-width: 700px) {
+  .kpi-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .kpi-sparkline {
+    display: none !important;
+  }
+  .sidebar {
+    width: 56px !important;
+  }
+  .nav-item span:not(.badge) {
+    display: none !important;
+  }
+  .nav-group-label {
+    display: none !important;
+  }
+  .sidebar-logo-full {
+    display: none !important;
+  }
+}
+@media (max-width: 440px) {
+  .kpi-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .kpi-card {
+    padding: 12px !important;
+  }
+}
