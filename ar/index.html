@@ -3806,7 +3806,7 @@
       button.disabled = true;
       button.textContent = "جاري إرسال الطلب...";
 
-      fetch(location.origin + "/api/bookings", {
+      fetch("/api/public/bookings", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -3823,18 +3823,13 @@
             formData.payment
           );
         } else {
-          alert("حصل مشكلة في إرسال طلبك. يرجى التواصل معنا مباشرة عبر واتساب.");
+          alert("حصل مشكلة في إرسال طلبك. يرجى التواصل معنا مباشرة عبر واتساب على 5567205 155 20+.");
         }
       })
       .catch(err => {
         console.error("Booking submission error:", err);
-        // Fallback for offline local dev
-        showSuccessModal(
-          "تم تسجيل الحجز!",
-          "شكرًا ليك. تم إرسال طلب الحجز لنظامنا. فريقنا هيرسل ليك رسالة على واتساب لتأكيد تفاصيل المعاد قريبًا.",
-          "تمام، شكرًا!",
-          formData.payment
-        );
+        // رسالة صادقة عند الفشل — لا نعرض نجاح وهمي أبدًا
+        alert("تعذّر الوصول لنظام الحجز الآن. من فضلك راسلنا على واتساب 5567205 155 20+ وهنأكد حجزك فورًا.");
       })
       .finally(() => {
         button.disabled = false;

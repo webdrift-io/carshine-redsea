@@ -3974,13 +3974,8 @@
       })
       .catch(err => {
         console.error("Booking submission error:", err);
-        // Fallback for offline local dev
-        showSuccessModal(
-          "Booking Registered!",
-          "Thank you. Your booking request has been sent to our system. Our team will contact you soon on WhatsApp to confirm your appointment details.",
-          "Great, Thanks!",
-          formData.payment
-        );
+        // Honest failure — never fake a success. Direct the customer to WhatsApp.
+        alert("We couldn't reach our booking system right now. Please message us on WhatsApp at +20 155 556 7205 and we'll confirm your booking right away.");
       })
       .finally(() => {
         button.disabled = false;

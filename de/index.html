@@ -3679,7 +3679,7 @@
       button.disabled = true;
       button.textContent = "Buchung wird gesendet...";
 
-      fetch(location.origin + "/api/bookings", {
+      fetch("/api/public/bookings", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -3696,17 +3696,13 @@
             formData.payment
           );
         } else {
-          alert("Fehler bei der Buchung. Bitte kontaktieren Sie uns über WhatsApp.");
+          alert("Fehler bei der Buchung. Bitte kontaktieren Sie uns über WhatsApp unter +20 155 556 7205.");
         }
       })
       .catch(err => {
         console.error("Booking submission error:", err);
-        showSuccessModal(
-          "Buchung registriert!",
-          "Vielen Dank. Ihre Buchungsanfrage wurde an unser System übermittelt. Unser Team wird Sie in Kürze über WhatsApp kontaktieren, um die Termindetails zu bestätigen.",
-          "Super, Danke!",
-          formData.payment
-        );
+        // Ehrliche Fehlermeldung — niemals einen falschen Erfolg anzeigen.
+        alert("Unser Buchungssystem ist gerade nicht erreichbar. Bitte schreiben Sie uns auf WhatsApp unter +20 155 556 7205, wir bestätigen Ihre Buchung sofort.");
       })
       .finally(() => {
         button.disabled = false;
