@@ -27,14 +27,11 @@
       width:100%; max-width:400px; background:#fff; border:1px solid var(--line);
       border-radius:18px; padding:34px 30px; box-shadow:var(--shadow);
     }
-    .brand{display:flex; align-items:center; gap:10px; margin-bottom:26px}
-    .brand-mark{
-      width:38px; height:38px; border-radius:10px; background:var(--accent);
-      color:var(--accent-fg); display:grid; place-items:center; font-weight:800; font-size:15px;
-      letter-spacing:-.02em;
+    .brand{display:flex; justify-content:center; margin-bottom:22px}
+    .brand-logo{
+      width:230px; max-width:82%; height:auto; display:block;
+      background:#ffffff; border-radius:14px;
     }
-    .brand-name{font-weight:800; letter-spacing:-.02em; font-size:1.02rem}
-    .brand-name span{color:var(--muted); font-weight:600}
     h1{font-size:1.35rem; margin:0 0 4px; letter-spacing:-.02em}
     .sub{color:var(--muted); font-size:.9rem; margin:0 0 24px}
     label{display:block; font-size:.8rem; font-weight:600; margin:0 0 7px; color:#27272a}
@@ -62,8 +59,7 @@
 <body>
   <main class="card" role="main">
     <div class="brand">
-      <div class="brand-mark">CS</div>
-      <div class="brand-name">CarShine <span>Red Sea</span></div>
+      <img src="/assets/brand/carshine-logo-light.png" alt="CarShine Red Sea" class="brand-logo">
     </div>
     <h1>Sign in</h1>
     <p class="sub">Admin access to the operations dashboard.</p>

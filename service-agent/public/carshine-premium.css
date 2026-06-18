@@ -130,23 +130,38 @@ nav.sidebar {
 }
 .logo-area:hover { background: var(--bg-hover) !important; }
 
-/* Full logo (shown in wide sidebar) */
+/* Full logo (shown in wide sidebar) — black logo on a white badge so it
+   reads clearly on the dark graphite sidebar. */
 .sidebar-logo-full {
   display: block;
-  width: 148px;
+  width: 176px;
   height: auto;
   object-fit: contain;
-  filter: brightness(1.05) saturate(1.1);
-  transition: filter 200ms ease;
+  background: #ffffff !important;
+  padding: 10px 14px !important;
+  border-radius: 12px !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,.35) !important;
+  transition: transform 200ms ease;
 }
-.sidebar-logo-full:hover { filter: brightness(1.15) saturate(1.2); }
+.sidebar-logo-full:hover { transform: translateY(-1px); }
 
 /* Icon mark (hidden in wide sidebar, shown when collapsed) */
 .sidebar-logo-icon {
   display: none;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   object-fit: contain;
+  background: #ffffff !important;
+  padding: 6px !important;
+  border-radius: 10px !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,.35) !important;
+}
+
+/* Header brand mark — white badge for the black mark */
+.header-brand-mark {
+  background: #ffffff !important;
+  padding: 4px !important;
+  border-radius: 8px !important;
 }
 
 /* Nav group labels */
