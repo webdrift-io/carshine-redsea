@@ -47,9 +47,9 @@ const WEBSITE_CONTENT = `CarShine Red Sea - Premium Mobile Car Wash Service in E
 Areas served: El Gouna, Hurghada, Sahl Hasheesh.
 
 PACKAGES:
-1. Trial Wash - 150 EGP (one-time, exterior, glass, wheels, light interior refresh)
-2. Smart Plan - 300 EGP/month (3 washes/month + reminders + scheduled visits)
-3. Premium Plan - 500 EGP/month (5 washes/month + priority booking + deep attention + add-on discounts)
+1. Essential Wash - 250 EGP (one-time, exterior, glass, wheels, light interior refresh)
+2. Smart Wash - 300 EGP (complete exterior, glass, tires, light interior, reminders)
+3. Premium Detail - 350 EGP (fuller interior refresh, priority slot, finish check, add-on discounts)
 
 ADD-ONS:
 - Engine Wash: 75 EGP
@@ -89,7 +89,7 @@ To complete a booking, you must collect these details (extract from the conversa
 2. WhatsApp number
 3. Area: must be 'El Gouna', 'Hurghada', or 'Sahl Hasheesh'
 4. Car type/model
-5. Package: Trial Wash, Smart Plan, or Premium Plan
+5. Package: Essential Wash, Smart Wash, or Premium Detail
 6. Date in YYYY-MM-DD format
 7. Time in HH:MM format (24-hour, between 09:00 and 17:00)
 8. Google Maps location or detailed address
@@ -119,7 +119,7 @@ You MUST output a single JSON object (no other text, no markdown):
     "whatsapp": "extracted phone or null",
     "area": "El Gouna/Hurghada/Sahl Hasheesh or null",
     "carType": "extracted car type or null",
-    "package": "Trial Wash/Smart Plan/Premium Plan or null",
+    "package": "Essential Wash/Smart Wash/Premium Detail or null",
     "date": "YYYY-MM-DD or null",
     "time": "HH:MM or null",
     "location": "address/maps URL or null",
@@ -230,11 +230,11 @@ async function callGemini(userMessage, chatHistory, language) {
 
 const FALLBACK_RESPONSES = {
   ar: {
-    greeting: 'أهلاً بك في كار شاين Red Sea! 🚗✨ تحب تحجز غسيل تجريبي (150 جنيه) ولا باقة شهرية؟',
+    greeting: 'أهلاً بك في كار شاين Red Sea! 🚗✨ تحب تحجز الغسلة الأساسية (250 جنيه) ولا الغسلة الذكية؟',
     ask_name: 'يا ريت تقولي اسمك بالكامل؟',
     ask_area: 'حضرتك في أي منطقة؟ (الجونة، الغردقة، أو سهل حشيش)؟',
     ask_car: 'إيه نوع عربيتك؟',
-    ask_package: 'تحب تختار أنهي باقة؟\n1. تجربة 150 جنيه\n2. ذكية 300 جنيه/شهر\n3. مميزة 500 جنيه/شهر',
+    ask_package: 'تحب تختار أنهي باقة؟\n1. الغسلة الأساسية 250 جنيه\n2. الغسلة الذكية 300 جنيه\n3. تفصيل بريميوم 350 جنيه',
     ask_date: 'حابب الغسيل يكون يوم إيه؟',
     ask_time: 'الساعة كام؟ (بين 9 الصبح و5 بالليل)',
     ask_location: 'ممكن تبعتلنا العنوان أو لوكيشن جوجل مابس؟',
@@ -243,11 +243,11 @@ const FALLBACK_RESPONSES = {
     human: 'هنوصلك بمسؤول يرد عليك فوراً.'
   },
   en: {
-    greeting: "Welcome to CarShine Red Sea! 🚗✨ We offer premium mobile car wash in El Gouna, Hurghada, and Sahl Hasheesh. Would you like to book a Trial Wash (150 EGP) or a monthly plan?",
+    greeting: "Welcome to CarShine Red Sea! 🚗✨ We offer premium mobile car wash in El Gouna, Hurghada, and Sahl Hasheesh. Would you like to book an Essential Wash (250 EGP) or Smart Wash?",
     ask_name: 'What is your full name please?',
     ask_area: 'Which area are you in? (El Gouna, Hurghada, or Sahl Hasheesh)?',
     ask_car: 'What type of car do you have?',
-    ask_package: 'Which package?\n1. Trial Wash - 150 EGP\n2. Smart Plan - 300 EGP/month\n3. Premium Plan - 500 EGP/month',
+    ask_package: 'Which package?\n1. Essential Wash - 250 EGP\n2. Smart Wash - 300 EGP\n3. Premium Detail - 350 EGP',
     ask_date: 'What date would you like?',
     ask_time: 'What time? (between 9 AM and 5 PM)',
     ask_location: 'Please send your address or Google Maps location.',
@@ -256,11 +256,11 @@ const FALLBACK_RESPONSES = {
     human: "I'll connect you with a human agent right away."
   },
   de: {
-    greeting: 'Willkommen bei CarShine Red Sea! 🚗✨ Mobile Autowäsche in El Gouna, Hurghada, Sahl Hasheesh. Möchten Sie eine Probe-Wäsche (150 EGP) buchen?',
+    greeting: 'Willkommen bei CarShine Red Sea! 🚗✨ Mobile Autowäsche in El Gouna, Hurghada, Sahl Hasheesh. Möchten Sie eine Essential Wash (250 EGP) buchen?',
     ask_name: 'Wie ist Ihr vollständiger Name?',
     ask_area: 'In welchem Gebiet sind Sie? (El Gouna, Hurghada oder Sahl Hasheesh)?',
     ask_car: 'Welchen Fahrzeugtyp haben Sie?',
-    ask_package: 'Welches Paket?\n1. Probe-Wäsche - 150 EGP\n2. Smart Plan - 300 EGP/Monat\n3. Premium Plan - 500 EGP/Monat',
+    ask_package: 'Welches Paket?\n1. Essential Wash - 250 EGP\n2. Smart Wash - 300 EGP\n3. Premium Detail - 350 EGP',
     ask_date: 'Welches Datum?',
     ask_time: 'Welche Uhrzeit? (zwischen 9 und 17 Uhr)',
     ask_location: 'Bitte senden Sie Ihre Adresse oder Google Maps.',

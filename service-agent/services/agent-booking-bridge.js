@@ -15,6 +15,9 @@ const MAX_CONCURRENT = 2;
 const DEFAULT_DURATION_MS = 60 * 60 * 1000;
 
 const AGENT_PACKAGE_MAP = {
+  'Essential Wash': 'EXTERIOR_SEDAN',
+  'Smart Wash': 'EXTERIOR_SUV',
+  'Premium Detail': 'FULL_DETAIL',
   'Trial Wash': 'EXTERIOR_SEDAN',
   'Smart Plan': 'EXTERIOR_SUV',
   'Premium Plan': 'FULL_DETAIL'

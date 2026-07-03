@@ -1,0 +1,34 @@
+/**
+ * shadcn/ui bridge — Radix-compatible design tokens for gradual dashboard migration.
+ * Import before legacy style.css; components can adopt these CSS variables incrementally.
+ */
+:root {
+  --background: 222 47% 6%;
+  --foreground: 210 40% 98%;
+  --card: 222 47% 9%;
+  --card-foreground: 210 40% 98%;
+  --primary: 199 89% 48%;
+  --primary-foreground: 222 47% 6%;
+  --muted: 217 33% 14%;
+  --muted-foreground: 215 20% 65%;
+  --border: 217 33% 18%;
+  --radius: 0.75rem;
+}
+
+.card-shadcn {
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+}
+
+.btn-shadcn-primary {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border: none;
+  border-radius: calc(var(--radius) - 2px);
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}

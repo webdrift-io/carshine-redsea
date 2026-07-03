@@ -1,86 +1,151 @@
-# Deploying the CarShine backend on Hostinger (Node.js)
+# Deploying CarShine on Hostinger Node.js Web App
 
-The static marketing site is already live in `public_html` (`/`, `/ar/`, `/de/`).
-This guide brings the **backend** online — dashboard, login, Layla chatbot
-replies, booking API, MiniMax image generation, and the auto-poster — so all
-three links work.
+This project should run as one Hostinger Node.js Web App.
+The same Express server serves the website, dashboard, login, APIs, chatbot widget, media routes, and future webhook routes.
 
-The Express app serves the landing page, the dashboard, **and** the API from a
-single origin, so once it runs, the chat widget and booking form on the live
-site start working automatically (same origin).
+## What This App Serves
 
----
+- Website: `/`, `/ar/`, `/de/`
+- Dashboard: `/dashboard/` and `/dashboard-v2`
+- Login: `/login`
+- API: `/api/*`
+- Chatbot widget: `/chatbot-widget.js`
+- Static assets: `/assets/*`
+- Uploaded/generated media: `/media/*`
 
-## What you provide (the only steps I can't do over FTP)
+## Current Connector Limitation
 
-1. **MiniMax API key** (rotated) — set as an env var below.
-2. **Node.js enabled** in hPanel **OR** SSH access (then I do all of the below for you).
+The Hostinger connector available in Codex can create/edit Hostinger Horizons sites.
+It does not expose hPanel controls for Node.js Web Apps, subdomains, environment variables, file upload, or process restart.
 
----
+That means Codex can prepare the repo and verify the local production path, but the final hPanel deploy click must be done manually unless SSH/SFTP/hPanel automation is provided.
 
-## Option A — SSH (fastest; I do everything)
+## Recommended Temporary Launch
 
-Send me: host/IP, SSH username, port, and how you authenticate. I will:
-upload code, `npm ci`, set env vars, run migrations, start under the process
-manager, and verify all three links. You do nothing else.
+Use one temporary Node.js app first:
 
----
+- Temporary app URL: `https://app.carshineredsea.com` or a Hostinger temporary domain.
+- Dashboard URL: `https://app.carshineredsea.com/dashboard/`
+- Login URL: `https://app.carshineredsea.com/login`
 
-## Option B — hPanel Node.js screen (you click; I prepared every value)
+After testing, either point the main domain to the same Node app or keep the dashboard on a private subdomain such as `admin.carshineredsea.com`.
 
-**1. Upload the code**
-`carshine-backend.zip` is already uploaded to `public_html` via FTP.
-In hPanel → **File Manager**, extract it. You'll get `service-agent/`,
-`index.html`, `ar/`, `de/`, etc.
+## hPanel Node.js Settings
 
-**2. hPanel → Advanced → Node.js → Create application**
+Use the full repository folder, not only `service-agent`, because the backend serves the landing page from the repository root.
+
+In Hostinger hPanel, open `Websites -> Dashboard -> Advanced -> Node.js` and create an app.
 
 | Field | Value |
-|-------|-------|
-| Node.js version | 20.x (or the latest 18+ offered) |
+|---|---|
+| Node.js version | 22.x LTS if available, otherwise 20.x |
 | Application mode | Production |
-| Application root | the folder that contains `service-agent/` (e.g. `public_html`) |
-| Application URL | your domain (`slategrey-pig-358843.hostingersite.com`) |
-| Application startup file | `service-agent/server.js` |
+| Application root | Folder containing `hostinger-app.cjs`, `index.html`, and `service-agent/` |
+| Application URL | Temporary subdomain or Hostinger temporary domain |
+| Application startup file | `hostinger-app.cjs` |
+| Install command | `npm install && npm run hostinger:install` |
+| Start command | `npm start` |
 
-**3. Environment variables** (add these in the same screen):
+If hPanel only offers an npm install button and startup file field, set the startup file to `hostinger-app.cjs`, run npm install at the root, then run `npm run hostinger:install` if custom commands are available.
 
-```
+## Required Environment Variables Now
+
+Set these in hPanel.
+Do not put real secrets into git or frontend JavaScript.
+
+```bash
 NODE_ENV=production
-PORT=                      # leave blank — Hostinger/Passenger sets it
-JWT_SECRET=<generate: node -e "console.log(require('crypto').randomBytes(64).toString('hex'))">
-ADMIN_EMAIL=owner@carshineredsea.com
-ADMIN_INITIAL_PASSWORD=<a strong password you choose>
-ALLOWED_ORIGINS=https://slategrey-pig-358843.hostingersite.com
-DATABASE_PATH=./database.sqlite
-MINIMAX_API_KEY=<your rotated MiniMax key>
+HOST=0.0.0.0
+JWT_SECRET=<generate-a-64-byte-random-secret>
+ADMIN_EMAIL=admin@carshineredsea.com
+ADMIN_INITIAL_PASSWORD=<temporary-strong-password-change-after-login>
+PUBLIC_BASE_URL=https://app.carshineredsea.com
+WEBHOOK_BASE_URL=https://app.carshineredsea.com
+PUBLIC_PORTAL_URL=https://app.carshineredsea.com/portal
+ALLOWED_ORIGINS=https://app.carshineredsea.com,https://carshineredsea.com,https://www.carshineredsea.com
+DATABASE_PATH=./service-agent/database.sqlite
+USE_MASTRA_AGENT=false
+MiniMax_API_KEY=<server-side-minimax-chat-key-optional>
+MINIMAX_API_KEY=<server-side-minimax-media-key-optional>
 MINIMAX_IMAGE_MODEL=image-01
 MINIMAX_API_BASE=https://api.minimax.io
 ```
-(WhatsApp / social keys get added later when we wire those phases.)
 
-**4. Install dependencies**
-In the Node.js screen, set **NPM run path** to `service-agent` (so it installs
-where `package.json` is) and click **Run NPM Install**. This compiles
-`better-sqlite3` for the host — if it errors, tell me the log and I'll switch to
-a prebuilt-binary or a Postgres adapter.
+If Hostinger provides `PORT`, leave it alone.
+The app reads `process.env.PORT` automatically.
 
-**5. Start / Restart the app**, then open:
-- Website: `https://slategrey-pig-358843.hostingersite.com/`
-- Dashboard: `https://slategrey-pig-358843.hostingersite.com/dashboard/`
-- Login: same URL → log in with `ADMIN_EMAIL` + `ADMIN_INITIAL_PASSWORD`
+Generate `JWT_SECRET` locally with:
 
-Tell me when it's started and I'll run the live tests (health, login, a real
-booking through Layla, and a MiniMax image) and confirm everything.
+```bash
+node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+```
 
----
+## Optional Integration Variables Later
 
-## Notes / safety
+WhatsApp Meta Cloud API:
 
-- `NODE_ENV=production` is required — it disables the localhost dev-auth
-  shortcut so every admin route demands a real JWT.
-- No secrets are in the uploaded code or in git; they live only in the hPanel
-  env screen.
-- SQLite is fine for launch; if Hostinger's Node sandbox blocks native modules
-  we move the DB to Postgres (Hostinger offers it) — small, isolated change.
-- After launch, change the FTP password (it was shared in chat).
+```bash
+WHATSAPP_PROVIDER=meta
+WHATSAPP_ACCESS_TOKEN=
+WHATSAPP_PHONE_NUMBER_ID=
+WHATSAPP_VERIFY_TOKEN=
+WHATSAPP_BUSINESS_ACCOUNT_ID=
+WHATSAPP_APP_SECRET=
+ADMIN_WHATSAPP_PHONE=
+```
+
+Twilio alternative:
+
+```bash
+TWILIO_ACCOUNT_SID=
+TWILIO_AUTH_TOKEN=
+TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
+```
+
+Facebook and Instagram:
+
+```bash
+META_APP_ID=
+META_APP_SECRET=
+META_WEBHOOK_VERIFY_TOKEN=
+META_PAGE_ACCESS_TOKEN=
+FACEBOOK_PAGE_ID=
+INSTAGRAM_BUSINESS_ACCOUNT_ID=
+```
+
+TikTok and Postiz future publishing:
+
+```bash
+TIKTOK_CLIENT_KEY=
+TIKTOK_CLIENT_SECRET=
+TIKTOK_ACCESS_TOKEN=
+TIKTOK_OPEN_ID=
+POSTIZ_API_KEY=
+POSTIZ_BASE_URL=
+```
+
+## URLs To Verify After Start
+
+- `https://app.carshineredsea.com/`
+- `https://app.carshineredsea.com/ar/`
+- `https://app.carshineredsea.com/de/`
+- `https://app.carshineredsea.com/login`
+- `https://app.carshineredsea.com/dashboard/`
+- `https://app.carshineredsea.com/health`
+- `https://app.carshineredsea.com/api-docs/`
+
+Expected dashboard login:
+
+- Email: `ADMIN_EMAIL`
+- Password: `ADMIN_INITIAL_PASSWORD`
+
+After first login, change the admin password and replace `ADMIN_INITIAL_PASSWORD` with `ADMIN_PASSWORD_HASH` when available.
+
+## Safety Notes
+
+- `NODE_ENV=production` is required because it disables the localhost dev-auth shortcut.
+- Admin routes require JWT in production.
+- No API keys belong in git or frontend JavaScript.
+- SQLite is acceptable for launch, but back up `service-agent/database.sqlite` daily.
+- If Hostinger blocks the native `better-sqlite3` module, move the database to managed MySQL/Postgres.
+- Auto-publishing remains approval-based. Do not enable social auto-posting without explicit human approval.

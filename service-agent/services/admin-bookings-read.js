@@ -22,7 +22,9 @@ const { db } = database;
 const LIST_SQL = `
   SELECT
     b.id, b.public_ref, b.status, b.payment_status, b.scheduled_start, b.scheduled_end,
-    b.timezone, b.source, b.language, b.notes, b.missing_fields, b.created_at, b.updated_at,
+    b.timezone, b.source, b.language, b.notes, b.missing_fields,
+    b.washes_needed, b.washes_completed, b.operational_cost, b.owner_notes, b.last_wash_at, b.next_wash_at,
+    b.created_at, b.updated_at,
     c.id AS customer_id, c.full_name, c.phone_e164, c.phone_raw, c.email,
     c.address AS customer_address, c.area AS customer_area,
     v.id AS vehicle_id, v.car_type, v.make AS v_make, v.model AS v_model, v.plate AS v_plate,
@@ -174,7 +176,9 @@ function getBookingDetailForAdmin(bookingV2Id) {
   const rows = db.prepare(`
     SELECT
       b.id, b.public_ref, b.status, b.payment_status, b.scheduled_start, b.scheduled_end,
-      b.timezone, b.source, b.language, b.notes, b.missing_fields, b.created_at, b.updated_at,
+      b.timezone, b.source, b.language, b.notes, b.missing_fields,
+      b.washes_needed, b.washes_completed, b.operational_cost, b.owner_notes, b.last_wash_at, b.next_wash_at,
+      b.created_at, b.updated_at,
       c.id AS customer_id, c.full_name, c.phone_e164, c.phone_raw, c.email,
       c.address AS customer_address, c.area AS customer_area,
       v.id AS vehicle_id, v.car_type, v.make AS v_make, v.model AS v_model, v.plate AS v_plate,
@@ -254,6 +258,14 @@ function formatBookingForAdmin(row) {
     area: row.customer_area || null,
     address: row.customer_address || null,
     notes: row.notes || '',
+    ops: {
+      washesNeeded: Number(row.washes_needed || 1),
+      washesCompleted: Number(row.washes_completed || 0),
+      operationalCost: Number(row.operational_cost || 0),
+      ownerNotes: row.owner_notes || '',
+      lastWashAt: row.last_wash_at || null,
+      nextWashAt: row.next_wash_at || row.scheduled_start || null
+    },
     customer: row.customer_id ? {
       id: row.customer_id,
       fullName: row.full_name,

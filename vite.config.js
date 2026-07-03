@@ -61,10 +61,15 @@ export default defineConfig(({ mode }) => {
       codeSplit: true,
       minify: 'esbuild'
     },
-    server: {
-      port: 5173,
-      open: false
-    },
+  server: {
+    port: 5173,
+    open: false,
+    proxy: {
+      '/api': 'http://localhost:5000',
+      '/chatbot-widget.js': 'http://localhost:5000',
+      '/media': 'http://localhost:5000'
+    }
+  },
     plugins: [
       {
         name: 'extract-inline-styles',

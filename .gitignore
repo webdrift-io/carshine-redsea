@@ -112,6 +112,14 @@ backups/
 
 # Local debug captures
 .debug-screenshots/
+service-agent/proof-screenshots/
+service-agent/test-storyboard/
+service-agent/test-slide-*.png
+service-agent/data/autopilot-state.json
+.claude/
+.cursor/
+READY_TO_PUBLISH.md
+new lgog/
 
 # Generated images (TikTok marketing)
 tiktok-marketing/posts/

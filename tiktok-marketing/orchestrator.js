@@ -200,12 +200,13 @@ function validateConfig({ dryRun = false } = {}) {
   if (!config.app?.audience) errors.push('app.app.audience is required');
 
   // Image generation
+  const ALWAYS_WORKING_PROVIDERS = new Set(['local', 'brand-template']);
   const hasImageKey = config.imageGen?.apiKey
     && !config.imageGen.apiKey.startsWith('sk-...')
     && !config.imageGen.apiKey.includes('...');
   if (!config.imageGen?.provider) {
-    errors.push('imageGen.provider is required (openai|stability|replicate|local)');
-  } else if (config.imageGen.provider !== 'local' && !hasImageKey) {
+    errors.push('imageGen.provider is required (openai|stability|replicate|local|brand-template)');
+  } else if (!ALWAYS_WORKING_PROVIDERS.has(config.imageGen.provider) && !hasImageKey) {
     if (dryRun) {
       warnings.push('imageGen.apiKey is a placeholder — dry-run will use mock provider output');
     } else {
@@ -219,8 +220,8 @@ function validateConfig({ dryRun = false } = {}) {
   // Postiz API
   const postizKeyOk = config.postiz?.apiKey && !config.postiz.apiKey.includes('...');
   if (!postizKeyOk) {
-    if (dryRun) {
-      warnings.push('postiz.apiKey is a placeholder — dry-run will use mock Postiz responses');
+    if (dryRun || ALWAYS_WORKING_PROVIDERS.has(config.imageGen?.provider || '')) {
+      warnings.push('postiz.apiKey is missing — Postiz will run in dry-run mode (artifacts saved, no live publish)');
     } else {
       errors.push('postiz.apiKey is a placeholder - real Postiz key required for live mode');
     }
@@ -230,8 +231,8 @@ function validateConfig({ dryRun = false } = {}) {
   const tiktokIdOk = config.postiz?.integrationIds?.tiktok
     && !config.postiz.integrationIds.tiktok.includes('here');
   if (!tiktokIdOk) {
-    if (dryRun) {
-      warnings.push('postiz.integrationIds.tiktok is a placeholder — dry-run will use mock Postiz responses');
+    if (dryRun || ALWAYS_WORKING_PROVIDERS.has(config.imageGen?.provider || '')) {
+      warnings.push('postiz.integrationIds.tiktok is missing — Postiz will run in dry-run mode');
     } else {
       errors.push('postiz.integrationIds.tiktok is a placeholder - real integration ID required for live mode');
     }

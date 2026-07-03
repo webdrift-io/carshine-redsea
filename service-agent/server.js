@@ -29,6 +29,8 @@ const notifications = require('./services/notifications');
 const { startNotificationScheduler } = require('./jobs/scheduler');
 const publicBookingStatus = require('./services/public-booking-status');
 const revenueOps = require('./services/revenue-ops');
+const { createAudioRouter } = require('./routes/audio');
+const businessOps = require('./services/business-ops');
 
 // Feature flag: USE_MASTRA_AGENT (default: true). When false, the legacy
 // monolith in ./minimax-agent.js is used. The legacy file is kept around as a
@@ -55,6 +57,7 @@ const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 5000;
 const isProduction = process.env.NODE_ENV === 'production';
+const HOST = process.env.HOST || (isProduction ? '0.0.0.0' : '127.0.0.1');
 
 if (isProduction && !process.env.JWT_SECRET) {
   console.error('[Server] FATAL: JWT_SECRET must be set in production');
@@ -466,19 +469,34 @@ app.get('/favicon.png', (req, res) => {
   res.sendFile(path.join(PROJECT_ROOT, 'favicon.png'));
 });
 
-// Standalone admin login page (separate from the dashboard for security).
-app.get('/login', (req, res) => {
-  res.sendFile(path.join(DASHBOARD_PUBLIC_DIR, 'login.html'));
+// Single source of truth: the new operations console is the only dashboard.
+// Old paths redirect to /dashboard-v2.
+app.get('/dashboard', (req, res) => res.redirect(302, '/dashboard-v2'));
+app.get('/dashboard/', (req, res) => res.redirect(302, '/dashboard-v2'));
+app.get('/dashboard-v2/', (req, res, next) => {
+  if (req.originalUrl.startsWith('/dashboard-v2/')) return res.redirect(302, '/dashboard-v2');
+  return next();
 });
 
-app.get('/dashboard', (req, res) => {
-  if (req.originalUrl === '/dashboard') {
-    return res.redirect(301, '/dashboard/');
-  }
-  res.sendFile(path.join(DASHBOARD_PUBLIC_DIR, 'index.html'));
+const publicFormLimiter = rateLimit({
+  windowMs: parseInt(process.env.PUBLIC_FORM_RATE_LIMIT_WINDOW_MS, 10) || 15 * 60 * 1000,
+  max: parseInt(process.env.PUBLIC_FORM_RATE_LIMIT_MAX, 10) || 12,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many form submissions, please try again later.' },
+  keyGenerator: ipKeyGenerator
 });
+app.get('/login', (req, res) => res.redirect(302, '/dashboard-v2?login=1'));
+app.get('/login/', (req, res) => res.redirect(302, '/dashboard-v2?login=1'));
 
-app.use('/dashboard', express.static(DASHBOARD_PUBLIC_DIR));
+// Serve the new dashboard assets. Keep the HTML route explicit so relative
+// browser resolution never hides missing JS/CSS assets again.
+app.get('/dashboard-v2.js', (req, res) => {
+  res.type('application/javascript').sendFile(path.join(DASHBOARD_PUBLIC_DIR, 'dashboard-v2.js'));
+});
+app.get('/shadcn-bridge.css', (req, res) => {
+  res.type('text/css').sendFile(path.join(DASHBOARD_PUBLIC_DIR, 'shadcn-bridge.css'));
+});
 app.use('/ar', express.static(path.join(PROJECT_ROOT, 'ar')));
 app.use('/de', express.static(path.join(PROJECT_ROOT, 'de')));
 // Brand assets (logos) used by the landing pages — read-only static.
@@ -1202,6 +1220,439 @@ app.get('/api/settings', (req, res) => {
   res.json({ autopilot });
 });
 
+app.get('/dashboard-v2', (req, res) => {
+  res.sendFile(path.join(DASHBOARD_PUBLIC_DIR, 'dashboard-v2.html'));
+});
+
+// ============================================================================
+// ADMIN: customers / staff / reports / booking status
+// ============================================================================
+
+app.get('/api/admin/customers', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (req, res) => {
+  const q = (req.query.q || '').toString().trim();
+  const limit = Math.min(parseInt(req.query.limit) || 100, 500);
+  let rows;
+  if (q) {
+    const like = `%${q.replace(/[%_]/g, '')}%`;
+    rows = db.db.prepare(`
+      SELECT c.id, c.full_name, c.phone_e164, c.phone_raw, c.email, c.area, c.tags, c.language,
+        (SELECT COUNT(*) FROM vehicles v WHERE v.customer_id = c.id AND v.deleted_at IS NULL) AS vehicle_count
+      FROM customers c
+      WHERE c.deleted_at IS NULL
+        AND (c.full_name LIKE ? OR c.phone_e164 LIKE ? OR c.phone_raw LIKE ? OR c.email LIKE ?)
+      ORDER BY c.created_at DESC
+      LIMIT ?
+    `).all(like, like, like, like, limit);
+  } else {
+    rows = db.db.prepare(`
+      SELECT c.id, c.full_name, c.phone_e164, c.phone_raw, c.email, c.area, c.tags, c.language,
+        (SELECT COUNT(*) FROM vehicles v WHERE v.customer_id = c.id AND v.deleted_at IS NULL) AS vehicle_count
+      FROM customers c
+      WHERE c.deleted_at IS NULL
+      ORDER BY c.created_at DESC
+      LIMIT ?
+    `).all(limit);
+  }
+  res.json({ success: true, customers: rows, count: rows.length });
+});
+
+app.get('/api/admin/staff', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (req, res) => {
+  const rows = db.db.prepare(`
+    SELECT id, email, phone, role, display_name, language, active,
+           shift_start, shift_end, last_login_at, created_at
+    FROM users
+    WHERE deleted_at IS NULL AND role IN ('OWNER','DISPATCHER','CLEANER')
+    ORDER BY role ASC, display_name ASC
+  `).all();
+  res.json({ success: true, staff: rows, count: rows.length });
+});
+
+app.post('/api/admin/staff', requireAuth, requireRole(['OWNER']), async (req, res) => {
+  const body = req.body || {};
+  const email = String(body.email || '').trim().toLowerCase();
+  const displayName = String(body.displayName || body.display_name || '').trim();
+  const role = String(body.role || 'CLEANER').trim().toUpperCase();
+  const validRoles = ['OWNER', 'DISPATCHER', 'CLEANER'];
+  if (!email || !email.includes('@')) return res.status(400).json({ success: false, error: 'VALID_EMAIL_REQUIRED' });
+  if (!displayName) return res.status(400).json({ success: false, error: 'DISPLAY_NAME_REQUIRED' });
+  if (!validRoles.includes(role)) return res.status(400).json({ success: false, error: 'INVALID_ROLE' });
+  const exists = db.db.prepare('SELECT id FROM users WHERE email = ? AND deleted_at IS NULL').get(email);
+  if (exists) return res.status(409).json({ success: false, error: 'EMAIL_ALREADY_EXISTS' });
+  const password = String(body.password || crypto.randomBytes(8).toString('base64url'));
+  const hash = await bcrypt.hash(password, 12);
+  const id = `usr_${crypto.randomBytes(8).toString('hex')}`;
+  const now = new Date().toISOString();
+  db.db.prepare(`
+    INSERT INTO users (id, email, phone, password_hash, role, display_name, language, active, shift_start, shift_end, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)
+  `).run(id, email, body.phone || null, hash, role, displayName, body.language || 'en', body.shiftStart || body.shift_start || null, body.shiftEnd || body.shift_end || null, now, now);
+  res.status(201).json({ success: true, staff: { id, email, phone: body.phone || null, role, display_name: displayName, active: 1 }, temporaryPassword: body.password ? undefined : password });
+});
+
+app.patch('/api/admin/staff/:id', requireAuth, requireRole(['OWNER']), (req, res) => {
+  const existing = db.db.prepare('SELECT * FROM users WHERE id = ? AND deleted_at IS NULL').get(req.params.id);
+  if (!existing) return res.status(404).json({ success: false, error: 'STAFF_NOT_FOUND' });
+  const body = req.body || {};
+  const role = body.role ? String(body.role).toUpperCase() : existing.role;
+  if (!['OWNER', 'DISPATCHER', 'CLEANER'].includes(role)) return res.status(400).json({ success: false, error: 'INVALID_ROLE' });
+  db.db.prepare(`
+    UPDATE users SET phone = ?, role = ?, display_name = ?, language = ?, active = ?, shift_start = ?, shift_end = ?, updated_at = ?
+    WHERE id = ?
+  `).run(
+    body.phone ?? existing.phone,
+    role,
+    body.displayName ?? body.display_name ?? existing.display_name,
+    body.language ?? existing.language,
+    body.active == null ? existing.active : (body.active ? 1 : 0),
+    body.shiftStart ?? body.shift_start ?? existing.shift_start,
+    body.shiftEnd ?? body.shift_end ?? existing.shift_end,
+    new Date().toISOString(),
+    req.params.id
+  );
+  res.json({ success: true, staff: db.db.prepare('SELECT id, email, phone, role, display_name, language, active, shift_start, shift_end, last_login_at, created_at FROM users WHERE id = ?').get(req.params.id) });
+});
+
+app.delete('/api/admin/staff/:id', requireAuth, requireRole(['OWNER']), (req, res) => {
+  const existing = db.db.prepare('SELECT id, role FROM users WHERE id = ? AND deleted_at IS NULL').get(req.params.id);
+  if (!existing) return res.status(404).json({ success: false, error: 'STAFF_NOT_FOUND' });
+  const activeOwners = db.db.prepare("SELECT COUNT(*) AS n FROM users WHERE role = 'OWNER' AND active = 1 AND deleted_at IS NULL").get().n;
+  if (existing.role === 'OWNER' && activeOwners <= 1) return res.status(409).json({ success: false, error: 'CANNOT_DELETE_LAST_OWNER' });
+  const now = new Date().toISOString();
+  db.db.prepare('UPDATE users SET active = 0, deleted_at = ?, updated_at = ? WHERE id = ?').run(now, now, req.params.id);
+  res.json({ success: true });
+});
+
+app.get('/api/admin/reports/summary', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (req, res) => {
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const summary = { revenue7d: 0, bookings7d: 0, avgTicket7d: 0, pendingPayments: 0, byService: [], byArea: [] };
+  try {
+    const rev = db.db.prepare(`
+      SELECT COALESCE(SUM(amount), 0) AS total FROM payments
+      WHERE status = 'VERIFIED' AND verified_at >= ?
+    `).get(sevenDaysAgo);
+    summary.revenue7d = Number(rev?.total || 0);
+
+    const bk = db.db.prepare(`
+      SELECT COUNT(*) AS n FROM bookings_v2
+      WHERE created_at >= ? AND status NOT IN ('CANCELLED')
+    `).get(sevenDaysAgo);
+    summary.bookings7d = Number(bk?.n || 0);
+    summary.avgTicket7d = summary.bookings7d > 0 ? Math.round(summary.revenue7d / summary.bookings7d) : 0;
+
+    const pending = db.db.prepare(`SELECT COUNT(*) AS n FROM payments WHERE status = 'SUBMITTED'`).get();
+    summary.pendingPayments = Number(pending?.n || 0);
+
+    const byService = db.db.prepare(`
+      SELECT sp.name_en AS name, COUNT(b.id) AS count, COALESCE(SUM(p.amount), 0) AS revenue
+      FROM service_packages sp
+      LEFT JOIN bookings_v2 b ON b.service_package_id = sp.id AND b.created_at >= ? AND b.status = 'COMPLETED'
+      LEFT JOIN payments p ON p.booking_id = b.id AND p.status = 'VERIFIED'
+      GROUP BY sp.id
+      ORDER BY count DESC
+      LIMIT 10
+    `).all(sevenDaysAgo);
+    summary.byService = byService.map(r => ({ name: r.name, count: Number(r.count || 0), revenue: Number(r.revenue || 0) }));
+
+    const byArea = db.db.prepare(`
+      SELECT area, COUNT(*) AS count FROM bookings_v2
+      WHERE area IS NOT NULL AND area <> '' AND created_at >= ? AND status NOT IN ('CANCELLED')
+      GROUP BY area ORDER BY count DESC LIMIT 10
+    `).all(sevenDaysAgo);
+    summary.byArea = byArea.map(r => ({ area: r.area, count: Number(r.count || 0) }));
+  } catch (e) {
+    console.error('[Reports]', e);
+  }
+  res.json({ success: true, ...summary });
+});
+
+// ============================================================================
+// BUSINESS OPS: leads, website forms, recruiting, follow-ups, media library
+// ============================================================================
+
+function sendBusinessError(res, error) {
+  const status = error.status || 500;
+  if (status >= 500) console.error('[BusinessOps]', error);
+  res.status(status).json({ success: false, error: error.message || 'BUSINESS_OPS_ERROR' });
+}
+
+app.post('/api/public/contact', publicFormLimiter, (req, res) => {
+  try {
+    const contact = businessOps.createContactSubmission(req.body || {});
+    res.status(201).json({ success: true, contact });
+  } catch (error) {
+    sendBusinessError(res, error);
+  }
+});
+
+app.post('/api/public/join', publicFormLimiter, (req, res) => {
+  try {
+    const request = businessOps.createJoinRequest(req.body || {});
+    res.status(201).json({ success: true, request });
+  } catch (error) {
+    sendBusinessError(res, error);
+  }
+});
+
+app.get('/api/admin/business/summary', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (_req, res) => {
+  res.json({ success: true, summary: businessOps.getSummary() });
+});
+
+app.get('/api/admin/leads', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (req, res) => {
+  res.json({ success: true, leads: businessOps.listLeads(req.query), count: businessOps.listLeads(req.query).length });
+});
+
+app.post('/api/admin/leads', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (req, res) => {
+  try {
+    res.status(201).json({ success: true, lead: businessOps.createLead(req.body || {}) });
+  } catch (error) {
+    sendBusinessError(res, error);
+  }
+});
+
+app.patch('/api/admin/leads/:id', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (req, res) => {
+  const lead = businessOps.updateLead(req.params.id, req.body || {});
+  if (!lead) return res.status(404).json({ success: false, error: 'LEAD_NOT_FOUND' });
+  res.json({ success: true, lead });
+});
+
+app.delete('/api/admin/leads/:id', requireAuth, requireRole(['OWNER']), (req, res) => {
+  res.json({ success: businessOps.deleteLead(req.params.id) });
+});
+
+app.get('/api/admin/contact-submissions', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (req, res) => {
+  const contacts = businessOps.listContacts(req.query);
+  res.json({ success: true, contacts, count: contacts.length });
+});
+
+app.patch('/api/admin/contact-submissions/:id', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (req, res) => {
+  const contact = businessOps.updateContact(req.params.id, req.body || {});
+  if (!contact) return res.status(404).json({ success: false, error: 'CONTACT_NOT_FOUND' });
+  res.json({ success: true, contact });
+});
+
+app.get('/api/admin/join-requests', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (req, res) => {
+  const requests = businessOps.listJoinRequests(req.query);
+  res.json({ success: true, requests, count: requests.length });
+});
+
+app.patch('/api/admin/join-requests/:id', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (req, res) => {
+  const request = businessOps.updateJoinRequest(req.params.id, req.body || {});
+  if (!request) return res.status(404).json({ success: false, error: 'JOIN_REQUEST_NOT_FOUND' });
+  res.json({ success: true, request });
+});
+
+app.get('/api/admin/follow-ups', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (req, res) => {
+  const followUps = businessOps.listFollowUps(req.query);
+  res.json({ success: true, followUps, count: followUps.length });
+});
+
+app.post('/api/admin/follow-ups', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (req, res) => {
+  try {
+    res.status(201).json({ success: true, followUp: businessOps.createFollowUp(req.body || {}) });
+  } catch (error) {
+    sendBusinessError(res, error);
+  }
+});
+
+app.patch('/api/admin/follow-ups/:id', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (req, res) => {
+  const followUp = businessOps.updateFollowUp(req.params.id, req.body || {});
+  if (!followUp) return res.status(404).json({ success: false, error: 'FOLLOW_UP_NOT_FOUND' });
+  res.json({ success: true, followUp });
+});
+
+app.get('/api/admin/media-library', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (req, res) => {
+  const media = businessOps.listMedia(req.query);
+  res.json({ success: true, media, count: media.length });
+});
+
+function platformImageSpec(platform = 'instagram') {
+  const p = String(platform || 'instagram').toLowerCase();
+  if (p === 'tiktok') return { aspectRatio: '9:16', width: 1080, height: 1920 };
+  if (p === 'facebook') return { aspectRatio: '16:9', width: 1200, height: 630 };
+  return { aspectRatio: '1:1', width: 1080, height: 1080 };
+}
+
+app.post('/api/admin/media-library', requireAuth, requireRole(['OWNER']), async (req, res) => {
+  try {
+    const input = req.body || {};
+    const mediaInput = { ...input };
+    const wantsGeneration = input.generateImage === true || input.provider === 'minimax';
+    if (wantsGeneration && imageGen.isConfigured()) {
+      const spec = platformImageSpec(input.platform);
+      const generated = await imageGen.generateAndSave({
+        prompt: input.prompt || input.topic || input.title || 'premium mobile car wash social media post',
+        category: `social-${input.platform || 'instagram'}`,
+        aspectRatio: spec.aspectRatio,
+        width: spec.width,
+        height: spec.height,
+        n: 1
+      });
+      mediaInput.assetUrl = generated.images[0]?.url || null;
+      mediaInput.provider = 'minimax';
+      mediaInput.meta = {
+        ...(input.meta || {}),
+        model: generated.model,
+        prompt: generated.prompt,
+        platformSpec: spec,
+        generatedAt: new Date().toISOString()
+      };
+    } else if (wantsGeneration && !imageGen.isConfigured()) {
+      mediaInput.provider = 'manual';
+      mediaInput.meta = {
+        ...(input.meta || {}),
+        generationBlocked: 'MINIMAX_API_KEY missing',
+        platformSpec: platformImageSpec(input.platform)
+      };
+    }
+    res.status(201).json({ success: true, media: businessOps.createMedia(mediaInput) });
+  } catch (error) {
+    sendBusinessError(res, error);
+  }
+});
+
+app.patch('/api/admin/media-library/:id', requireAuth, requireRole(['OWNER']), (req, res) => {
+  const media = businessOps.updateMedia(req.params.id, req.body || {});
+  if (!media) return res.status(404).json({ success: false, error: 'MEDIA_NOT_FOUND' });
+  res.json({ success: true, media });
+});
+
+app.delete('/api/admin/media-library/:id', requireAuth, requireRole(['OWNER']), (req, res) => {
+  res.json({ success: businessOps.deleteMedia(req.params.id) });
+});
+
+app.post('/api/admin/media-library/:id/regenerate', requireAuth, requireRole(['OWNER']), async (req, res) => {
+  const media = businessOps.listMedia({ limit: 500 }).find((item) => item.id === req.params.id);
+  if (!media) return res.status(404).json({ success: false, error: 'MEDIA_NOT_FOUND' });
+  if (!imageGen.isConfigured()) {
+    return res.status(503).json({ success: false, error: 'MINIMAX_API_KEY_REQUIRED' });
+  }
+  try {
+    const spec = platformImageSpec(media.platform);
+    const generated = await imageGen.generateAndSave({
+      prompt: req.body?.prompt || media.topic || media.title,
+      category: `social-${media.platform || 'instagram'}`,
+      aspectRatio: spec.aspectRatio,
+      width: spec.width,
+      height: spec.height,
+      n: 1
+    });
+    const updated = businessOps.updateMedia(media.id, {
+      assetUrl: generated.images[0]?.url || media.assetUrl,
+      provider: 'minimax',
+      status: 'draft',
+      meta: {
+        ...(media.meta || {}),
+        model: generated.model,
+        prompt: generated.prompt,
+        platformSpec: spec,
+        regeneratedAt: new Date().toISOString()
+      }
+    });
+    res.json({ success: true, media: updated });
+  } catch (error) {
+    sendBusinessError(res, error);
+  }
+});
+
+app.post('/api/bookings/:id/status', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (req, res) => {
+  const { status, reason } = req.body || {};
+  if (!status) return res.status(400).json({ success: false, error: 'STATUS_REQUIRED' });
+  const VALID = ['NEW','COLLECTING_INFO','QUOTED','BOOKED','ASSIGNED','ON_THE_WAY','IN_PROGRESS','COMPLETED','CANCELLED','NEEDS_HUMAN'];
+  if (!VALID.includes(status)) return res.status(400).json({ success: false, error: 'INVALID_STATUS' });
+  // Accept either legacy `bookings.id` (b_…) OR v2 `bookings_v2.id` (book_…).
+  // If only the legacy record exists, create a v2 mirror row on demand so
+  // status changes are durable and visible everywhere.
+  let v2 = db.db.prepare('SELECT * FROM bookings_v2 WHERE id = ?').get(req.params.id);
+  if (!v2) v2 = db.db.prepare('SELECT * FROM bookings_v2 WHERE legacy_booking_id = ?').get(req.params.id);
+  if (!v2) {
+    const legacy = db.db.prepare('SELECT * FROM bookings WHERE id = ?').get(req.params.id);
+    if (legacy) {
+      // Find or create a customer row to satisfy the FK.
+      let customerId = null;
+      if (legacy.phone) {
+        const existing = db.db.prepare('SELECT id FROM customers WHERE phone_e164 = ? OR phone_raw = ?').get(legacy.phone, legacy.phone);
+        if (existing) customerId = existing.id;
+      }
+      if (!customerId) {
+        customerId = 'cust_' + Math.random().toString(36).slice(2, 14);
+        const ts = new Date().toISOString();
+        db.db.prepare(`
+          INSERT INTO customers (id, full_name, phone_e164, phone_raw, language, area, tags, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, '[]', ?, ?)
+        `).run(customerId, legacy.customerName || 'Unknown', legacy.phone, legacy.phone, 'en', legacy.area || '', ts, ts);
+      }
+      const v2Id = 'book_' + Math.random().toString(36).slice(2, 14);
+      const ts = new Date().toISOString();
+      db.db.prepare(`
+        INSERT INTO bookings_v2 (id, legacy_booking_id, public_ref, customer_id, scheduled_start, scheduled_end, timezone, status, payment_status, source, language, notes, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, 'Africa/Cairo', ?, 'UNPAID', 'legacy_migration', 'en', ?, ?, ?)
+      `).run(v2Id, legacy.id, legacy.id, customerId, legacy.preferredDate ? `${legacy.preferredDate}T${legacy.preferredTime || '10:00'}:00` : ts, ts, legacy.status || 'pending', legacy.notes || '', ts, ts);
+      v2 = db.db.prepare('SELECT * FROM bookings_v2 WHERE id = ?').get(v2Id);
+    }
+  }
+  if (!v2) return res.status(404).json({ success: false, error: 'NOT_FOUND' });
+  const ts = new Date().toISOString();
+  const txn = db.db.transaction(() => {
+    db.db.prepare('UPDATE bookings_v2 SET status = ?, updated_at = ? WHERE id = ?').run(status, ts, v2.id);
+    // Also update the legacy row so older surfaces (v1 dashboard, calendars) stay in sync.
+    db.db.prepare('UPDATE bookings SET status = ?, updatedAt = ? WHERE id = (SELECT legacy_booking_id FROM bookings_v2 WHERE id = ?)')
+      .run(status, ts, v2.id);
+    db.db.prepare(`
+      INSERT INTO booking_status_history (id, booking_id, from_status, to_status, actor_type, actor_id, reason, metadata, created_at)
+      VALUES (?, ?, ?, ?, 'OWNER', ?, ?, '{}', ?)
+    `).run('h_' + Math.random().toString(36).slice(2, 12), v2.id, v2.status, status, req.user.sub || 'local-dev', reason || null, ts);
+  });
+  txn();
+  broadcast('bookings', db.getAllBookings());
+  res.json({ success: true, bookingId: v2.id, status });
+});
+
+// Unified dispatch board: merges legacy bookings + v2 bookings, ensuring
+// every booking the operator sees is actionable. Used by the dashboard Kanban.
+app.get('/api/admin/dispatch/board', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (req, res) => {
+  const rows = db.db.prepare(`
+    SELECT
+      COALESCE(v2.id, b.id) as id,
+      b.id as legacy_id,
+      COALESCE(v2.status, b.status, 'pending') as status,
+      COALESCE(c.full_name, b.customerName, 'Unknown') as customerName,
+      COALESCE(c.phone_e164, c.phone_raw, b.phone, '') as phone,
+      COALESCE(b.area, '') as area,
+      COALESCE(sp.name_en, b.package, '—') as service,
+      COALESCE(v2.scheduled_start, b.preferredDate) as scheduled_start,
+      b.preferredTime,
+      b.preferredDate as legacyDate,
+      COALESCE(v2.payment_status, 'UNPAID') as paymentStatus,
+      COALESCE(v2.customer_id, '') as customer_id
+    FROM bookings b
+    LEFT JOIN bookings_v2 v2 ON v2.legacy_booking_id = b.id
+    LEFT JOIN customers c ON c.id = v2.customer_id
+    LEFT JOIN service_packages sp ON sp.id = v2.service_package_id
+    UNION ALL
+    SELECT
+      v2.id as id,
+      NULL as legacy_id,
+      v2.status,
+      COALESCE(c.full_name, 'Unknown') as customerName,
+      COALESCE(c.phone_e164, c.phone_raw, '') as phone,
+      '' as area,
+      COALESCE(sp.name_en, '—') as service,
+      v2.scheduled_start,
+      NULL as preferredTime,
+      NULL as legacyDate,
+      v2.payment_status,
+      v2.customer_id
+    FROM bookings_v2 v2
+    LEFT JOIN customers c ON c.id = v2.customer_id
+    LEFT JOIN service_packages sp ON sp.id = v2.service_package_id
+    WHERE v2.legacy_booking_id IS NULL
+    ORDER BY scheduled_start DESC
+    LIMIT 200
+  `).all();
+  res.json({ success: true, bookings: rows, count: rows.length });
+});
+
 app.post('/api/settings', (req, res) => {
   const { autopilot: newAutopilot } = req.body;
   if (typeof newAutopilot === 'boolean') {
@@ -1215,6 +1666,125 @@ app.post('/api/settings', (req, res) => {
 app.get('/api/integrations/status', (req, res) => {
   res.json(integrationStatus());
 });
+
+function findOrCreateChatByPhone(phone, name = 'WhatsApp Customer') {
+  const normalized = String(phone || '').trim();
+  const existing = db.getAllChats().find((chat) => String(chat.phone || '').trim() === normalized);
+  if (existing) return existing;
+  const session = {
+    id: `session_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`,
+    customerName: name,
+    phone: normalized,
+    area: '',
+    carType: '',
+    package: '',
+    preferredDate: '',
+    preferredTime: '',
+    location: '',
+    paymentMethod: '',
+    status: 'active',
+    language: 'en',
+    lastAskedField: 'customerName',
+    bookingDetails: {}
+  };
+  db.createChat(session, { text: 'Conversation created by admin outbound WhatsApp message', timestamp: new Date().toISOString() });
+  return session;
+}
+
+app.post('/api/admin/whatsapp/send', requireAuth, requireRole(['OWNER', 'DISPATCHER']), async (req, res) => {
+  const { phone, message, name } = req.body || {};
+  if (!phone || !message) return res.status(400).json({ success: false, error: 'phone and message are required' });
+  const result = await sendWhatsAppText(phone, String(message).slice(0, 4000));
+  const chat = findOrCreateChatByPhone(phone, name || 'WhatsApp Customer');
+  db.addMessage(chat.id, 'admin', String(message).slice(0, 4000), new Date().toISOString());
+  const updatedChat = db.getChat(chat.id);
+  broadcast('chat:updated', updatedChat);
+  res.status(result.sent ? 200 : 503).json({ success: result.sent, result, chat: updatedChat });
+});
+
+// ============================================================================
+// CUSTOMER PORTAL (token-authenticated self-service)
+// ============================================================================
+const customerPortal = require('./services/customer-portal');
+
+// Public — uses ?token= or Authorization: Bearer
+app.get('/api/portal/me', customerPortal.portalAuthMiddleware, customerPortal.getMe);
+app.get('/api/portal/bookings', customerPortal.portalAuthMiddleware, customerPortal.getBookingsList);
+app.post('/api/portal/bookings/:id/reschedule', customerPortal.portalAuthMiddleware, customerPortal.rescheduleBooking);
+app.post('/api/portal/bookings/:id/cancel', customerPortal.portalAuthMiddleware, customerPortal.cancelBooking);
+app.post('/api/portal/bookings/:id/rate', customerPortal.portalAuthMiddleware, customerPortal.rateBooking);
+
+// Public — customer submits InstaPay/Vodafone Cash proof using their portal token
+app.post('/api/portal/payments', (req, res) => {
+  // Accept token in body, query, header, or Authorization: Bearer
+  const body = req.body || {};
+  const tokenFromBody = body.token;
+  const portalPayments = require('./services/public-payments');
+  // Try with the supplied token first; if missing/invalid, the middleware will reject.
+  if (tokenFromBody) {
+    req.headers['x-portal-token'] = tokenFromBody;
+    req.query = { ...(req.query || {}), token: tokenFromBody };
+  }
+  customerPortal.portalAuthMiddleware(req, res, () => {
+    const { bookingId, method, amount, reference, screenshotDataUrl } = body;
+    const result = portalPayments.submitPayment({
+      bookingId, customerId: req.portal.customerId, method, amount, reference, screenshotDataUrl
+    });
+    res.status(result.success ? 201 : 400).json(result);
+  });
+});
+
+// Admin — issue a portal token for a customer (e.g. on demand, or after booking)
+app.post('/api/admin/portal/issue-token', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (req, res) => {
+  const { customerId, scope, bookingId, issuedVia, issuedTo, ttlDays } = req.body || {};
+  if (!customerId) return res.status(400).json({ success: false, error: 'customerId required' });
+  let result;
+  try {
+    result = customerPortal.issuePortalToken(customerId, { scope, bookingId, issuedVia, issuedTo, ttlDays });
+  } catch (e) {
+    return res.status(400).json({ success: false, error: e.message || 'TOKEN_ISSUE_FAILED' });
+  }
+  // Build the full magic link the admin can paste into WhatsApp/email
+  const base = process.env.PUBLIC_PORTAL_URL || 'https://carshineredsea.com/portal';
+  const link = `${base}?token=${encodeURIComponent(result.rawToken)}`;
+  res.status(201).json({ success: true, ...result, link });
+});
+
+// ============================================================================
+// MARKETING AUTOPILOT (stateful, in-process)
+// ============================================================================
+const marketingAutopilot = require('./services/marketing-autopilot');
+
+app.get('/api/admin/marketing/autopilot/status', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (req, res) => {
+  res.json({ success: true, ...marketingAutopilot.getStatus() });
+});
+
+app.post('/api/admin/marketing/autopilot/enable', requireAuth, requireRole(['OWNER']), (req, res) => {
+  const { mode } = req.body || {};
+  res.json({ success: true, ...marketingAutopilot.setEnabled(true, mode) });
+});
+
+app.post('/api/admin/marketing/autopilot/disable', requireAuth, requireRole(['OWNER']), (req, res) => {
+  res.json({ success: true, ...marketingAutopilot.setEnabled(false) });
+});
+
+app.post('/api/admin/marketing/autopilot/test-publish', requireAuth, requireRole(['OWNER']), async (req, res) => {
+  const { language, topic } = req.body || {};
+  const run = await marketingAutopilot.testPublish({ language, topic });
+  res.json({ success: run.success, run });
+});
+
+app.post('/api/admin/marketing/autopilot/scheduler/start', requireAuth, requireRole(['OWNER']), (req, res) => {
+  const { scheduleTimes, language, topic } = req.body || {};
+  const result = marketingAutopilot.startScheduler({ scheduleTimes, language, topic });
+  res.json({ success: true, ...result });
+});
+
+app.post('/api/admin/marketing/autopilot/scheduler/stop', requireAuth, requireRole(['OWNER']), (req, res) => {
+  res.json({ success: true, ...marketingAutopilot.stopScheduler() });
+});
+
+app.use('/api/admin/audio', createAudioRouter({ requireAuth, requireRole }));
 
 app.get('/api/notifications/daily-summary', (req, res) => {
   const date = req.query.date || new Date().toISOString().slice(0, 10);
@@ -1563,6 +2133,21 @@ app.delete('/api/socials/posts/:id', (req, res) => {
 // WHATSAPP WEBHOOK (Rate limited + Signature verified + Gemini processing)
 // ============================================================================
 
+// Simulate an incoming WhatsApp message (no Meta required). Used by the
+// dashboard "Test WhatsApp" button and during development.
+app.post('/api/admin/test/whatsapp', requireAuth, requireRole(['OWNER']), async (req, res) => {
+  const { phone, message, name } = req.body || {};
+  if (!phone || !message) return res.status(400).json({ success: false, error: 'phone and message required' });
+  try {
+    const result = await handleIncomingMessage(phone, message, name || 'WhatsApp Test');
+    broadcast('chat:updated', db.getChat(phone));
+    res.json({ success: true, reply: result.reply, bookingCreated: result.bookingCreated, bookingId: result.bookingId, humanNeeded: result.humanNeeded });
+  } catch (e) {
+    console.error('[WhatsApp test]', e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 app.post('/api/webhook/whatsapp', whatsappLimiter, verifyWebhookSignature, async (req, res) => {
   const { From, Body, ProfileName, Body: text, From: phone } = req.body;
   const messageText = Body || text;
@@ -1706,6 +2291,26 @@ app.get('/api/admin/bookings-v2/:id', requireAuth, requireRole(['OWNER', 'DISPAT
     return res.status(400).json(result);
   }
   res.json(result);
+});
+
+app.patch('/api/admin/bookings-v2/:id/ops', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (req, res) => {
+  const body = req.body || {};
+  const booking = db.db.prepare('SELECT id FROM bookings_v2 WHERE id = ? AND deleted_at IS NULL').get(req.params.id);
+  if (!booking) return res.status(404).json({ success: false, error: 'BOOKING_NOT_FOUND' });
+  const intOrZero = (value) => Math.max(0, parseInt(value, 10) || 0);
+  const washesNeeded = Math.max(1, parseInt(body.washesNeeded ?? body.washes_needed, 10) || 1);
+  const washesCompleted = Math.min(washesNeeded, intOrZero(body.washesCompleted ?? body.washes_completed));
+  const operationalCost = intOrZero(body.operationalCost ?? body.operational_cost);
+  const ownerNotes = body.ownerNotes || body.owner_notes ? String(body.ownerNotes || body.owner_notes).slice(0, 2000) : null;
+  const lastWashAt = body.lastWashAt || body.last_wash_at ? String(body.lastWashAt || body.last_wash_at).slice(0, 80) : null;
+  const nextWashAt = body.nextWashAt || body.next_wash_at ? String(body.nextWashAt || body.next_wash_at).slice(0, 80) : null;
+  db.db.prepare(`
+    UPDATE bookings_v2
+    SET washes_needed = ?, washes_completed = ?, operational_cost = ?, owner_notes = ?,
+        last_wash_at = ?, next_wash_at = ?, updated_at = ?
+    WHERE id = ?
+  `).run(washesNeeded, washesCompleted, operationalCost, ownerNotes, lastWashAt, nextWashAt, new Date().toISOString(), req.params.id);
+  res.json(adminRead.getBookingDetailForAdmin(req.params.id));
 });
 
 app.get('/api/admin/calendar-v2', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (req, res) => {
@@ -1904,6 +2509,14 @@ app.post('/api/admin/payments/:id/reject', requireAuth, requireRole(['OWNER']), 
   res.json(result);
 });
 
+// Serve stored payment screenshots (admin-only)
+app.get('/api/admin/payments/screenshot/:filename', requireAuth, requireRole(['OWNER', 'DISPATCHER']), (req, res) => {
+  const filename = path.basename(req.params.filename);
+  const full = path.join(__dirname, 'data', 'payment-screenshots', filename);
+  if (!fs.existsSync(full)) return res.status(404).json({ success: false, error: 'NOT_FOUND' });
+  res.sendFile(full);
+});
+
 // ============================================================================
 // M0-007: Cleaner job status lifecycle
 // CLEANER can list their own assigned bookings and transition job status.
@@ -1986,14 +2599,14 @@ app.use((err, req, res, next) => {
 // START SERVER
 // ============================================================================
 
-server.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, HOST, () => {
   startNotificationScheduler();
-  console.log(`Server running on http://0.0.0.0:${PORT}`);
+  console.log(`Server running on http://${HOST}:${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`Allowed origins: ${allowedOrigins.join(', ')}`);
   console.log(`Health check: http://localhost:${PORT}/health`);
   console.log(`Auth: JWT enabled (HS256, ${JWT_EXPIRES_IN} expiry)`);
   console.log(`Webhook: ${process.env.WHATSAPP_PROVIDER || 'meta'} signature verification ${getEnvValue('WHATSAPP_APP_SECRET', WHATSAPP_ENV_ALIASES.WHATSAPP_APP_SECRET) || process.env.TWILIO_AUTH_TOKEN ? 'ENABLED' : 'DISABLED (no secret)'}`);
   console.log(`Gemini: ${process.env.GEMINI_API_KEY ? 'ENABLED' : 'DISABLED (no API key - using fallback)'}`);
-  console.log(`Database: SQLite at ${path.join(__dirname, 'database.sqlite')}`);
+  console.log(`Database: SQLite at ${process.env.DATABASE_PATH || path.join(__dirname, 'database.sqlite')}`);
 });

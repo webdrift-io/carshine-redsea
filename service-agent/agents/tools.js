@@ -345,7 +345,7 @@ const createBookingTool = createTool({
     phone: z.string(),
     area: z.enum(['El Gouna', 'Hurghada', 'Sahl Hasheesh']),
     carType: z.string(),
-    package: z.enum(['Trial Wash', 'Smart Plan', 'Premium Plan']),
+    package: z.enum(['Essential Wash', 'Smart Wash', 'Premium Detail']),
     preferredDate: z.string().describe('YYYY-MM-DD'),
     preferredTime: z.string().describe('HH:MM 24h, 09:00-17:00'),
     location: z.string(),

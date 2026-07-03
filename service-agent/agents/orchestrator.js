@@ -739,21 +739,21 @@ const { detectLanguage } = require('../parsers');
 const { FALLBACK_RESPONSES } = (() => {
   // Minimal fallback to mirror minimax-agent.fallbackResponse for legacy callers.
   const ar = {
-    greeting: 'أهلاً بك في كار شاين Red Sea! تحب تحجز غسيل تجريبي (150 جنيه) ولا باقة شهرية؟',
+    greeting: 'أهلاً بك في كار شاين Red Sea! تحب تحجز الغسلة الأساسية (250 جنيه) ولا الغسلة الذكية؟',
     ask_name: 'يا ريت تقولي اسمك بالكامل؟',
     ask_area: 'حضرتك في أي منطقة؟ (الجونة، الغردقة، أو سهل حشيش)؟',
     error: 'محتاج معلومات أكتر عشان أقدر أساعدك.',
     human: 'هنوصلك بمسؤول يرد عليك فوراً.'
   };
   const en = {
-    greeting: "Welcome to CarShine Red Sea! Would you like to book a Trial Wash (150 EGP) or a monthly plan?",
+    greeting: "Welcome to CarShine Red Sea! Would you like to book an Essential Wash (250 EGP) or Smart Wash?",
     ask_name: 'What is your full name please?',
     ask_area: 'Which area are you in?',
     error: 'I need a bit more information to help you.',
     human: "I'll connect you with a human agent right away."
   };
   const de = {
-    greeting: 'Willkommen bei CarShine Red Sea! Möchten Sie eine Probe-Wäsche buchen?',
+    greeting: 'Willkommen bei CarShine Red Sea! Möchten Sie Essential Wash oder Smart Wash buchen?',
     ask_name: 'Wie ist Ihr vollständiger Name?',
     ask_area: 'In welchem Gebiet sind Sie?',
     error: 'Ich brauche noch ein paar Informationen.',

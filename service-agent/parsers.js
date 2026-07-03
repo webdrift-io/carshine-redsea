@@ -33,19 +33,19 @@ function parseArea(text) {
 /**
  * Parse package from message
  * @param {string} text - Message text
- * @returns {string|null} - Trial/Smart/Premium package or null
+ * @returns {string|null} - Essential/Smart/Premium package or null
  */
 function parsePackage(text) {
   if (!text) return null;
   const lower = text.toLowerCase();
-  if (lower.includes('trial') || lower.includes('تجريب') || lower.includes('probe') || /\b150\b/.test(text)) {
-    return 'Trial Wash - 150 EGP';
+  if (lower.includes('essential') || lower.includes('trial') || lower.includes('تجريب') || lower.includes('probe') || /\b(150|250)\b/.test(text)) {
+    return 'Essential Wash - 250 EGP';
   }
   if (lower.includes('smart') || lower.includes('ذكية') || /\b300\b/.test(text)) {
-    return 'Smart Plan - 300 EGP / month';
+    return 'Smart Wash - 300 EGP';
   }
-  if (lower.includes('premium') || lower.includes('مميزة') || /\b500\b/.test(text)) {
-    return 'Premium Plan - 500 EGP / month';
+  if (lower.includes('premium') || lower.includes('مميزة') || /\b(350|500)\b/.test(text)) {
+    return 'Premium Detail - 350 EGP';
   }
   return null;
 }

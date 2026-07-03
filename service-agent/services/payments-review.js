@@ -66,14 +66,9 @@ const SELECT_PAYMENT_FULL = `
   WHERE b.deleted_at IS NULL
 `;
 
-const LIST_PAYMENTS_SQL = `${SELECT_PAYMENT_FULL}
-  AND (? IS NULL OR p.status = ?)
-  ORDER BY p.submitted_at ASC, p.created_at ASC
-  LIMIT ? OFFSET ?
-`;
-
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 200;
+const REVIEW_QUEUE_STATUSES = ['PAYMENT_PENDING_REVIEW', 'SUBMITTED'];
 
 // ---------------------------------------------------------------------------
 // Formatters
@@ -123,6 +118,18 @@ function getPaymentByIdRaw(paymentId) {
   return db.prepare(`${SELECT_PAYMENT_FULL} AND p.id = ? LIMIT 1`).get(paymentId) || null;
 }
 
+function isReviewQueueStatus(status) {
+  return REVIEW_QUEUE_STATUSES.includes(status);
+}
+
+function normalizeStatusFilter(status) {
+  if (status == null) return REVIEW_QUEUE_STATUSES;
+  const value = String(status).trim();
+  if (!value) return REVIEW_QUEUE_STATUSES;
+  if (isReviewQueueStatus(value)) return REVIEW_QUEUE_STATUSES;
+  return [value];
+}
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -136,13 +143,17 @@ function getPaymentByIdRaw(paymentId) {
  * @param {number} [filters.offset]
  */
 function listPendingPaymentReviews(filters = {}) {
-  const statusFilter = filters.status != null
-    ? (String(filters.status).trim() || null)
-    : 'PAYMENT_PENDING_REVIEW';
+  const statusFilters = normalizeStatusFilter(filters.status);
   const limit = Math.min(Math.max(parseInt(filters.limit, 10) || DEFAULT_LIMIT, 1), MAX_LIMIT);
   const offset = Math.max(parseInt(filters.offset, 10) || 0, 0);
+  const placeholders = statusFilters.map(() => '?').join(', ');
+  const sql = `${SELECT_PAYMENT_FULL}
+    AND p.status IN (${placeholders})
+    ORDER BY p.submitted_at ASC, p.created_at ASC
+    LIMIT ? OFFSET ?
+  `;
 
-  const rows = db.prepare(LIST_PAYMENTS_SQL).all(statusFilter, statusFilter, limit, offset);
+  const rows = db.prepare(sql).all(...statusFilters, limit, offset);
   return {
     success: true,
     count: rows.length,
@@ -259,7 +270,7 @@ function verifyPayment(paymentId, input, actor) {
   const row = getPaymentByIdRaw(paymentId);
   if (!row) return { success: false, code: 'NOT_FOUND' };
 
-  if (row.status !== 'PAYMENT_PENDING_REVIEW') {
+  if (!isReviewQueueStatus(row.status)) {
     return { success: false, code: 'WRONG_STATUS', error: `Cannot verify payment with status ${row.status}` };
   }
 
@@ -324,7 +335,7 @@ function rejectPayment(paymentId, input, actor) {
   const row = getPaymentByIdRaw(paymentId);
   if (!row) return { success: false, code: 'NOT_FOUND' };
 
-  if (row.status !== 'PAYMENT_PENDING_REVIEW') {
+  if (!isReviewQueueStatus(row.status)) {
     return { success: false, code: 'WRONG_STATUS', error: `Cannot reject payment with status ${row.status}` };
   }
 

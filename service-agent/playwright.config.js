@@ -25,6 +25,14 @@ module.exports = defineConfig({
     {
       // API-only project: no browser binary required.
       name: 'api',
+      testIgnore: /dashboard-v2\.spec\.js/,
+    },
+    {
+      name: 'dashboard',
+      testMatch: /dashboard-v2\.spec\.js/,
+      use: {
+        browserName: 'chromium',
+      },
     },
   ],
 
@@ -39,7 +47,7 @@ module.exports = defineConfig({
     reuseExistingServer: false,
     stdout: 'ignore',
     stderr: 'pipe',
-    timeout: 30_000,
+    timeout: 60_000,
     env: {
       NODE_ENV: 'development',
       PORT: String(E2E_PORT),

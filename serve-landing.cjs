@@ -10,6 +10,8 @@ const path = require('path');
 
 const ROOT = __dirname;
 const PORT = process.env.LANDING_PORT || 4173;
+const HOST = process.env.LANDING_HOST || '127.0.0.1';
+const API_TARGET = process.env.API_TARGET || 'http://127.0.0.1:5000';
 const TOKEN = process.env.PREVIEW_TOKEN || 'preview-ok';
 
 const mime = {
@@ -39,9 +41,38 @@ function send(res, status, body, headers = {}) {
   res.end(body);
 }
 
+function compressedIsFresh(sourceFile, compressedFile) {
+  try {
+    return fs.statSync(compressedFile).mtimeMs >= fs.statSync(sourceFile).mtimeMs;
+  } catch {
+    return false;
+  }
+}
+
+function proxyToBackend(req, res) {
+  const target = new URL(req.url, API_TARGET);
+  const proxyReq = http.request(target, {
+    method: req.method,
+    headers: { ...req.headers, host: target.host }
+  }, (proxyRes) => {
+    res.writeHead(proxyRes.statusCode || 502, proxyRes.headers);
+    proxyRes.pipe(res);
+  });
+
+  proxyReq.on('error', () => {
+    send(res, 502, 'Backend unavailable', { 'content-type': 'text/plain' });
+  });
+
+  req.pipe(proxyReq);
+}
+
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   let pathname = decodeURIComponent(url.pathname);
+
+  if (pathname.startsWith('/api/') || pathname.startsWith('/media/')) {
+    return proxyToBackend(req, res);
+  }
   
   // Multilingual routing: /ar/ -> ar/index.html, /de/ -> de/index.html, / -> index.html
   let requestedFile;
@@ -72,10 +103,10 @@ const server = http.createServer((req, res) => {
   let actualFile = requestedFile;
   let contentEncoding = null;
   
-  if (acceptEncoding.includes('br') && fs.existsSync(requestedFile + '.br')) {
+  if (acceptEncoding.includes('br') && compressedIsFresh(requestedFile, requestedFile + '.br')) {
     actualFile = requestedFile + '.br';
     contentEncoding = 'br';
-  } else if (acceptEncoding.includes('gzip') && fs.existsSync(requestedFile + '.gz')) {
+  } else if (acceptEncoding.includes('gzip') && compressedIsFresh(requestedFile, requestedFile + '.gz')) {
     actualFile = requestedFile + '.gz';
     contentEncoding = 'gzip';
   }
@@ -114,7 +145,7 @@ const server = http.createServer((req, res) => {
   });
 });
 
-server.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, HOST, () => {
   console.log(`🌐 Landing page server: http://localhost:${PORT}/`);
   console.log(`   English:  http://localhost:${PORT}/`);
   console.log(`   Arabic:   http://localhost:${PORT}/ar/`);

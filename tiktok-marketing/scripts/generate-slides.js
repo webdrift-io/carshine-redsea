@@ -55,6 +55,7 @@ fs.mkdirSync(outputDir, { recursive: true });
 
 const provider = config.imageGen?.provider || 'openai';
 const model = config.imageGen?.model || 'gpt-image-1.5';
+const useLLM = config.imageGen?.useLLMCopy !== false; // default true
 
 // Lazy-require the provider module so this script still works even if a
 // particular provider is missing.
@@ -62,9 +63,15 @@ let providerModule;
 try {
   providerModule = require(path.join(__dirname, 'providers', `${provider}-image.js`));
 } catch (e) {
-  console.error(`ERROR: could not load provider "${provider}": ${e.message}`);
-  console.error(`       Make sure scripts/providers/${provider}-image.js exists.`);
-  process.exit(1);
+  // Try brand-template as a fallback (no apiKey required)
+  try {
+    providerModule = require(path.join(__dirname, 'providers', 'brand-template.js'));
+    console.warn(`⚠️  Provider "${provider}" not found, using brand-template fallback.`);
+  } catch (e2) {
+    console.error(`ERROR: could not load provider "${provider}": ${e.message}`);
+    console.error(`       Make sure scripts/providers/${provider}-image.js exists.`);
+    process.exit(1);
+  }
 }
 
 if (typeof providerModule.generateSlide !== 'function') {
@@ -73,6 +80,13 @@ if (typeof providerModule.generateSlide !== 'function') {
 }
 
 const dryRun = hasFlag('dry-run') || process.env.DRY_RUN === 'true';
+const useStoryboard = provider === 'brand-template' || hasFlag('storyboard');
+
+// Pass lang + topic to provider via env so brand-template can use it
+const lang = (config.languages && config.languages[0]) || 'en';
+process.env.SLIDE_LANG = process.env.SLIDE_LANG || lang;
+process.env.SLIDE_TOPIC = process.env.SLIDE_TOPIC || config.app?.name || 'premium mobile car wash';
+process.env.SLIDE_USE_LLM = useLLM ? 'true' : 'false';
 
 if (provider === 'openai' && model && !model.includes('1.5')) {
   console.warn(`\n⚠️  WARNING: You're using "${model}" — this produces noticeably AI-looking images.`);
@@ -80,7 +94,25 @@ if (provider === 'openai' && model && !model.includes('1.5')) {
   console.warn(`   The quality difference is massive and directly impacts views.\n`);
 }
 
-async function generate(prompt, outPath) {
+async function generate(prompt, outPath, slideIndex = 0) {
+  // brand-template has a storyboard path that produces all 6 slides at once
+  if (useStoryboard && typeof providerModule.generateStoryboard === 'function') {
+    if (slideIndex !== 0) return; // only call once for all 6
+    const results = await providerModule.generateStoryboard({
+      lang: process.env.SLIDE_LANG,
+      topic: process.env.SLIDE_TOPIC,
+      outputDir,
+      config
+    });
+    // Copy storyboard files to the slide1_raw.png..slide6_raw.png names so
+    // the downstream overlay step finds them where it expects.
+    for (let k = 0; k < results.length; k++) {
+      const dst = path.join(outputDir, `slide${k + 1}_raw.png`);
+      fs.copyFileSync(results[k].path, dst);
+      console.log(`  ✅ ${path.basename(dst)} (${(fs.statSync(dst).size / 1024).toFixed(1)} KB) [storyboard]`);
+    }
+    return { path: results[0].path, bytes: fs.statSync(results[0].path).size, model: 'brand-template-storyboard' };
+  }
   console.log(`  Generating ${path.basename(outPath)} [${provider}/${model}]...`);
   const result = await providerModule.generateSlide(prompt, outPath, { config, dryRun });
   const bytes = result.bytes || (fs.existsSync(outPath) ? fs.statSync(outPath).size : 0);
@@ -90,10 +122,11 @@ async function generate(prompt, outPath) {
 }
 
 (async () => {
-  console.log(`🎬 Generating 6 slides for ${config.app?.name || 'app'} using ${provider}/${model}${dryRun ? ' [DRY-RUN]' : ''}\n`);
+  console.log(`🎬 Generating 6 slides for ${config.app?.name || 'app'} using ${provider}/${model}${dryRun ? ' [DRY-RUN]' : ''}${useStoryboard ? ' [STORYBOARD]' : ''}\n`);
   let success = 0;
   let skipped = 0;
   let failed = 0;
+  let ranStoryboard = false;
   for (let i = 0; i < 6; i++) {
     const outPath = path.join(outputDir, `slide${i + 1}_raw.png`);
     // Resume from partial run
@@ -103,10 +136,20 @@ async function generate(prompt, outPath) {
       skipped++;
       continue;
     }
+    if (ranStoryboard) { success++; continue; }
     const fullPrompt = `${prompts.base}\n\n${prompts.slides[i]}`;
     try {
-      await generate(fullPrompt, outPath);
+      await generate(fullPrompt, outPath, i);
       success++;
+      // For storyboard, generate() already produced all 6 files; count them and break
+      if (useStoryboard) {
+        ranStoryboard = true;
+        for (let k = 1; k < 6; k++) {
+          const p = path.join(outputDir, `slide${k + 1}_raw.png`);
+          if (fs.existsSync(p) && fs.statSync(p).size > 10000) success++;
+        }
+        break;
+      }
     } catch (e) {
       failed++;
       console.error(`  ❌ Slide ${i + 1} failed: ${e.message}`);

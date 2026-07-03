@@ -127,9 +127,9 @@ function extractSlots(text) {
   // the canonical name. Strip the suffix.
   let pkg = parsePackage(text);
   if (pkg) {
-    if (pkg.startsWith('Trial')) pkg = 'Trial Wash';
-    else if (pkg.startsWith('Smart')) pkg = 'Smart Plan';
-    else if (pkg.startsWith('Premium')) pkg = 'Premium Plan';
+    if (pkg.startsWith('Essential')) pkg = 'Essential Wash';
+    else if (pkg.startsWith('Smart')) pkg = 'Smart Wash';
+    else if (pkg.startsWith('Premium')) pkg = 'Premium Detail';
   }
   const addOns = [];
   if (/engine\s*wash|غسيل\s*موتور|motorwäsche/i.test(text)) addOns.push('Engine Wash');
@@ -204,7 +204,7 @@ function classifyIntent(text, _history = []) {
     //  - a clear booking verb
     //  - an area (El Gouna, Hurghada, Sahl Hasheesh) — usually "I am in X"
     //  - a date (e.g. "tomorrow", "next Friday")
-    // "I want the Smart Plan" alone is treated as info, not as book.
+    // "I want the Smart Wash" alone is treated as info, not as book.
     /(book|booking|reserve|حجز|احجز|reservieren|termin|buchen)/i.test(text || '') ||
     (extractSlots(text).area && !INFO_PATTERNS.some((p) => p.test(text || ''))) ||
     extractSlots(text).date
@@ -432,9 +432,9 @@ const ASK_NEXT_FIELD = {
     de: 'Welchen Fahrzeugtyp haben Sie?'
   },
   package: {
-    ar: 'تحب تختار أنهي باقة؟\n1. تجربة 150 جنيه\n2. ذكية 300 جنيه/شهر\n3. مميزة 500 جنيه/شهر',
-    en: 'Which package?\n1. Trial Wash - 150 EGP\n2. Smart Plan - 300 EGP/month\n3. Premium Plan - 500 EGP/month',
-    de: 'Welches Paket?\n1. Probe-Wäsche - 150 EGP\n2. Smart Plan - 300 EGP/Monat\n3. Premium Plan - 500 EGP/Monat'
+    ar: 'تحب تختار أنهي باقة؟\n1. الغسلة الأساسية 250 جنيه\n2. الغسلة الذكية 300 جنيه\n3. تفصيل بريميوم 350 جنيه',
+    en: 'Which package?\n1. Essential Wash - 250 EGP\n2. Smart Wash - 300 EGP\n3. Premium Detail - 350 EGP',
+    de: 'Welches Paket?\n1. Essential Wash - 250 EGP\n2. Smart Wash - 300 EGP\n3. Premium Detail - 350 EGP'
   },
   preferredDate: {
     ar: 'حابب الغسيل يكون يوم إيه؟',
@@ -459,9 +459,9 @@ const ASK_NEXT_FIELD = {
 };
 
 const GREETING_REPLIES = {
-  ar: 'أهلاً بك في كار شاين Red Sea! 🚗✨ تحب تحجز غسيل تجريبي (150 جنيه) ولا باقة شهرية؟',
-  en: "Welcome to CarShine Red Sea! 🚗✨ We offer premium mobile car wash in El Gouna, Hurghada, and Sahl Hasheesh. Would you like to book a Trial Wash (150 EGP) or a monthly plan?",
-  de: 'Willkommen bei CarShine Red Sea! 🚗✨ Mobile Autowäsche in El Gouna, Hurghada, Sahl Hasheesh. Möchten Sie eine Probe-Wäsche (150 EGP) buchen?'
+  ar: 'أهلاً بك في كار شاين Red Sea! 🚗✨ تحب تحجز الغسلة الأساسية (250 جنيه) ولا الغسلة الذكية؟',
+  en: "Welcome to CarShine Red Sea! 🚗✨ We offer premium mobile car wash in El Gouna, Hurghada, and Sahl Hasheesh. Would you like to book an Essential Wash (250 EGP) or Smart Wash?",
+  de: 'Willkommen bei CarShine Red Sea! 🚗✨ Mobile Autowäsche in El Gouna, Hurghada, Sahl Hasheesh. Möchten Sie Essential Wash (250 EGP) oder Smart Wash buchen?'
 };
 
 /**
@@ -483,12 +483,12 @@ function intakeReply(language, missingField, opts = {}) {
             : ` Last booking: ${last.preferredDate}`)
         : '';
       if (language === 'ar') {
-        return `منورنا تاني يا ${name}!${lastHint} تحب تحجز غسيل تجريبي ولا باقة شهرية؟`;
+        return `منورنا تاني يا ${name}!${lastHint} تحب تحجز الغسلة الأساسية ولا الغسلة الذكية؟`;
       }
       if (language === 'de') {
-        return `Willkommen zurück, ${name}!${lastHint} Möchten Sie eine Probe-Wäsche oder ein Monatspaket buchen?`;
+        return `Willkommen zurück, ${name}!${lastHint} Möchten Sie Essential Wash oder Smart Wash buchen?`;
       }
-      return `Welcome back, ${name}!${lastHint} Would you like to book a Trial Wash or a monthly plan?`;
+      return `Welcome back, ${name}!${lastHint} Would you like to book an Essential Wash or Smart Wash?`;
     }
     return GREETING_REPLIES[language] || GREETING_REPLIES.en;
   }

@@ -23,6 +23,7 @@
     "@mastra/core": "^1.42.0",
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.10.0",
+    "canvas": "^3.2.3",
     "compression": "^1.8.1",
     "cors": "^2.8.6",
     "crypto": "^1.0.1",

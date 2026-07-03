@@ -16,9 +16,9 @@ const { Agent } = require('@mastra/core/agent');
 const KNOWLEDGE_BASE = `BUSINESS: CarShine Red Sea — premium mobile car wash service.
 AREAS SERVED: El Gouna, Hurghada, Sahl Hasheesh (Egypt). We do NOT serve anywhere else.
 PACKAGES:
-  1. Trial Wash — 150 EGP (one-time)
-  2. Smart Plan — 300 EGP/month (3 washes/month + reminders)
-  3. Premium Plan — 500 EGP/month (5 washes/month + priority booking)
+  1. Essential Wash — 250 EGP (one-time)
+  2. Smart Wash — 300 EGP (complete exterior, glass, tires, light interior)
+  3. Premium Detail — 350 EGP (fuller interior refresh + priority booking)
 ADD-ONS: Engine Wash 75, Wax 50, Seat Cleaning 60, Paint Protection 100 EGP.
 PAYMENT: Cash, InstaPay (to 01555567205 — must send receipt screenshot),
          Vodafone Cash, Orange Cash, Fawry, Bank Transfer.

@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>CarShine Red Sea — Operations Console · webdrift.io</title>
+  <meta name="description" content="CarShine Red Sea operations console: real-time bookings, payment review, cleaner dispatch, marketing autopilot, and live KPIs.">
+  <meta name="theme-color" content="#0a0a0a">
+
+  <link rel="icon" type="image/png" href="assets/brand/carshine-logo-new.png">
+  <link rel="apple-touch-icon" href="assets/brand/carshine-logo-new.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    /* ====================================================================
+       CarShine Operations Console — webdrift.io design system
+       Cards:  rounded-2xl (16px)
+       Small:  rounded-lg (10px)
+       Pills:  rounded-full
+       Glass:  bg-neutral-900/60 + ring-1 ring-neutral-800
+       ==================================================================== */
+    :root {
+      --bg:            #0a0a0a;        /* outer shell */
+      --bg-2:          #0a0a0a;
+      --card:          #171717;        /* card fill (bg-neutral-900) */
+      --card-glass:    rgba(23, 23, 23, 0.6);
+      --card-2:        #0f0f0f;        /* input/code */
+      --ring:          #262626;        /* neutral-800 */
+      --ring-2:        #404040;        /* neutral-700 */
+      --text:          #fafafa;
+      --text-2:        #a1a1aa;        /* neutral-400 */
+      --text-3:        #71717a;        /* neutral-500 */
+      --text-4:        #52525b;        /* neutral-600 */
+      --accent:        #3b82f6;        /* blue-500 */
+      --accent-2:      #60a5fa;        /* blue-400 */
+      --accent-soft:   rgba(59,130,246,0.12);
+      --accent-ring:   rgba(59,130,246,0.5);
+      --success:       #22c55e;
+      --warn:          #f59e0b;
+      --danger:        #ef4444;
+      --r-card:        16px;            /* rounded-2xl */
+      --r-btn:         10px;            /* rounded-lg */
+      --r-input:       10px;
+      --r-sm:          8px;             /* rounded-md */
+      --r-pill:        999px;
+      --t:             140ms;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      letter-spacing: -0.01em;
+    }
+    button, input, select, textarea { font: inherit; color: inherit; }
+    a { color: inherit; text-decoration: none; }
+
+    /* Subtle star field backdrop like the reference */
+    .backdrop-stars { position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: 0.4; }
+    .backdrop-stars i {
+      position: absolute;
+      width: 1px; height: 1px;
+      background: rgba(255,255,255,0.5);
+      border-radius: 50%;
+    }
+
+    /* App layout — tight 3-col like the reference */
+    .app {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      grid-template-rows: 60px 1fr;
+      grid-template-areas: "sidebar topbar" "sidebar main";
+      min-height: 100vh;
+      position: relative;
+      z-index: 1;
+    }
+    .app.sidebar-collapsed { grid-template-columns: 64px 1fr; }
+    .app.sidebar-collapsed .brand-text .name,
+    .app.sidebar-collapsed .profile-row > div,
+    .app.sidebar-collapsed .sidebar-search,
+    .app.sidebar-collapsed .nav-label,
+    .app.sidebar-collapsed .nav-item span:not(.badge),
+    .app.sidebar-collapsed .sidebar-upgrade { display: none; }
+    .app.sidebar-collapsed .nav-item { justify-content: center; padding: 8px; font-size: 0; }
+    .app.sidebar-collapsed .nav-item i { font-size: 14px; }
+    .app.sidebar-collapsed .nav-item .badge { font-size: 10px; }
+    .app.sidebar-collapsed .nav-item .badge { position: absolute; transform: translate(13px, -12px); }
+
+    /* ===== Sidebar ===== */
+    .sidebar {
+      grid-area: sidebar;
+      background: var(--bg);
+      border-right: 1px solid var(--ring);
+      padding: 14px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      overflow-y: auto;
+    }
+    .brand-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 6px;
+    }
+    .brand-text {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .brand-mark {
+      width: 28px; height: 28px;
+      border-radius: 6px;
+      background: var(--card);
+      border: 1px solid var(--ring);
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+    .brand-mark img { width: 100%; height: 100%; object-fit: contain; }
+    .brand-text .name {
+      font-size: 13px; font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .menu-toggle {
+      width: 28px; height: 28px;
+      border-radius: 6px;
+      background: transparent;
+      border: 1px solid var(--ring);
+      color: var(--text-2);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .menu-toggle:hover { background: var(--card); color: var(--text); }
+
+    .profile-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 4px;
+    }
+    .profile-avatar {
+      width: 32px; height: 32px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+      border: 1px solid var(--ring-2);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 12px; color: #fff;
+    }
+    .profile-name { font-size: 13px; font-weight: 500; }
+    .profile-role { font-size: 11px; color: var(--text-3); }
+
+    .sidebar-search {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--card);
+      border: 1px solid var(--ring);
+      border-radius: var(--r-input);
+      padding: 8px 12px;
+    }
+    .sidebar-search svg { color: var(--text-3); width: 14px; height: 14px; }
+    .sidebar-search input {
+      background: transparent; border: 0; outline: 0;
+      color: var(--text); font-size: 13px; width: 100%;
+    }
+    .sidebar-search input::placeholder { color: var(--text-3); }
+
+    .nav-section { display: flex; flex-direction: column; gap: 4px; }
+    .nav-label {
+      font-size: 10px; color: var(--text-4);
+      text-transform: uppercase; letter-spacing: 0.2em;
+      padding: 0 8px 6px;
+      font-weight: 600;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 10px;
+      border-radius: var(--r-btn);
+      color: var(--text-2);
+      cursor: pointer;
+      transition: all var(--t);
+      font-size: 13px;
+      font-weight: 500;
+      user-select: none;
+    }
+    .nav-item:hover { background: var(--card); color: var(--text); }
+    .nav-item.active {
+      background: var(--card);
+      color: var(--text);
+      border: 1px solid var(--ring-2);
+      padding: 6px 9px;
+    }
+    .nav-item i { width: 14px; height: 14px; }
+    .nav-item .badge {
+      margin-left: auto;
+      background: var(--accent);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 7px;
+      border-radius: 999px;
+    }
+    .nav-item.active i { color: var(--accent-2); }
+
+    .sidebar-upgrade {
+      margin-top: auto;
+      padding: 14px;
+      background: linear-gradient(180deg, var(--card) 0%, var(--bg) 100%);
+      border: 1px solid var(--ring);
+      border-radius: var(--r-card);
+      position: relative;
+      overflow: hidden;
+    }
+    .sidebar-upgrade::before {
+      content: '';
+      position: absolute;
+      top: -20px; left: 0; right: 0;
+      height: 28px;
+      background: linear-gradient(180deg, var(--accent-soft) 0%, transparent 100%);
+    }
+    .sidebar-upgrade .t {
+      font-size: 13px; font-weight: 600; color: var(--text);
+      letter-spacing: -0.01em;
+    }
+    .sidebar-upgrade .d {
+      font-size: 11px; color: var(--text-3); margin-top: 4px;
+    }
+    .sidebar-upgrade button {
+      margin-top: 10px;
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: 1px solid var(--accent-ring);
+      border-radius: var(--r-btn);
+      padding: 7px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background var(--t);
+    }
+    .sidebar-upgrade button:hover { background: var(--accent-2); }
+
+    /* ===== Topbar ===== */
+    .topbar {
+      grid-area: topbar;
+      background: var(--bg);
+      border-bottom: 1px solid var(--ring);
+      display: flex; align-items: center;
+      padding: 0 18px;
+      gap: 10px;
+    }
+    .topbar h1 { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+    .topbar .spacer { flex: 1; }
+    .topbar .pill {
+      background: var(--card);
+      border: 1px solid var(--ring);
+      padding: 5px 12px;
+      border-radius: var(--r-pill);
+      font-size: 11px;
+      color: var(--text-2);
+      display: flex; align-items: center; gap: 6px;
+      font-weight: 500;
+    }
+    .topbar .pill .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--success);
+    }
+    .topbar .pill .dot.off { background: var(--text-4); }
+    .topbar .pill .dot.warn { background: var(--warn); }
+    .topbar .icon-btn {
+      width: 30px; height: 30px;
+      background: transparent;
+      border: 1px solid var(--ring);
+      border-radius: var(--r-btn);
+      color: var(--text-2);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .topbar .icon-btn:hover { background: var(--card); color: var(--text); }
+    .topbar .icon-btn i { font-size: 12px; }
+
+    /* ===== Main ===== */
+    .main {
+      grid-area: main;
+      padding: 20px 24px 32px;
+      overflow-y: auto;
+    }
+    .page { display: none; }
+    .page.active { display: block; }
+    .page-head {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      margin-bottom: 18px; gap: 16px;
+    }
+    .page-title {
+      font-size: 20px; font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+    .page-sub {
+      color: var(--text-3);
+      font-size: 12px;
+      margin-top: 4px;
+      font-weight: 400;
+    }
+
+    /* ===== KPI grid ===== */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .kpi {
+      background: var(--card);
+      border: 1px solid var(--ring);
+      border-radius: var(--r-card);
+      padding: 16px 18px;
+      position: relative;
+      overflow: hidden;
+    }
+    .kpi::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--ring-2), transparent);
+    }
+    .kpi.accent { border-color: var(--accent-ring); }
+    .kpi .label {
+      color: var(--text-3);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      font-weight: 600;
+    }
+    .kpi .value {
+      font-size: 26px;
+      font-weight: 600;
+      margin-top: 6px;
+      letter-spacing: -0.025em;
+    }
+    .kpi .delta {
+      font-size: 11px;
+      color: var(--text-3);
+      margin-top: 2px;
+    }
+
+    /* ===== Panels (rounded-2xl, ring-1, neutral-900) ===== */
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--ring);
+      border-radius: var(--r-card);
+      padding: 18px 20px;
+      margin-bottom: 12px;
+    }
+    .panel-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .panel-title { font-size: 13px; font-weight: 600; letter-spacing: -0.01em; }
+    .panel-sub { color: var(--text-3); font-size: 11px; }
+
+    /* ===== Tables ===== */
+    .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .tbl th, .tbl td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--ring); }
+    .tbl th {
+      color: var(--text-3); font-weight: 600;
+      font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em;
+    }
+    .tbl tr:last-child td { border-bottom: 0; }
+    .tbl tr:hover td { background: var(--card-2); }
+    .scroll-x { overflow-x: auto; }
+
+    /* ===== Status pills (rounded-full) ===== */
+    .status {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      border: 1px solid var(--ring);
+    }
+    .status::before {
+      content: '';
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .status.s-pending  { color: var(--warn);  background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.3); }
+    .status.s-verified { color: var(--success); background: rgba(34,197,94,0.08); border-color: rgba(34,197,94,0.3); }
+    .status.s-rejected { color: var(--danger); background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.3); }
+    .status.s-booked   { color: var(--accent-2); background: var(--accent-soft); border-color: var(--accent-ring); }
+    .status.s-completed{ color: var(--text-2); background: var(--card-2); border-color: var(--ring-2); }
+    .status.s-cancelled{ color: var(--text-3); background: transparent; }
+    .status.s-assigned { color: var(--accent-2); background: var(--accent-soft); border-color: var(--accent-ring); }
+    .status.s-new      { color: var(--text); background: var(--card-2); border-color: var(--ring-2); }
+    .status.s-info     { color: var(--text-2); background: var(--card-2); border-color: var(--ring-2); }
+
+    /* ===== Buttons (rounded-lg, stroke-width 1.5 icons) ===== */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 12px;
+      border-radius: var(--r-btn);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--ring);
+      background: var(--card);
+      color: var(--text);
+      transition: all var(--t);
+      letter-spacing: -0.005em;
+    }
+    .btn:hover { background: var(--card-2); border-color: var(--ring-2); }
+    .btn:active { transform: scale(0.98); }
+    .btn.primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent-ring);
+    }
+    .btn.primary:hover { background: var(--accent-2); }
+    .btn.danger {
+      background: rgba(239,68,68,0.15);
+      color: var(--danger);
+      border-color: rgba(239,68,68,0.4);
+    }
+    .btn.danger:hover { background: rgba(239,68,68,0.25); }
+    .btn.success {
+      background: rgba(34,197,94,0.15);
+      color: var(--success);
+      border-color: rgba(34,197,94,0.4);
+    }
+    .btn.success:hover { background: rgba(34,197,94,0.25); }
+    .btn.sm { padding: 4px 9px; font-size: 11px; border-radius: 6px; }
+    .btn.ghost { background: transparent; border-color: var(--ring); }
+    .btn.icon-only { padding: 0; width: 30px; height: 30px; justify-content: center; }
+    .btn.icon-only i { font-size: 12px; }
+    .btn i { font-size: 11px; }
+
+    /* ===== Form controls ===== */
+    .form-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .form-group { margin-bottom: 12px; flex: 1; min-width: 200px; }
+    .form-group label {
+      display: block; font-size: 11px;
+      color: var(--text-3); margin-bottom: 4px; font-weight: 500;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      background: var(--card-2);
+      border: 1px solid var(--ring);
+      color: var(--text);
+      padding: 8px 10px;
+      border-radius: var(--r-input);
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color var(--t);
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus { border-color: var(--accent); }
+    .toolbar {
+      display: flex; gap: 8px; align-items: center; margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .toolbar input,
+    .toolbar select {
+      background: var(--card);
+      border: 1px solid var(--ring);
+      color: var(--text);
+      padding: 7px 10px;
+      border-radius: var(--r-input);
+      font-size: 13px;
+    }
+
+    /* ===== Kanban ===== */
+    .kanban {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      overflow-x: auto;
+    }
+    .kanban-col {
+      background: var(--card);
+      border: 1px solid var(--ring);
+      border-radius: var(--r-card);
+      padding: 12px;
+      min-height: 360px;
+    }
+    .kanban-col h3 {
+      font-size: 10px; font-weight: 700;
+      color: var(--text-3);
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      margin-bottom: 12px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .kanban-col h3 .count {
+      background: var(--card-2);
+      padding: 1px 7px;
+      border-radius: 999px;
+      font-size: 10px;
+      color: var(--text-2);
+    }
+    .kanban-card {
+      background: var(--card-2);
+      border: 1px solid var(--ring);
+      border-radius: var(--r-btn);
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: border-color var(--t);
+    }
+    .kanban-card:hover { border-color: var(--accent-ring); }
+    .kanban-card .time { color: var(--accent-2); font-weight: 600; font-size: 10px; letter-spacing: 0.04em; }
+    .kanban-card .name { font-weight: 600; margin-top: 3px; }
+    .kanban-card .area { color: var(--text-3); font-size: 11px; margin-top: 2px; }
+    .kanban-card .svc { color: var(--text-2); font-size: 11px; margin-top: 4px; }
+
+    .empty {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-3);
+      font-size: 13px;
+    }
+    .empty i { font-size: 26px; margin-bottom: 8px; display: block; opacity: 0.5; }
+
+    .alert {
+      padding: 10px 14px;
+      border-radius: var(--r-input);
+      font-size: 12px;
+      margin-bottom: 12px;
+      border: 1px solid var(--ring);
+    }
+    .alert.success { background: rgba(34,197,94,0.08); color: var(--success); border-color: rgba(34,197,94,0.3); }
+    .alert.error   { background: rgba(239,68,68,0.08); color: var(--danger); border-color: rgba(239,68,68,0.3); }
+    .alert.info    { background: var(--accent-soft); color: var(--accent-2); border-color: var(--accent-ring); }
+
+    /* ===== Modal ===== */
+    .modal-bg {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: none; align-items: center; justify-content: center;
+      z-index: 100;
+      backdrop-filter: blur(4px);
+    }
+    .modal-bg.open { display: flex; }
+    .modal {
+      background: var(--card);
+      border: 1px solid var(--ring-2);
+      border-radius: var(--r-card);
+      padding: 22px;
+      max-width: 480px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    .modal h2 { font-size: 15px; font-weight: 600; margin-bottom: 4px; letter-spacing: -0.01em; }
+    .modal .modal-sub { font-size: 12px; color: var(--text-3); margin-bottom: 14px; }
+
+    /* ===== Toast ===== */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: var(--card);
+      border: 1px solid var(--ring-2);
+      border-radius: var(--r-input);
+      padding: 12px 18px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+      z-index: 200;
+      display: none;
+      font-size: 13px;
+      max-width: 340px;
+    }
+    .toast.show { display: block; animation: csIn .18s ease-out; }
+    @keyframes csIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    /* ===== Auth gate ===== */
+    .auth-gate {
+      position: fixed; inset: 0;
+      z-index: 300;
+      background: rgba(10,10,10,0.92);
+      backdrop-filter: blur(10px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .auth-gate.open { display: flex; }
+    .auth-card {
+      width: min(420px, 100%);
+      background: var(--card);
+      border: 1px solid var(--ring-2);
+      border-radius: var(--r-card);
+      padding: 24px;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.55);
+    }
+    .auth-card h1 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+    .auth-card p { color: var(--text-3); font-size: 12px; margin-bottom: 16px; }
+    .auth-error {
+      display: none;
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: var(--r-input);
+      border: 1px solid rgba(239,68,68,0.35);
+      color: var(--danger);
+      background: rgba(239,68,68,0.08);
+      font-size: 12px;
+    }
+    .auth-error.show { display: block; }
+
+    /* ===== Switch ===== */
+    .switch {
+      display: inline-flex; align-items: center; gap: 8px;
+      cursor: pointer;
+    }
+    .switch input { display: none; }
+    .switch .slider {
+      width: 30px; height: 18px;
+      background: var(--card-2);
+      border-radius: var(--r-pill);
+      position: relative;
+      border: 1px solid var(--ring-2);
+    }
+    .switch .slider::after {
+      content: '';
+      position: absolute; top: 1px; left: 1px;
+      width: 14px; height: 14px;
+      background: var(--text-3);
+      border-radius: 50%;
+      transition: all var(--t);
+    }
+    .switch input:checked + .slider { background: var(--accent); border-color: var(--accent-ring); }
+    .switch input:checked + .slider::after { left: 13px; background: #fff; }
+
+    @media (max-width: 1024px) {
+      .app { grid-template-columns: 1fr; grid-template-areas: "topbar" "main"; }
+      .sidebar { display: none; }
+      .kanban { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="backdrop-stars">
+    <i style="top:8%; left:10%;"></i>
+    <i style="top:14%; left:33%; opacity:0.3;"></i>
+    <i style="top:10%; right:16%; opacity:0.2;"></i>
+    <i style="top:33%; right:25%; opacity:0.3;"></i>
+    <i style="top:12%; bottom:15%; left:25%; opacity:0.2;"></i>
+  </div>
+
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand-row">
+        <div class="brand-text">
+          <div class="brand-mark"><img src="assets/brand/carshine-logo-new.png" alt="CarShine"></div>
+          <span class="name">CarShine Red Sea</span>
+        </div>
+        <button class="menu-toggle" title="Toggle menu"><i class="fa-solid fa-bars" style="font-size:12px;"></i></button>
+      </div>
+
+      <div class="profile-row">
+        <div class="profile-avatar">CS</div>
+        <div>
+          <p class="profile-name">Operations</p>
+          <p class="profile-role">webdrift.io · OWNER</p>
+        </div>
+      </div>
+
+      <div class="sidebar-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.3-4.3"></path>
+        </svg>
+        <input id="global-search" placeholder="Search customers, bookings…" />
+      </div>
+
+      <div class="nav-section">
+        <p class="nav-label">Today</p>
+        <div class="nav-item active" data-page="overview"><i class="fa-solid fa-gauge-high"></i> Overview</div>
+        <div class="nav-item" data-page="dispatch"><i class="fa-solid fa-truck-fast"></i> Dispatch <span class="badge" id="nav-dispatch-count">0</span></div>
+        <div class="nav-item" data-page="bookings"><i class="fa-solid fa-clipboard-list"></i> Bookings</div>
+        <div class="nav-item" data-page="payments"><i class="fa-solid fa-money-check-dollar"></i> Payments <span class="badge" id="nav-payments-count">0</span></div>
+        <div class="nav-item" data-page="inbox"><i class="fa-solid fa-comments"></i> Inbox</div>
+      </div>
+
+      <div class="nav-section">
+        <p class="nav-label">Business</p>
+        <div class="nav-item" data-page="leads"><i class="fa-solid fa-address-card"></i> Leads <span class="badge" id="nav-leads-count">0</span></div>
+        <div class="nav-item" data-page="contacts"><i class="fa-solid fa-envelope-open-text"></i> Contact forms</div>
+        <div class="nav-item" data-page="customers"><i class="fa-solid fa-users"></i> Customers</div>
+        <div class="nav-item" data-page="followups"><i class="fa-solid fa-list-check"></i> Follow-ups</div>
+        <div class="nav-item" data-page="join"><i class="fa-solid fa-handshake-angle"></i> Join us</div>
+        <div class="nav-item" data-page="staff"><i class="fa-solid fa-people-group"></i> Staff</div>
+        <div class="nav-item" data-page="calendar"><i class="fa-solid fa-calendar"></i> Calendar</div>
+      </div>
+
+      <div class="nav-section">
+        <p class="nav-label">Growth</p>
+        <div class="nav-item" data-page="portal"><i class="fa-solid fa-link"></i> Portal tokens</div>
+        <div class="nav-item" data-page="marketing"><i class="fa-solid fa-bullhorn"></i> Marketing</div>
+        <div class="nav-item" data-page="media"><i class="fa-solid fa-photo-film"></i> Media library</div>
+        <div class="nav-item" data-page="reports"><i class="fa-solid fa-chart-line"></i> Reports</div>
+      </div>
+
+      <div class="sidebar-upgrade">
+        <p class="t">Customer portal ready</p>
+        <p class="d">Generate magic links, customers self-serve via WhatsApp.</p>
+        <button onclick="setPage('portal')">Open portal admin →</button>
+      </div>
+    </aside>
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <h1 id="page-title">Overview</h1>
+      <div class="spacer"></div>
+      <div class="pill" id="autopilot-pill">
+        <span class="dot" id="autopilot-dot"></span>
+        <span id="autopilot-text">Autopilot …</span>
+      </div>
+      <div class="pill"><span class="dot" id="conn-dot"></span> <span id="conn-text">Live</span></div>
+      <button class="icon-btn" title="Refresh" onclick="refreshCurrent()"><i class="fa-solid fa-rotate"></i></button>
+      <div class="pill"><i class="fa-regular fa-clock"></i> <span id="clock">--:--</span></div>
+    </header>
+
+    <!-- Main -->
+    <main class="main">
+      <!-- OVERVIEW -->
+      <div class="page active" id="page-overview">
+        <div class="page-head">
+          <div>
+            <h1 class="page-title">Today's overview</h1>
+            <p class="page-sub">Real-time across El Gouna, Hurghada, Sahl Hasheesh · auto-refresh every 5s</p>
+          </div>
+        </div>
+        <div class="kpi-grid">
+          <div class="kpi accent"><div class="label">Today bookings</div><div class="value" id="kpi-today">0</div><div class="delta" id="kpi-today-sub">across all areas</div></div>
+          <div class="kpi"><div class="label">Pending payments</div><div class="value" id="kpi-payments">0</div><div class="delta">awaiting verify</div></div>
+          <div class="kpi"><div class="label">Verified revenue</div><div class="value" id="kpi-revenue">0 EGP</div><div class="delta">last 7 days</div></div>
+          <div class="kpi"><div class="label">Active cleaners</div><div class="value" id="kpi-cleaners">0</div><div class="delta">on shift now</div></div>
+          <div class="kpi"><div class="label">Open chats</div><div class="value" id="kpi-chats">0</div><div class="delta">live conversations</div></div>
+          <div class="kpi"><div class="label">Conversion</div><div class="value" id="kpi-conversion">0%</div><div class="delta">chat → booking</div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Today's bookings</div>
+              <div class="panel-sub" id="today-sub">—</div>
+            </div>
+            <div class="panel-toolbar">
+              <button class="btn ghost sm" onclick="setPage('dispatch')">Open dispatch →</button>
+            </div>
+          </div>
+          <div class="scroll-x">
+            <table class="tbl">
+              <thead><tr><th>Time</th><th>Customer</th><th>Phone</th><th>Area</th><th>Service</th><th>Status</th><th>Payment</th></tr></thead>
+              <tbody id="today-tbody"><tr><td colspan="7" class="empty"><i class="fa-regular fa-calendar"></i>Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOOKINGS -->
+      <div class="page" id="page-bookings">
+        <div class="page-head"><div><h1 class="page-title">Bookings & plans</h1><p class="page-sub">All real bookings with selected plan, status, payment, and customer details</p></div></div>
+        <div class="toolbar">
+          <select id="booking-status"><option value="">All statuses</option><option value="NEW">New</option><option value="BOOKED">Booked</option><option value="ASSIGNED">Assigned</option><option value="IN_PROGRESS">In progress</option><option value="COMPLETED">Completed</option><option value="CANCELLED">Cancelled</option></select>
+          <select id="booking-payment-status"><option value="">All payment states</option><option value="UNPAID">Unpaid</option><option value="PAYMENT_PENDING_REVIEW">Pending review</option><option value="VERIFIED">Verified</option><option value="REJECTED">Rejected</option></select>
+          <button class="btn" id="bookings-refresh-btn"><i class="fa-solid fa-rotate"></i> Refresh</button>
+        </div>
+        <div class="panel"><div class="scroll-x"><table class="tbl">
+          <thead><tr><th>Date</th><th>Customer</th><th>Phone</th><th>Plan</th><th>Price</th><th>Area</th><th>Status</th><th>Payment</th><th>Actions</th></tr></thead>
+          <tbody id="bookings-tbody"><tr><td colspan="9" class="empty">Loading…</td></tr></tbody>
+        </table></div></div>
+      </div>
+
+      <!-- DISPATCH -->
+      <div class="page" id="page-dispatch">
+        <div class="page-head"><div><h1 class="page-title">Operations progress</h1><p class="page-sub">Customer, car, place, cleaner, wash progress, paid amount, investment, remaining profit, last and next wash</p></div></div>
+        <div class="kpi-grid">
+          <div class="kpi"><div class="label">Open jobs</div><div class="value" id="ops-open">0</div><div class="delta">not completed/cancelled</div></div>
+          <div class="kpi"><div class="label">Paid total</div><div class="value" id="ops-paid">0 EGP</div><div class="delta">verified or submitted</div></div>
+          <div class="kpi"><div class="label">Invested / cost</div><div class="value" id="ops-cost">0 EGP</div><div class="delta">owner-entered cost</div></div>
+          <div class="kpi accent"><div class="label">Remaining profit</div><div class="value" id="ops-profit">0 EGP</div><div class="delta">paid minus cost</div></div>
+        </div>
+        <div class="toolbar">
+          <button class="btn" onclick="loadDispatch()"><i class="fa-solid fa-rotate"></i> Refresh</button>
+          <button class="btn ghost" onclick="setPage('staff')"><i class="fa-solid fa-people-group"></i> Manage staff</button>
+        </div>
+        <div class="panel">
+          <div class="scroll-x">
+            <table class="tbl">
+              <thead><tr><th>Customer / Car</th><th>Place</th><th>Wash progress</th><th>Paid</th><th>Invested</th><th>Left / Profit</th><th>Cleaner</th><th>Last / Next</th><th>Actions</th></tr></thead>
+              <tbody id="dispatch-progress-tbody"><tr><td colspan="9" class="empty">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAYMENTS -->
+      <div class="page" id="page-payments">
+        <div class="page-head"><div><h1 class="page-title">Payment review</h1><p class="page-sub">Verify InstaPay / Vodafone Cash / Fawry proofs in one click</p></div></div>
+        <div class="toolbar">
+          <select id="pay-filter"><option value="PAYMENT_PENDING_REVIEW">Pending review</option><option value="VERIFIED">Verified</option><option value="REJECTED">Rejected</option></select>
+          <button class="btn" onclick="loadPayments()"><i class="fa-solid fa-rotate"></i> Refresh</button>
+        </div>
+        <div class="alert info" id="payments-connection-banner">Connected to the proof-review API. Direct InstaPay auto-capture is not enabled; admins verify submitted receipts.</div>
+        <div class="panel">
+          <div class="scroll-x">
+            <table class="tbl">
+              <thead><tr><th>Submitted</th><th>Customer</th><th>Booking</th><th>Method</th><th>Amount</th><th>Reference</th><th>Proof</th><th>Actions</th></tr></thead>
+              <tbody id="payments-tbody"><tr><td colspan="8" class="empty">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- INBOX -->
+      <div class="page" id="page-inbox">
+        <div class="page-head"><div><h1 class="page-title">Customer inbox</h1><p class="page-sub">WhatsApp + website chats · Layla answers automatically</p></div></div>
+        <div class="toolbar">
+          <button class="btn primary" onclick="openTestWhatsApp()"><i class="fa-brands fa-whatsapp"></i> Test WhatsApp (no Meta needed)</button>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Recent conversations</div>
+              <div class="panel-sub" id="inbox-sub">Loading live chat sessions…</div>
+            </div>
+          </div>
+          <div class="scroll-x">
+            <table class="tbl">
+              <thead><tr><th>Updated</th><th>Customer</th><th>Phone</th><th>Last message</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="inbox-tbody"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- LEADS -->
+      <div class="page" id="page-leads">
+        <div class="page-head"><div><h1 class="page-title">Leads</h1><p class="page-sub">Sales pipeline from contact forms, chatbot, WhatsApp, and manual entries</p></div></div>
+        <div class="toolbar">
+          <input id="lead-search" placeholder="Search leads…" />
+          <select id="lead-status"><option value="">All statuses</option><option value="new">New</option><option value="contacted">Contacted</option><option value="qualified">Qualified</option><option value="won">Won</option><option value="lost">Lost</option></select>
+          <button class="btn" id="lead-search-btn"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
+          <button class="btn primary" id="lead-add-btn"><i class="fa-solid fa-plus"></i> Add lead</button>
+        </div>
+        <div class="panel"><div class="scroll-x"><table class="tbl">
+          <thead><tr><th>Created</th><th>Name</th><th>Contact</th><th>Source</th><th>Interest</th><th>Status</th><th>Next follow-up</th><th>Actions</th></tr></thead>
+          <tbody id="leads-tbody"><tr><td colspan="8" class="empty">Loading…</td></tr></tbody>
+        </table></div></div>
+      </div>
+
+      <!-- CONTACT FORM SUBMISSIONS -->
+      <div class="page" id="page-contacts">
+        <div class="page-head"><div><h1 class="page-title">Contact form submissions</h1><p class="page-sub">Every website enquiry saved for follow-up</p></div></div>
+        <div class="toolbar">
+          <input id="contact-search" placeholder="Search name / email / phone / message…" />
+          <select id="contact-status"><option value="">All statuses</option><option value="new">New</option><option value="contacted">Contacted</option><option value="closed">Closed</option></select>
+          <button class="btn" id="contact-search-btn"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
+        </div>
+        <div class="panel"><div class="scroll-x"><table class="tbl">
+          <thead><tr><th>Date</th><th>Name</th><th>Email</th><th>Phone</th><th>Message</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="contacts-tbody"><tr><td colspan="7" class="empty">Loading…</td></tr></tbody>
+        </table></div></div>
+      </div>
+
+      <!-- FOLLOW UPS -->
+      <div class="page" id="page-followups">
+        <div class="page-head"><div><h1 class="page-title">Follow-ups</h1><p class="page-sub">Tasks for sales, bookings, WhatsApp callbacks, and customer care</p></div></div>
+        <div class="toolbar">
+          <select id="followup-status"><option value="">All statuses</option><option value="open">Open</option><option value="done">Done</option></select>
+          <button class="btn" id="followup-refresh-btn"><i class="fa-solid fa-rotate"></i> Refresh</button>
+          <button class="btn primary" id="followup-add-btn"><i class="fa-solid fa-plus"></i> Add follow-up</button>
+        </div>
+        <div class="panel"><div class="scroll-x"><table class="tbl">
+          <thead><tr><th>Due</th><th>Title</th><th>Channel</th><th>Status</th><th>Notes</th><th>Actions</th></tr></thead>
+          <tbody id="followups-tbody"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody>
+        </table></div></div>
+      </div>
+
+      <!-- JOIN US -->
+      <div class="page" id="page-join">
+        <div class="page-head"><div><h1 class="page-title">Join us requests</h1><p class="page-sub">Cleaner, partner, and team applications</p></div></div>
+        <div class="toolbar">
+          <input id="join-search" placeholder="Search applicants…" />
+          <select id="join-status"><option value="">All statuses</option><option value="new">New</option><option value="reviewing">Reviewing</option><option value="accepted">Accepted</option><option value="rejected">Rejected</option></select>
+          <button class="btn" id="join-search-btn"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
+        </div>
+        <div class="panel"><div class="scroll-x"><table class="tbl">
+          <thead><tr><th>Date</th><th>Name</th><th>Contact</th><th>Role</th><th>Message</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="join-tbody"><tr><td colspan="7" class="empty">Loading…</td></tr></tbody>
+        </table></div></div>
+      </div>
+
+      <!-- CUSTOMERS -->
+      <div class="page" id="page-customers">
+        <div class="page-head"><div><h1 class="page-title">Customers</h1><p class="page-sub">Real CRM: every car owner we've served</p></div></div>
+        <div class="toolbar">
+          <input id="cust-search" placeholder="Search name / phone / email" style="background:var(--card); border:1px solid var(--ring); color:var(--text); padding:7px 10px; border-radius:10px; font-size:13px; min-width:260px;" />
+          <button class="btn" onclick="loadCustomers()"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
+        </div>
+        <div class="panel">
+          <div class="scroll-x">
+            <table class="tbl">
+              <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Area</th><th>Language</th><th>Vehicles</th><th>Created</th></tr></thead>
+              <tbody id="customers-tbody"><tr><td colspan="7" class="empty">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- STAFF -->
+      <div class="page" id="page-staff">
+        <div class="page-head"><div><h1 class="page-title">Staff & cleaners</h1><p class="page-sub">Roster, shifts, performance</p></div></div>
+        <div class="toolbar">
+          <button class="btn primary" id="staff-add-btn" data-owner-only><i class="fa-solid fa-plus"></i> Add staff</button>
+          <button class="btn" onclick="loadStaff()"><i class="fa-solid fa-rotate"></i> Refresh</button>
+        </div>
+        <div class="panel">
+          <div class="scroll-x">
+            <table class="tbl">
+              <thead><tr><th>Name</th><th>Role</th><th>Phone</th><th>Shift</th><th>Status</th><th>Last login</th><th>Actions</th></tr></thead>
+              <tbody id="staff-tbody"><tr><td colspan="7" class="empty">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- CALENDAR -->
+      <div class="page" id="page-calendar">
+        <div class="page-head"><div><h1 class="page-title">Calendar</h1><p class="page-sub">This week's schedule (Sun → Sat)</p></div></div>
+        <div class="panel" id="calendar-panel"><div class="empty">Loading…</div></div>
+      </div>
+
+      <!-- PORTAL -->
+      <div class="page" id="page-portal">
+        <div class="page-head"><div><h1 class="page-title">Customer portal tokens</h1><p class="page-sub">Issue magic links so customers self-serve via WhatsApp</p></div></div>
+        <div class="panel">
+          <h3 style="font-size:13px;margin-bottom:10px;">Issue a portal link</h3>
+          <div class="form-row">
+            <div class="form-group"><label>Customer ID</label><input id="portal-customer" placeholder="cust_..." /></div>
+            <div class="form-group"><label>Scope</label><select id="portal-scope"><option value="all">All bookings</option><option value="booking">Single booking</option></select></div>
+            <div class="form-group"><label>Booking ID (if single)</label><input id="portal-booking" placeholder="book_..." /></div>
+            <div class="form-group"><label>Channel</label><select id="portal-channel"><option value="whatsapp">WhatsApp</option><option value="email">Email</option><option value="link">Direct link</option></select></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Send to (phone or email)</label><input id="portal-to" placeholder="+20... or name@example.com" /></div>
+            <div class="form-group"><label>TTL (days)</label><input id="portal-ttl" type="number" value="14" /></div>
+          </div>
+          <button class="btn primary" id="portal-issue-btn"><i class="fa-solid fa-link"></i> Issue token</button>
+          <div id="portal-result" style="margin-top:14px;"></div>
+        </div>
+      </div>
+
+      <!-- MARKETING -->
+      <div class="page" id="page-marketing">
+        <div class="page-head"><div><h1 class="page-title">Marketing autopilot</h1><p class="page-sub">3 posts/day · brand templates + MiniMax copy · Postiz when configured</p></div></div>
+        <div class="panel">
+          <div class="alert info" id="autopilot-status-banner">Loading…</div>
+          <div class="form-row">
+            <div class="form-group"><label>Mode</label><select id="autopilot-mode"><option value="live">Live (publish when Postiz key set)</option><option value="draft">Draft (artifacts only)</option><option value="paused">Paused</option></select></div>
+            <div class="form-group"><label>Language</label><select id="autopilot-lang"><option value="en">English</option><option value="ar">Arabic (Egyptian)</option><option value="de">German</option></select></div>
+            <div class="form-group"><label>Topic (optional)</label><input id="autopilot-topic" placeholder="premium mobile car wash" /></div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <label class="switch">
+              <input type="checkbox" id="autopilot-toggle" />
+              <span class="slider"></span>
+              <span id="autopilot-toggle-label">Enable autopilot</span>
+            </label>
+            <button class="btn primary" id="ap-test-btn"><i class="fa-solid fa-flask-vial"></i> Test publish now</button>
+            <button class="btn" id="ap-start-btn"><i class="fa-regular fa-clock"></i> Start scheduler</button>
+            <button class="btn ghost" id="ap-stop-btn"><i class="fa-solid fa-pause"></i> Stop scheduler</button>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <div><div class="panel-title">Recent runs</div><div class="panel-sub" id="runs-sub">—</div></div>
+          </div>
+          <div class="scroll-x">
+            <table class="tbl">
+              <thead><tr><th>Time</th><th>Result</th><th>Elapsed</th><th>Ad set</th></tr></thead>
+              <tbody id="runs-tbody"><tr><td colspan="4" class="empty">No runs yet — click "Test publish now" to generate your first ad set</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- MEDIA LIBRARY -->
+      <div class="page" id="page-media">
+        <div class="page-head"><div><h1 class="page-title">Generated media library</h1><p class="page-sub">AI/manual content drafts for Instagram, Facebook, and TikTok. Approval required before publishing.</p></div></div>
+        <div class="toolbar">
+          <select id="media-platform"><option value="">All platforms</option><option value="instagram">Instagram</option><option value="facebook">Facebook</option><option value="tiktok">TikTok</option></select>
+          <select id="media-status"><option value="">All statuses</option><option value="draft">Draft</option><option value="ready">Ready</option><option value="approved">Approved</option><option value="scheduled">Scheduled</option></select>
+          <button class="btn" id="media-refresh-btn"><i class="fa-solid fa-rotate"></i> Refresh</button>
+          <button class="btn primary" id="media-generate-btn" data-owner-only><i class="fa-solid fa-wand-magic-sparkles"></i> Create draft</button>
+        </div>
+        <div class="alert info">MiniMax media generation is prepared as a controlled draft workflow. Add <code>MiniMax_API_KEY</code> and enable the provider before real asset generation.</div>
+        <div class="panel"><div class="scroll-x"><table class="tbl">
+          <thead><tr><th>Created</th><th>Platform</th><th>Title</th><th>Caption</th><th>Status</th><th>Scheduled</th><th>Actions</th></tr></thead>
+          <tbody id="media-tbody"><tr><td colspan="7" class="empty">Loading…</td></tr></tbody>
+        </table></div></div>
+      </div>
+
+      <!-- REPORTS -->
+      <div class="page" id="page-reports">
+        <div class="page-head"><div><h1 class="page-title">Reports</h1><p class="page-sub">Revenue, conversion, top services, top areas</p></div></div>
+        <div class="kpi-grid">
+          <div class="kpi"><div class="label">Last 7d revenue</div><div class="value" id="r-rev-7">0 EGP</div></div>
+          <div class="kpi"><div class="label">Last 7d bookings</div><div class="value" id="r-bk-7">0</div></div>
+          <div class="kpi"><div class="label">Avg ticket</div><div class="value" id="r-avg-7">0 EGP</div></div>
+          <div class="kpi"><div class="label">Pending payments</div><div class="value" id="r-pending">0</div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-title" style="margin-bottom:10px;">By service</div>
+          <div id="r-by-service" class="empty">Loading…</div>
+        </div>
+        <div class="panel">
+          <div class="panel-title" style="margin-bottom:10px;">By area</div>
+          <div id="r-by-area" class="empty">Loading…</div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="auth-gate" id="auth-gate" aria-hidden="true">
+    <form class="auth-card" id="admin-login-form">
+      <h1>Admin login</h1>
+      <p>Sign in to load live operations data and owner-only actions.</p>
+      <div class="form-group">
+        <label>Email</label>
+        <input id="login-email" type="email" autocomplete="username" value="admin@carshineredsea.com" required>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input id="login-password" type="password" autocomplete="current-password" required>
+      </div>
+      <button class="btn primary" type="submit" id="login-submit"><i class="fa-solid fa-lock"></i> Log in</button>
+      <div class="auth-error" id="auth-error"></div>
+    </form>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-bg" id="modal-bg">
+    <div class="modal" id="modal"></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    if (window.location.protocol === 'file:') {
+      document.body.innerHTML = `
+        <main style="min-height:100vh;display:grid;place-items:center;background:#0a0a0a;color:#fafafa;font-family:Inter,Arial,sans-serif;padding:24px;">
+          <section style="max-width:560px;border:1px solid #262626;background:#171717;border-radius:16px;padding:28px;box-shadow:0 30px 80px rgba(0,0,0,.45);">
+            <img src="assets/brand/carshine-logo-new.png" alt="CarShine" style="width:52px;height:52px;object-fit:contain;margin-bottom:18px;">
+            <h1 style="font-size:22px;margin:0 0 10px;">Open the dashboard through the server</h1>
+            <p style="color:#a1a1aa;line-height:1.6;margin:0 0 18px;">This dashboard is connected to backend APIs, auth, payments, inbox, bookings, and live data. It cannot work correctly as a local file.</p>
+            <a href="http://localhost:5000/dashboard-v2" style="display:inline-flex;align-items:center;justify-content:center;background:#3b82f6;color:white;text-decoration:none;border-radius:10px;padding:10px 14px;font-weight:700;">Open live dashboard</a>
+            <p style="color:#71717a;font-size:12px;line-height:1.5;margin:16px 0 0;">If the link does not open, start the backend from <code>service-agent</code> with <code>npm start</code>, then visit <code>http://localhost:5000/dashboard-v2</code>.</p>
+          </section>
+        </main>
+      `;
+    } else {
+      const script = document.createElement('script');
+      script.src = 'dashboard-v2.js';
+      script.defer = true;
+      document.body.appendChild(script);
+    }
+  </script>
+</body>
+</html>
