@@ -1,14 +1,26 @@
 {
-  "name": "carshine-redsea-landing",
+  "name": "carshine-redsea",
   "version": "1.0.0",
-  "description": "Carshine Red Sea Landing Pages - Multi-language (EN/AR/DE) with Vite build",
+  "description": "CarShine Red Sea Express app serving landing pages, dashboard, and APIs",
   "type": "module",
   "private": true,
+  "main": "hostinger-app.cjs",
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "express",
+    "node",
+    "hostinger",
+    "carshine"
+  ],
   "scripts": {
     "dev": "vite",
     "start": "node hostinger-app.cjs",
+    "postinstall": "npm run hostinger:install",
     "hostinger:install": "npm --prefix service-agent install --omit=dev",
-    "build": "vite build && node scripts/add-sri.js",
+    "build": "node scripts/hostinger-build.cjs",
+    "build:landing": "vite build && node scripts/add-sri.js",
     "build:all": "vite build && node scripts/add-sri.js",
     "build:en": "vite build --mode en && node scripts/add-sri.js",
     "build:ar": "vite build --mode ar && node scripts/add-sri.js",
