@@ -16,6 +16,7 @@ fs.rmSync(dist, { recursive: true, force: true });
 fs.mkdirSync(dist, { recursive: true });
 
 copyIfExists('index.html');
+copyIfExists('404.html');
 copyIfExists('ar');
 copyIfExists('de');
 copyIfExists('assets');

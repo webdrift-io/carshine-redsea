@@ -2571,6 +2571,13 @@ app.post('/api/cleaner/bookings/:id/status', requireAuth, requireRole(['CLEANER'
 // ============================================================================
 
 app.use((req, res, next) => {
+  if (req.path.startsWith('/api/') || req.accepts('html') !== 'html') {
+    return res.status(404).json({ error: 'Not found', path: req.path });
+  }
+  const notFoundPage = path.join(PROJECT_ROOT, '404.html');
+  if (fs.existsSync(notFoundPage)) {
+    return res.status(404).sendFile(notFoundPage);
+  }
   res.status(404).json({ error: 'Not found', path: req.path });
 });
 
